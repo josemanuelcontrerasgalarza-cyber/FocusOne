@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Target, Lightbulb, BarChart2, Settings } from 'lucide-react'
+import { LayoutDashboard, Target, Lightbulb, BarChart2, Settings, Music } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { cn } from '../../lib/utils'
@@ -14,6 +14,7 @@ const mobileNav = [
   { to: '/projects', icon: Target, label: 'Proyecto' },
   { to: '/ideas', icon: Lightbulb, label: 'Ideas' },
   { to: '/stats', icon: BarChart2, label: 'Stats' },
+  { to: '/music', icon: Music, label: 'Música' },
   { to: '/settings', icon: Settings, label: 'Config' },
 ]
 
@@ -23,6 +24,7 @@ const pageTitles: Record<string, string> = {
   '/ideas': 'Ideas',
   '/stats': 'Estadísticas',
   '/settings': 'Configuración',
+  '/music': 'Música',
 }
 
 export function AppLayout({ children }: AppLayoutProps) {

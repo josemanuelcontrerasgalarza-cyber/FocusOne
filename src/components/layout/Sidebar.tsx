@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Target, Lightbulb, BarChart2, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Target, Lightbulb, BarChart2, Settings, LogOut, Music } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { getInitials } from '../../lib/utils'
 import { cn } from '../../lib/utils'
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/projects', icon: Target, label: 'Mi Proyecto' },
   { to: '/ideas', icon: Lightbulb, label: 'Ideas' },
   { to: '/stats', icon: BarChart2, label: 'Estadísticas' },
+  { to: '/music', icon: Music, label: 'Música' },
   { to: '/settings', icon: Settings, label: 'Configuración' },
 ]
 

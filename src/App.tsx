@@ -12,6 +12,7 @@ import { ProjectPage } from './pages/ProjectPage'
 import { IdeasPage } from './pages/IdeasPage'
 import { StatsPage } from './pages/StatsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { MusicPage } from './pages/MusicPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, initialized } = useAuthStore()
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="/ideas" element={<ProtectedRoute><AppLayout><IdeasPage /></AppLayout></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute><AppLayout><StatsPage /></AppLayout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><AppLayout><SettingsPage /></AppLayout></ProtectedRoute>} />
+        <Route path="/music" element={<ProtectedRoute><AppLayout><MusicPage /></AppLayout></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
