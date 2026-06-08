@@ -1,51 +1,74 @@
 import { useState } from 'react'
 import { Music, ExternalLink, Play } from 'lucide-react'
 import { Card } from '../components/ui/Card'
+import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { cn } from '../lib/utils'
 
 const playlists = [
   {
-    id: '0vvXsWCC9xrXsKd4eujFmD',
-    name: 'Lo-Fi Hip Hop',
-    description: 'Beats relajados para estudiar y trabajar',
-    emoji: '🎵',
+    id: '7nku1YIwM6qDprKTqT6Zxg',
+    name: 'FocusOne Deep Work',
+    description: 'Lo-fi y ambient para trabajo profundo',
+    emoji: '🎯',
     color: 'from-purple-500/20 to-blue-500/20',
+    badge: 'Tu playlist',
   },
   {
-    id: '37i9dQZF1DWZeKCadgRdKQ',
-    name: 'Deep Focus',
-    description: 'Música para concentración profunda',
-    emoji: '🧠',
-    color: 'from-blue-500/20 to-cyan-500/20',
+    id: '5zmq1ve3MGhrZvZ1en2kU4',
+    name: 'FocusOne Coding Mode',
+    description: 'Electrónica e instrumental para programar',
+    emoji: '⚡',
+    color: 'from-green-500/20 to-emerald-500/20',
+    badge: 'Tu playlist',
   },
   {
-    id: '37i9dQZF1DX8NTLI2TtZa6',
+    id: '7fMT4MC1Jm8QiQ6bkdKqhN',
+    name: 'FocusOne Chill & Flow',
+    description: 'Piano y ambient para flujo creativo',
+    emoji: '🌿',
+    color: 'from-teal-500/20 to-cyan-500/20',
+    badge: 'Tu playlist',
+  },
+  {
+    id: '37i9dQZF1DX5trt9i14X7j',
     name: 'Coding Mode',
     description: 'El soundtrack perfecto para programar',
     emoji: '💻',
-    color: 'from-green-500/20 to-emerald-500/20',
+    color: 'from-blue-500/20 to-indigo-500/20',
+    badge: 'Spotify',
   },
   {
-    id: '37i9dQZF1DX4sWSpwq3LiO',
-    name: 'Peaceful Piano',
-    description: 'Piano suave para trabajar en calma',
-    emoji: '🎹',
+    id: '0F1xjpUYQ1KeXnbwgbL7bf',
+    name: 'Ondas Gamma',
+    description: 'Binaural para rendimiento mental máximo',
+    emoji: '🧠',
     color: 'from-yellow-500/20 to-orange-500/20',
+    badge: 'Spotify',
   },
   {
-    id: '37i9dQZF1DWXe9gFZP0gtP',
-    name: 'Ambient Chill',
-    description: 'Sonidos ambientales y naturaleza',
-    emoji: '🌿',
-    color: 'from-teal-500/20 to-green-500/20',
-  },
-  {
-    id: '37i9dQZF1DX4GJ8roCpFpZ',
-    name: 'Focus Flow',
-    description: 'Electrónica instrumental para el flujo',
-    emoji: '⚡',
+    id: '0EAo4yaK5HfxrsQXAqaOLz',
+    name: 'LoFi Deep Focus',
+    description: 'Beats lo-fi para productividad',
+    emoji: '🎵',
     color: 'from-pink-500/20 to-purple-500/20',
+    badge: 'Spotify',
+  },
+  {
+    id: '679wCT6dVMDBxrYa5NcrXL',
+    name: 'Coding Music',
+    description: 'Programming playlist curada',
+    emoji: '🖥️',
+    color: 'from-cyan-500/20 to-blue-500/20',
+    badge: 'Spotify',
+  },
+  {
+    id: '5z9CdKSqJjAt30rhTlRDZX',
+    name: 'LoFi Concentration',
+    description: 'Concentración y estudio',
+    emoji: '📚',
+    color: 'from-emerald-500/20 to-teal-500/20',
+    badge: 'Spotify',
   },
 ]
 
@@ -110,13 +133,18 @@ export function MusicPage() {
               )}
             >
               <span className="text-xl shrink-0">{playlist.emoji}</span>
-              <div className="min-w-0">
-                <p className={cn(
-                  'text-sm font-medium truncate',
-                  activePlaylist === playlist.id ? 'text-primary-light' : 'text-text-primary',
-                )}>
-                  {playlist.name}
-                </p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className={cn(
+                    'text-sm font-medium truncate',
+                    activePlaylist === playlist.id ? 'text-primary-light' : 'text-text-primary',
+                  )}>
+                    {playlist.name}
+                  </p>
+                  <Badge variant={playlist.badge === 'Tu playlist' ? 'primary' : 'muted'}>
+                    {playlist.badge}
+                  </Badge>
+                </div>
                 <p className="text-xs text-text-muted truncate">{playlist.description}</p>
               </div>
               {activePlaylist === playlist.id && (
