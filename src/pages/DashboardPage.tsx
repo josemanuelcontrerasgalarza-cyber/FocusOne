@@ -23,7 +23,7 @@ export function DashboardPage() {
   const { ideas, loading: ideasLoading } = useIdeas()
   const { deleteIdea, convertToProject } = useIdeaStore()
   const { setMainProject } = useProjectStore()
-  const { refreshProfile } = useAuthStore()
+  const { } = useAuthStore()
   const [todayTasks, setTodayTasks] = useState(0)
 
   useEffect(() => {

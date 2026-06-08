@@ -13,8 +13,7 @@ interface TaskListProps {
   loading?: boolean
 }
 
-const priorityOrder = { high: 0, medium: 1, low: 2 }
-const priorityLabel = { high: '🔴 Alta prioridad', medium: '🟡 Media prioridad', low: '⚪ Baja prioridad' }
+const priorityLabel ={ high: '🔴 Alta prioridad', medium: '🟡 Media prioridad', low: '⚪ Baja prioridad' }
 
 export function TaskList({ tasks, projectId, loading }: TaskListProps) {
   const [formOpen, setFormOpen] = useState(false)

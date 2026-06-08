@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Target, Trash2, Archive, Calendar, Flag } from 'lucide-react'
 import { useProjectStore } from '../store/projectStore'
@@ -10,7 +10,6 @@ import { Button } from '../components/ui/Button'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { Modal } from '../components/ui/Modal'
 import { Card } from '../components/ui/Card'
-import { useTaskStore } from '../store/taskStore'
 import { formatDate, getStatusLabel, cn } from '../lib/utils'
 
 export function ProjectPage() {

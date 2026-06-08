@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Trash2, ArrowRight, CheckCircle, Calendar } from 'lucide-react'
+import { Trash2, ArrowRight, Calendar } from 'lucide-react'
 import { type Idea } from '../../../types'
 import { Card } from '../../ui/Card'
 import { Badge } from '../../ui/Badge'

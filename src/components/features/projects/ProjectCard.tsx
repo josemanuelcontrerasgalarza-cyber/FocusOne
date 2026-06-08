@@ -5,7 +5,7 @@ import { Card } from '../../ui/Card'
 import { Badge } from '../../ui/Badge'
 import { ProgressBar } from '../../ui/ProgressBar'
 import { Button } from '../../ui/Button'
-import { formatDate, getStatusLabel, cn } from '../../../lib/utils'
+import { formatDate, getStatusLabel } from '../../../lib/utils'
 
 const statusVariant: Record<string, 'success' | 'warning' | 'muted' | 'primary'> = {
   active: 'primary',

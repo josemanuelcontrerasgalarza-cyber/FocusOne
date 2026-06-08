@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { LogOut, User, Mail, Shield } from 'lucide-react'
+import { LogOut, User, Mail } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
