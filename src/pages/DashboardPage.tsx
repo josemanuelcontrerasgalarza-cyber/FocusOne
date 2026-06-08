@@ -11,7 +11,6 @@ import { ProjectCard } from '../components/features/projects/ProjectCard'
 import { IdeaCard } from '../components/features/ideas/IdeaCard'
 import { useIdeaStore } from '../store/ideaStore'
 import { useProjectStore } from '../store/projectStore'
-import { useAuthStore } from '../store/authStore'
 import { getGreeting, getPriorityLabel } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { useState, useEffect } from 'react'
@@ -23,7 +22,6 @@ export function DashboardPage() {
   const { ideas, loading: ideasLoading } = useIdeas()
   const { deleteIdea, convertToProject } = useIdeaStore()
   const { setMainProject } = useProjectStore()
-  const { } = useAuthStore()
   const [todayTasks, setTodayTasks] = useState(0)
 
   useEffect(() => {
