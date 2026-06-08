@@ -13,7 +13,11 @@ const navItems = [
   { to: '/settings', icon: Settings, label: 'Configuración' },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  onOpenMusic?: () => void
+}
+
+export function Sidebar({ onOpenMusic: _onOpenMusic }: SidebarProps) {
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
 

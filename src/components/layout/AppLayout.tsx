@@ -1,8 +1,9 @@
-import { type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { LayoutDashboard, Target, Lightbulb, BarChart2, Settings, Music } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { MusicWidget } from '../features/music/MusicWidget'
 import { cn } from '../../lib/utils'
 
 interface AppLayoutProps {
@@ -30,13 +31,14 @@ const pageTitles: Record<string, string> = {
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation()
   const title = pageTitles[location.pathname] ?? 'FocusOne'
+  const [widgetOpen, setWidgetOpen] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-bg-base">
-      <Sidebar />
+      <Sidebar onOpenMusic={() => setWidgetOpen(true)} />
 
       <div className="flex-1 lg:ml-60 flex flex-col min-h-screen">
-        <Header title={title} />
+        <Header title={title} onOpenMusic={() => setWidgetOpen(true)} />
 
         <main className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
           {children}
@@ -64,6 +66,20 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </nav>
       </div>
+
+      {/* Widget flotante de música */}
+      {widgetOpen && <MusicWidget onClose={() => setWidgetOpen(false)} />}
+
+      {/* Botón flotante para abrir widget (cuando está cerrado) */}
+      {!widgetOpen && (
+        <button
+          onClick={() => setWidgetOpen(true)}
+          className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-40 w-12 h-12 rounded-full bg-primary hover:bg-primary-dark text-white shadow-lg flex items-center justify-center transition-all duration-150 hover:scale-110"
+          title="Abrir música"
+        >
+          <Music size={20} />
+        </button>
+      )}
     </div>
   )
 }

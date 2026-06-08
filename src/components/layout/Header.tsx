@@ -6,9 +6,10 @@ import { getInitials } from '../../lib/utils'
 
 interface HeaderProps {
   title: string
+  onOpenMusic?: () => void
 }
 
-export function Header({ title }: HeaderProps) {
+export function Header({ title, onOpenMusic: _onOpenMusic }: HeaderProps) {
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
