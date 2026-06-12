@@ -1,39 +1,35 @@
-type ToastType = 'success' | 'error' | 'info'
+import { create } from 'zustand'
 
-interface ToastOptions {
-  duration?: number
-}
+export type ToastKind = 'success' | 'error' | 'info'
 
-interface ToastEvent {
-  id: string
-  type: ToastType
+export interface ToastItem {
+  id: number
+  kind: ToastKind
   message: string
-  duration: number
 }
 
-type ToastListener = (toast: ToastEvent) => void
-
-const listeners: ToastListener[] = []
-
-function emit(type: ToastType, message: string, options: ToastOptions = {}) {
-  const event: ToastEvent = {
-    id: Math.random().toString(36).slice(2),
-    type,
-    message,
-    duration: options.duration ?? 3000,
-  }
-  listeners.forEach(l => l(event))
+interface ToastState {
+  toasts: ToastItem[]
+  push: (kind: ToastKind, message: string) => void
+  dismiss: (id: number) => void
 }
+
+let nextId = 1
+
+export const useToastStore = create<ToastState>((set) => ({
+  toasts: [],
+  push: (kind, message) => {
+    const id = nextId++
+    set((s) => ({ toasts: [...s.toasts, { id, kind, message }] }))
+    setTimeout(() => {
+      set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
+    }, 3500)
+  },
+  dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+}))
 
 export const toast = {
-  success: (message: string, options?: ToastOptions) => emit('success', message, options),
-  error: (message: string, options?: ToastOptions) => emit('error', message, options),
-  info: (message: string, options?: ToastOptions) => emit('info', message, options),
-  subscribe: (listener: ToastListener) => {
-    listeners.push(listener)
-    return () => {
-      const idx = listeners.indexOf(listener)
-      if (idx > -1) listeners.splice(idx, 1)
-    }
-  },
+  success: (m: string) => useToastStore.getState().push('success', m),
+  error: (m: string) => useToastStore.getState().push('error', m),
+  info: (m: string) => useToastStore.getState().push('info', m),
 }

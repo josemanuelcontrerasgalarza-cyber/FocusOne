@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-void text-ink font-sans antialiased;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: rgba(94, 234, 212, 0.25);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(140, 160, 255, 0.18);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(140, 160, 255, 0.32);
+  }
+}
+
+@layer components {
+  /* Material HORIZON: cristal líquido */
+  .glass-panel {
+    background: linear-gradient(135deg, rgba(20, 24, 44, 0.62), rgba(10, 12, 26, 0.48));
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(140, 160, 255, 0.14);
+    border-radius: 20px;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+      0 16px 48px rgba(0, 0, 0, 0.45);
+  }
+
+  .glass-input {
+    @apply w-full rounded-xl border border-glass-border bg-black/30 px-4 py-2.5 text-sm text-ink placeholder:text-ink-ghost outline-none transition-shadow;
+  }
+  .glass-input:focus {
+    border-color: rgba(94, 234, 212, 0.45);
+    box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.12);
+  }
+
+  .text-gradient {
+    background: linear-gradient(120deg, #5eead4 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Barra de plasma */
+  .plasma-fill {
+    background: linear-gradient(90deg, #5eead4, #8b5cf6, #5eead4);
+    background-size: 200% 100%;
+    animation: plasma-flow 3s linear infinite;
+  }
+}
+
+@keyframes plasma-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plasma-fill {
+    animation: none;
+  }
+}
