@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { type Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
-import { type Profile } from '../types'
-import { toast } from '../lib/toast'
+import { supabase } from '@/lib/supabase'
+import { type Profile } from '@/types'
+import { toast } from '@/lib/toast'
 
 interface AuthState {
   user: Profile | null
@@ -15,6 +15,8 @@ interface AuthState {
   initialize: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
+
+let listenerRegistered = false
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -39,18 +41,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ initialized: true })
     }
 
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        set({ session: null, user: null })
-      } else if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        set({ session, user: profile })
-      }
-    })
+    if (!listenerRegistered) {
+      listenerRegistered = true
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          set({ session: null, user: null })
+        } else if (event === 'SIGNED_IN' && session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+          set({ session, user: profile })
+        } else if (session) {
+          set({ session })
+        }
+      })
+    }
   },
 
   refreshProfile: async () => {

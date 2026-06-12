@@ -1,10 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Faltan las variables de entorno de Supabase. Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en .env.local')
-}
+export const supabaseConfigured = Boolean(url && anonKey)
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Cliente con placeholders si faltan envs: la app arranca y muestra el aviso
+// de configuración en vez de romper el build/render.
+export const supabase = createClient(
+  url ?? 'https://placeholder.supabase.co',
+  anonKey ?? 'placeholder-anon-key',
+)

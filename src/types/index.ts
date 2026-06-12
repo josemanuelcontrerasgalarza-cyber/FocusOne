@@ -24,7 +24,6 @@ export interface Project {
   target_date?: string
   completed_at?: string
   created_at: string
-  tasks?: Task[]
 }
 
 export interface Task {
