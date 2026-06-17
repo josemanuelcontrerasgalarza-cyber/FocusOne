@@ -221,16 +221,18 @@ function FocusMode() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <GlassPanel className="p-6">
+            <GlassPanel className="p-6 card-accent-core">
               <p className="font-data text-[11px] uppercase tracking-[0.3em] text-core">
-                Modo Deep Work
+                ◉ Modo Deep Work
               </p>
               <h1 className="mt-1 font-display text-2xl font-semibold">¿Cuál es tu intención?</h1>
 
-              <div className="mt-4 flex max-h-52 flex-col gap-2 overflow-y-auto pr-1">
+              <p className="mt-0.5 text-sm text-ink-ghost">Selecciona un objetivo y una duración.</p>
+
+              <div className="mt-4 flex max-h-48 flex-col gap-1.5 overflow-y-auto pr-1">
                 {pendingTasks.length === 0 && (
-                  <p className="text-sm text-ink-ghost">
-                    No tienes objetivos pendientes. Crea uno en tus misiones, o entra en foco libre.
+                  <p className="rounded-xl border border-glass-border bg-black/20 px-3 py-3 text-sm text-ink-ghost">
+                    Sin objetivos pendientes — puedes entrar en foco libre.
                   </p>
                 )}
                 {pendingTasks.map((t) => (
@@ -239,8 +241,8 @@ function FocusMode() {
                     onClick={() => setTask(task?.id === t.id ? null : t)}
                     className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
                       task?.id === t.id
-                        ? 'border-core/60 bg-core/10 text-core shadow-glow-core'
-                        : 'border-glass-border bg-black/20 text-ink-dim hover:text-ink'
+                        ? 'border-core/55 bg-core/10 text-core shadow-glow-core'
+                        : 'border-glass-border bg-black/20 text-ink-dim hover:border-glass-border-hi hover:text-ink'
                     }`}
                   >
                     {t.title}
@@ -253,10 +255,10 @@ function FocusMode() {
                   <button
                     key={d.minutes}
                     onClick={() => setMinutes(d.minutes)}
-                    className={`rounded-xl border px-2 py-3 text-center transition-all ${
+                    className={`rounded-xl border px-2 py-3.5 text-center transition-all ${
                       minutes === d.minutes
-                        ? 'border-plasma/60 bg-plasma/15 shadow-glow-plasma'
-                        : 'border-glass-border bg-black/20 hover:bg-white/5'
+                        ? 'border-plasma/55 bg-plasma/15 shadow-glow-plasma'
+                        : 'border-glass-border bg-black/20 hover:bg-white/[0.06]'
                     }`}
                   >
                     <p className="font-data text-lg font-semibold">{d.minutes}′</p>
@@ -275,25 +277,50 @@ function FocusMode() {
         {phase === 'running' && (
           <motion.div
             key="running"
-            className="flex flex-col items-center gap-8 text-center"
+            className="flex flex-col items-center gap-6 text-center"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.05 }}
           >
             {task && (
-              <p className="max-w-md font-display text-lg text-ink-dim">
-                ◉ <span className="text-ink">{task.title}</span>
-              </p>
+              <motion.p
+                className="max-w-md rounded-full border border-core/25 bg-core/8 px-4 py-1.5 font-display text-sm text-core"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                ◉ {task.title}
+              </motion.p>
             )}
-            <p className="font-data text-[clamp(4rem,18vw,9rem)] font-semibold leading-none text-ink [text-shadow:0_0_40px_rgba(94,234,212,0.35)]">
-              {format(secondsLeft)}
-            </p>
-            <div className="h-1.5 w-72 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="plasma-fill h-full rounded-full transition-[width] duration-1000 ease-linear"
-                style={{ width: `${progress * 100}%` }}
-              />
+
+            {/* Progreso circular */}
+            <div className="relative flex items-center justify-center">
+              <svg width="240" height="240" className="-rotate-90">
+                <circle cx="120" cy="120" r="108" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                <motion.circle
+                  cx="120" cy="120" r="108" fill="none"
+                  stroke="url(#timerGrad)" strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 108}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 108 * (1 - progress) }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                />
+                <defs>
+                  <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#5EEAD4" />
+                    <stop offset="100%" stopColor="#8B5CF6" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute flex flex-col items-center">
+                <p className="font-data text-[3.5rem] font-semibold leading-none text-ink [text-shadow:0_0_32px_rgba(94,234,212,0.4)]">
+                  {format(secondsLeft)}
+                </p>
+                <p className="mt-1 font-data text-[10px] uppercase tracking-[0.3em] text-ink-ghost">
+                  {minutes} min · {Math.round(progress * 100)}%
+                </p>
+              </div>
             </div>
+
             <Button variant="ghost" onClick={() => finish(false)}>
               <Square size={14} /> Abortar sesión
             </Button>

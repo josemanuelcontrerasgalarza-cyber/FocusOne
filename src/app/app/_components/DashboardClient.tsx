@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Zap, ArrowRight, Target } from 'lucide-react'
+import { Zap, ArrowRight, Target, CheckCircle2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { GlassPanel } from '@/glass/GlassPanel'
 import { PlasmaBar } from '@/glass/PlasmaBar'
@@ -17,35 +18,31 @@ interface Props {
   pendingTasks: Task[]
 }
 
-/**
- * Parte interactiva del dashboard: recibe los datos pre-cargados del RSC
- * y maneja únicamente las interacciones del usuario (completar tarea, celebrate).
- */
 export function DashboardClient({ mainProject, otherProjects, pendingTasks }: Props) {
   const { completeTask } = useTaskStore()
   const router = useRouter()
   const [tasks, setTasks] = useState(pendingTasks)
 
   async function handleComplete(taskId: string, projectId: string) {
-    // Optimistic: quita la tarea de la lista al instante
     setTasks((prev) => prev.filter((t) => t.id !== taskId))
     await completeTask(taskId, projectId)
     useCosmos.getState().celebrate()
-    // Revalida la página para que el RSC re-lea el progreso actualizado
     router.refresh()
   }
 
   return (
     <>
       {mainProject ? (
-        <GlassPanel className="p-6" delay={0.15}>
+        <GlassPanel className="p-6 card-accent-core" delay={0.15}>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="font-data text-[11px] uppercase tracking-[0.25em] text-core">
                 ◉ Misión principal
               </p>
               <h2 className="mt-1 truncate font-display text-xl font-semibold">{mainProject.name}</h2>
-              {mainProject.goal && <p className="mt-1 text-sm text-ink-dim">{mainProject.goal}</p>}
+              {mainProject.goal && (
+                <p className="mt-1 text-sm text-ink-dim">{mainProject.goal}</p>
+              )}
             </div>
             <span className="font-data text-2xl font-semibold text-core">{mainProject.progress}%</span>
           </div>
@@ -53,32 +50,42 @@ export function DashboardClient({ mainProject, otherProjects, pendingTasks }: Pr
 
           <div className="mt-5 flex flex-col gap-2">
             {tasks.length === 0 && (
-              <p className="text-sm text-ink-ghost">
-                Sin objetivos pendientes. Añade el siguiente paso de tu misión.
+              <p className="rounded-xl border border-glass-border bg-black/20 px-3 py-3 text-sm text-ink-ghost">
+                Sin objetivos pendientes. Añade el siguiente paso desde la página de misión.
               </p>
             )}
-            {tasks.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-3 rounded-xl border border-glass-border bg-black/20 px-3 py-2.5"
-              >
-                <button
-                  onClick={() => handleComplete(t.id, t.project_id)}
-                  className="h-5 w-5 shrink-0 rounded-full border border-core/50 transition-all hover:bg-core/30 hover:shadow-glow-core"
-                  title="Completar"
-                />
-                <span className="min-w-0 flex-1 truncate text-sm">{t.title}</span>
-                {t.priority === 'high' && (
-                  <span className="font-data text-[10px] uppercase tracking-wider text-nova">Alta</span>
-                )}
-              </div>
-            ))}
+            <AnimatePresence initial={false}>
+              {tasks.map((t) => (
+                <motion.div
+                  key={t.id}
+                  initial={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex items-center gap-3 rounded-xl border border-glass-border bg-black/20 px-3 py-2.5"
+                >
+                  <button
+                    onClick={() => handleComplete(t.id, t.project_id)}
+                    className="group flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-core/50 transition-all hover:border-core hover:bg-core/20 hover:shadow-glow-core"
+                    title="Completar"
+                  >
+                    <CheckCircle2 size={11} className="opacity-0 text-core transition-opacity group-hover:opacity-100" />
+                  </button>
+                  <span className="min-w-0 flex-1 truncate text-sm">{t.title}</span>
+                  {t.priority === 'high' && (
+                    <span className="badge badge-nova">Alta</span>
+                  )}
+                  {t.priority === 'medium' && (
+                    <span className="badge badge-solar">Media</span>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
 
           <div className="mt-5 flex gap-2">
             <Link href="/focus">
-              <Button variant="core" size="md">
-                <Zap size={15} /> Iniciar Deep Work
+              <Button variant="solid-core" size="md">
+                <Zap size={15} /> Deep Work
               </Button>
             </Link>
             <Link href={`/projects/${mainProject.id}`}>
@@ -90,7 +97,9 @@ export function DashboardClient({ mainProject, otherProjects, pendingTasks }: Pr
         </GlassPanel>
       ) : (
         <GlassPanel className="p-8 text-center" delay={0.15}>
-          <Target className="mx-auto mb-3 text-ink-ghost" size={32} />
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-ink-ghost/10">
+            <Target className="text-ink-ghost" size={28} />
+          </div>
           <h2 className="font-display text-lg font-semibold">Sin misión principal</h2>
           <p className="mx-auto mt-1 max-w-sm text-sm text-ink-dim">
             Elige UNA misión y termínala. Esa es la regla de FocusOne.
@@ -102,16 +111,24 @@ export function DashboardClient({ mainProject, otherProjects, pendingTasks }: Pr
       )}
 
       {otherProjects.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {otherProjects.map((p, i) => (
-            <Link key={p.id} href={`/projects/${p.id}`}>
-              <GlassPanel className="p-4" delay={0.2 + i * 0.05}>
-                <p className="truncate font-display text-sm font-medium">{p.name}</p>
-                <PlasmaBar value={p.progress} className="mt-3" />
-                <p className="mt-2 font-data text-xs text-ink-ghost">{p.progress}% completado</p>
-              </GlassPanel>
-            </Link>
-          ))}
+        <div>
+          <p className="mb-3 font-data text-[10px] uppercase tracking-[0.25em] text-ink-ghost">
+            En órbita
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {otherProjects.map((p, i) => (
+              <Link key={p.id} href={`/projects/${p.id}`}>
+                <GlassPanel className="p-4 transition-all hover:border-glass-border-hi" delay={0.2 + i * 0.05}>
+                  <p className="truncate font-display text-sm font-medium">{p.name}</p>
+                  <PlasmaBar value={p.progress} size="sm" className="mt-3" />
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="font-data text-xs text-ink-ghost">{p.progress}% completado</p>
+                    <ArrowRight size={12} className="text-ink-ghost" />
+                  </div>
+                </GlassPanel>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </>
