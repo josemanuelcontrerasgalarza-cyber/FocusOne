@@ -7,57 +7,47 @@ import { toast } from '@/lib/toast'
 interface AuthState {
   user: Profile | null
   session: Session | null
+  isDemo: boolean
   loading: boolean
   initialized: boolean
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, name: string) => Promise<void>
   signOut: () => Promise<void>
-  initialize: () => Promise<void>
+  startDemo: () => Promise<void>
+  upgradeAccount: (email: string, password: string, name: string) => Promise<void>
+  /** Registra el listener de Supabase y devuelve la función de limpieza. */
+  initialize: () => () => void
   refreshProfile: () => Promise<void>
 }
-
-let listenerRegistered = false
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   session: null,
+  isDemo: false,
   loading: false,
   initialized: false,
 
-  initialize: async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
+  initialize: () => {
+    // onAuthStateChange emite INITIAL_SESSION al suscribirse, así que cubre tanto
+    // la carga inicial como los cambios posteriores con un solo listener.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        set({ session, user: profile, initialized: true })
-      } else {
-        set({ session: null, user: null, initialized: true })
-      }
-    } catch {
-      set({ initialized: true })
-    }
-
-    if (!listenerRegistered) {
-      listenerRegistered = true
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          set({ session: null, user: null })
-        } else if (event === 'SIGNED_IN' && session?.user) {
+        set({ session, isDemo: session.user.is_anonymous === true })
+        // La consulta se difiere para evitar el deadlock conocido de hacer
+        // llamadas a supabase de forma síncrona dentro de este callback.
+        setTimeout(async () => {
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single()
-          set({ session, user: profile })
-        } else if (session) {
-          set({ session })
-        }
-      })
-    }
+          set({ user: profile ?? null, initialized: true })
+        }, 0)
+      } else {
+        set({ session: null, user: null, isDemo: false, initialized: true })
+      }
+    })
+    return () => subscription.unsubscribe()
   },
 
   refreshProfile: async () => {
@@ -100,6 +90,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
         throw new Error('Error al crear la cuenta. Intenta de nuevo.')
       }
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  startDemo: async () => {
+    set({ loading: true })
+    try {
+      const { error } = await supabase.auth.signInAnonymously()
+      if (error) {
+        throw new Error(
+          'No se pudo iniciar el modo demo. Activa los inicios de sesión anónimos en Supabase.',
+        )
+      }
+      toast.success('Modo demo iniciado. ¡Concéntrate!')
+    } catch (err) {
+      set({ loading: false })
+      throw err
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  // Convierte una cuenta demo (anónima) en una cuenta real conservando todos
+  // sus datos: el id del usuario no cambia, así que tareas y proyectos quedan intactos.
+  upgradeAccount: async (email, password, name) => {
+    set({ loading: true })
+    try {
+      const { error } = await supabase.auth.updateUser({ email, password, data: { name } })
+      if (error) {
+        if (error.message.includes('already')) throw new Error('Este correo ya está registrado')
+        throw new Error('No se pudo guardar la cuenta. Intenta de nuevo.')
+      }
+      const uid = get().session?.user.id
+      if (uid) await supabase.from('profiles').update({ email, name }).eq('id', uid)
+      set({ isDemo: false })
+      await get().refreshProfile()
+      toast.success('Cuenta guardada. Revisa tu correo para confirmar el acceso.')
     } finally {
       set({ loading: false })
     }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { DemoButton } from '@/components/DemoButton'
 
 export const metadata: Metadata = {
   title: 'FocusOne — Termina lo que empiezas | Productividad AI-First',
@@ -101,13 +102,11 @@ export default function LandingPage() {
           >
             Empieza gratis
           </Link>
-          <Link
-            href="/login"
-            className="glass-panel rounded-2xl px-8 py-3.5 text-ink transition-colors hover:text-core"
-          >
-            Ya tengo cuenta
-          </Link>
+          <DemoButton />
         </div>
+        <p className="mt-4 text-xs text-ink-ghost">
+          Prueba el modo demo sin crear cuenta · puedes guardar tu progreso después
+        </p>
       </section>
 
       {/* Features */}

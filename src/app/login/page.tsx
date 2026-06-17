@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { GuestGuard, ConfigNotice } from '@/components/AuthGuard'
+import { DemoButton } from '@/components/DemoButton'
 import { GlassPanel } from '@/glass/GlassPanel'
 import { Button } from '@/glass/Button'
 import { toast } from '@/lib/toast'
@@ -56,6 +57,14 @@ export default function LoginPage() {
               Entrar al centro de mando
             </Button>
           </form>
+
+          <div className="my-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-ink-ghost">
+            <span className="h-px flex-1 bg-glass-border" />
+            o
+            <span className="h-px flex-1 bg-glass-border" />
+          </div>
+
+          <DemoButton className="w-full" />
 
           <p className="mt-6 text-center text-sm text-ink-dim">
             ¿Sin cuenta?{' '}

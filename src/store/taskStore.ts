@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { type Task } from '@/types'
 import { toast } from '@/lib/toast'
@@ -15,57 +14,6 @@ interface TaskState {
   updateTask: (id: string, data: Partial<Task>) => Promise<void>
   deleteTask: (id: string) => Promise<void>
   completeTask: (id: string, projectId: string) => Promise<void>
-}
-
-async function updateStreak(userId: string) {
-  const today = format(new Date(), 'yyyy-MM-dd')
-
-  const { data: existing } = await supabase
-    .from('daily_stats')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('date', today)
-    .single()
-
-  if (existing) {
-    await supabase
-      .from('daily_stats')
-      .update({ tasks_completed: existing.tasks_completed + 1 })
-      .eq('id', existing.id)
-  } else {
-    await supabase
-      .from('daily_stats')
-      .insert({ user_id: userId, date: today, tasks_completed: 1 })
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('streak_current, streak_best, streak_last_date, tasks_completed_total')
-    .eq('id', userId)
-    .single()
-  if (!profile) return
-
-  const yesterday = format(new Date(Date.now() - 86400000), 'yyyy-MM-dd')
-  let newStreak = profile.streak_current
-  if (profile.streak_last_date === today) {
-    // ya contó hoy
-  } else if (profile.streak_last_date === yesterday) {
-    newStreak = profile.streak_current + 1
-  } else {
-    newStreak = 1
-  }
-
-  await supabase
-    .from('profiles')
-    .update({
-      streak_current: newStreak,
-      streak_best: Math.max(newStreak, profile.streak_best),
-      streak_last_date: today,
-      tasks_completed_total: (profile.tasks_completed_total ?? 0) + 1,
-    })
-    .eq('id', userId)
-
-  await useAuthStore.getState().refreshProfile()
 }
 
 export const useTaskStore = create<TaskState>((set) => ({
@@ -105,6 +53,7 @@ export const useTaskStore = create<TaskState>((set) => ({
       const { data: task, error } = await supabase.from('tasks').insert(data).select().single()
       if (error) throw error
       set((state) => ({ tasks: [...state.tasks, task] }))
+      // El progreso lo recalcula el trigger en Postgres; aquí solo lo releemos.
       if (data.project_id) {
         await useProjectStore.getState().updateProgress(data.project_id as string)
       }
@@ -140,7 +89,8 @@ export const useTaskStore = create<TaskState>((set) => ({
   },
 
   completeTask: async (id, projectId) => {
-    // Optimistic: la UI responde al instante, el servidor reconcilia después
+    // Optimistic: la UI responde al instante. El servidor (trigger en Postgres)
+    // es el único que calcula racha, XP y progreso — el cliente no los falsifica.
     const now = new Date().toISOString()
     const prev = useTaskStore.getState().tasks
     set((state) => ({
@@ -154,9 +104,9 @@ export const useTaskStore = create<TaskState>((set) => ({
         .update({ status: 'completed', completed_at: now })
         .eq('id', id)
       if (error) throw error
+      // Releemos lo que el trigger calculó en el servidor.
       await useProjectStore.getState().updateProgress(projectId)
-      const userId = useAuthStore.getState().user?.id
-      if (userId) await updateStreak(userId)
+      await useAuthStore.getState().refreshProfile()
     } catch (err) {
       set({ tasks: prev })
       toast.error(err instanceof Error ? err.message : 'Error al completar tarea')
