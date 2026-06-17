@@ -57,7 +57,7 @@ export function GuestGuard({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (initialized && user) router.replace('/')
+    if (initialized && user) router.replace('/app')
   }, [initialized, user, router])
 
   if (!initialized) return <BootScreen />

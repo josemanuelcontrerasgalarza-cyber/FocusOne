@@ -1,148 +1,154 @@
-'use client'
-
-import { useEffect } from 'react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Flame, CheckCircle2, Trophy, Zap, ArrowRight, Target } from 'lucide-react'
-import { AppShell } from '@/components/AppShell'
-import { GlassPanel } from '@/glass/GlassPanel'
-import { HoloStat } from '@/glass/HoloStat'
-import { PlasmaBar } from '@/glass/PlasmaBar'
-import { Button } from '@/glass/Button'
-import { useAuthStore } from '@/store/authStore'
-import { useProjectStore } from '@/store/projectStore'
-import { useTaskStore } from '@/store/taskStore'
-import { useCosmos } from '@/cosmos/state/useCosmos'
 
-function Dashboard() {
-  const user = useAuthStore((s) => s.user)
-  const { mainProject, projects, fetchProjects } = useProjectStore()
-  const { tasks, fetchTasks, completeTask } = useTaskStore()
-
-  useEffect(() => {
-    if (user?.id) fetchProjects(user.id)
-  }, [user?.id, fetchProjects])
-
-  useEffect(() => {
-    if (mainProject?.id) fetchTasks(mainProject.id)
-  }, [mainProject?.id, fetchTasks])
-
-  const pending = tasks.filter((t) => t.status === 'pending').slice(0, 5)
-
-  async function handleComplete(taskId: string) {
-    if (!mainProject) return
-    await completeTask(taskId, mainProject.id)
-    useCosmos.getState().celebrate()
-  }
-
-  return (
-    <div className="flex flex-col gap-5">
-      <header className="mt-2">
-        <p className="font-data text-[11px] uppercase tracking-[0.3em] text-ink-ghost">
-          Centro de mando
-        </p>
-        <h1 className="mt-1 font-display text-3xl font-semibold">
-          Hola, <span className="text-gradient">{user?.name ?? 'piloto'}</span>
-        </h1>
-      </header>
-
-      {/* Telemetría */}
-      <div className="grid grid-cols-3 gap-3 lg:gap-4">
-        <HoloStat label="Racha" value={`${user?.streak_current ?? 0}d`} icon={<Flame size={16} />} accent="solar" />
-        <HoloStat label="Completadas" value={user?.tasks_completed_total ?? 0} icon={<CheckCircle2 size={16} />} accent="core" delay={0.05} />
-        <HoloStat label="Récord" value={`${user?.streak_best ?? 0}d`} icon={<Trophy size={16} />} accent="plasma" delay={0.1} />
-      </div>
-
-      {/* Misión principal */}
-      {mainProject ? (
-        <GlassPanel className="p-6" delay={0.15}>
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="font-data text-[11px] uppercase tracking-[0.25em] text-core">
-                ◉ Misión principal
-              </p>
-              <h2 className="mt-1 truncate font-display text-xl font-semibold">{mainProject.name}</h2>
-              {mainProject.goal && <p className="mt-1 text-sm text-ink-dim">{mainProject.goal}</p>}
-            </div>
-            <span className="font-data text-2xl font-semibold text-core">{mainProject.progress}%</span>
-          </div>
-          <PlasmaBar value={mainProject.progress} className="mt-4" />
-
-          {/* Objetivos en órbita */}
-          <div className="mt-5 flex flex-col gap-2">
-            {pending.length === 0 && (
-              <p className="text-sm text-ink-ghost">
-                Sin objetivos pendientes. Añade el siguiente paso de tu misión.
-              </p>
-            )}
-            {pending.map((t) => (
-              <div
-                key={t.id}
-                className="group flex items-center gap-3 rounded-xl border border-glass-border bg-black/20 px-3 py-2.5"
-              >
-                <button
-                  onClick={() => handleComplete(t.id)}
-                  className="h-5 w-5 shrink-0 rounded-full border border-core/50 transition-all hover:bg-core/30 hover:shadow-glow-core"
-                  title="Completar"
-                />
-                <span className="min-w-0 flex-1 truncate text-sm">{t.title}</span>
-                {t.priority === 'high' && (
-                  <span className="font-data text-[10px] uppercase tracking-wider text-nova">Alta</span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 flex gap-2">
-            <Link href="/focus">
-              <Button variant="core" size="md">
-                <Zap size={15} /> Iniciar Deep Work
-              </Button>
-            </Link>
-            <Link href={`/projects/${mainProject.id}`}>
-              <Button variant="ghost" size="md">
-                Ver misión <ArrowRight size={14} />
-              </Button>
-            </Link>
-          </div>
-        </GlassPanel>
-      ) : (
-        <GlassPanel className="p-8 text-center" delay={0.15}>
-          <Target className="mx-auto mb-3 text-ink-ghost" size={32} />
-          <h2 className="font-display text-lg font-semibold">Sin misión principal</h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-ink-dim">
-            Elige UNA misión y termínala. Esa es la regla de FocusOne.
-          </p>
-          <Link href="/projects" className="mt-4 inline-block">
-            <Button variant="plasma">Definir misión principal</Button>
-          </Link>
-        </GlassPanel>
-      )}
-
-      {/* Otras misiones */}
-      {projects.filter((p) => !p.is_main && p.status === 'active').length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {projects
-            .filter((p) => !p.is_main && p.status === 'active')
-            .slice(0, 4)
-            .map((p, i) => (
-              <Link key={p.id} href={`/projects/${p.id}`}>
-                <GlassPanel className="p-4" delay={0.2 + i * 0.05}>
-                  <p className="truncate font-display text-sm font-medium">{p.name}</p>
-                  <PlasmaBar value={p.progress} className="mt-3" />
-                  <p className="mt-2 font-data text-xs text-ink-ghost">{p.progress}% completado</p>
-                </GlassPanel>
-              </Link>
-            ))}
-        </div>
-      )}
-    </div>
-  )
+export const metadata: Metadata = {
+  title: 'FocusOne — Termina lo que empiezas | Productividad AI-First',
+  description:
+    'FocusOne es la plataforma de productividad AI-First para terminar lo que empiezas. Modo Deep Work, misiones con foco único, telemetría de rendimiento y un cosmos inmersivo. Diseñada para mentes que necesitan claridad.',
+  keywords: [
+    'productividad',
+    'deep work',
+    'modo enfoque',
+    'gestión de tareas',
+    'pomodoro',
+    'TDAH',
+    'foco',
+    'misiones',
+    'Kratos Labs',
+  ],
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'FocusOne — Termina lo que empiezas',
+    description:
+      'Plataforma de productividad AI-First. Modo Deep Work, una sola misión a la vez y telemetría real de tu progreso.',
+    type: 'website',
+    locale: 'es_ES',
+    siteName: 'FocusOne',
+  },
 }
 
-export default function DashboardPage() {
+const FEATURES = [
+  {
+    title: 'Modo Deep Work',
+    body: 'Sesiones de foco de 25, 50 o 90 minutos en pantalla completa. El temporizador sobrevive a las recargas: nunca pierdes tu sesión.',
+  },
+  {
+    title: 'Una misión a la vez',
+    body: 'Eliges UNA misión principal y la terminas. Sin listas infinitas que paralizan. La regla de FocusOne es simple: termina lo que empiezas.',
+  },
+  {
+    title: 'Telemetría real',
+    body: 'Racha de días, objetivos completados y tu récord histórico. Mide tu constancia con datos, no con sensaciones.',
+  },
+  {
+    title: 'Bóveda de ideas',
+    body: 'Captura ideas sin romper tu foco y conviértelas en misiones cuando llegue su momento.',
+  },
+  {
+    title: 'Cosmos inmersivo',
+    body: 'Una interfaz 3D viva, con cristal líquido y un orbe que reacciona a tu trabajo. Productividad que se siente como ciencia ficción.',
+  },
+  {
+    title: 'Frecuencias de foco',
+    body: 'Playlists integradas de música para concentración profunda, lo-fi y calma total, sin salir de la app.',
+  },
+]
+
+export default function LandingPage() {
   return (
-    <AppShell>
-      <Dashboard />
-    </AppShell>
+    <main className="relative z-10 mx-auto flex min-h-screen max-w-5xl flex-col px-5 py-6">
+      {/* Barra superior */}
+      <nav className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="h-8 w-8 rounded-full bg-gradient-to-br from-core to-plasma shadow-glow-core" />
+          <span className="font-display text-lg font-semibold tracking-wide">
+            Focus<span className="text-gradient">One</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/login"
+            className="rounded-xl px-4 py-2 text-sm text-ink-dim transition-colors hover:text-ink"
+          >
+            Entrar
+          </Link>
+          <Link
+            href="/register"
+            className="rounded-xl bg-gradient-to-br from-core to-plasma px-4 py-2 text-sm font-medium text-void shadow-glow-core transition-transform hover:scale-[1.03]"
+          >
+            Crear cuenta
+          </Link>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="flex flex-1 flex-col items-center justify-center py-20 text-center">
+        <p className="font-data text-[11px] uppercase tracking-[0.4em] text-core">
+          Productividad AI-First · Kratos Labs
+        </p>
+        <h1 className="mt-5 max-w-3xl font-display text-4xl font-semibold leading-tight sm:text-6xl">
+          Termina lo que <span className="text-gradient">empiezas</span>.
+        </h1>
+        <p className="mt-6 max-w-xl text-base text-ink-dim sm:text-lg">
+          FocusOne es el sistema operativo de tu enfoque. Una misión a la vez, sesiones
+          de Deep Work que no pierdes nunca, y telemetría real de tu constancia. Diseñado
+          para mentes que necesitan claridad para avanzar.
+        </p>
+        <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row">
+          <Link
+            href="/register"
+            className="rounded-2xl bg-gradient-to-br from-core to-plasma px-8 py-3.5 font-medium text-void shadow-glow-core transition-transform hover:scale-[1.03]"
+          >
+            Empieza gratis
+          </Link>
+          <Link
+            href="/login"
+            className="glass-panel rounded-2xl px-8 py-3.5 text-ink transition-colors hover:text-core"
+          >
+            Ya tengo cuenta
+          </Link>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-12">
+        <h2 className="text-center font-display text-2xl font-semibold sm:text-3xl">
+          Hecho para el foco, no para la lista de pendientes
+        </h2>
+        <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-ink-dim">
+          Cada función de FocusOne existe para una sola cosa: que termines lo importante.
+        </p>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((f) => (
+            <article key={f.title} className="glass-panel p-6">
+              <h3 className="font-display text-lg font-semibold text-core">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-dim">{f.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA final */}
+      <section className="py-16 text-center">
+        <h2 className="font-display text-2xl font-semibold sm:text-3xl">
+          Tu próxima misión te está esperando
+        </h2>
+        <p className="mx-auto mt-3 max-w-lg text-sm text-ink-dim">
+          Crea tu cuenta en segundos y entra a tu centro de mando.
+        </p>
+        <Link
+          href="/register"
+          className="mt-7 inline-block rounded-2xl bg-gradient-to-br from-core to-plasma px-8 py-3.5 font-medium text-void shadow-glow-core transition-transform hover:scale-[1.03]"
+        >
+          Empezar ahora
+        </Link>
+      </section>
+
+      <footer className="mt-auto border-t border-glass-border py-8 text-center">
+        <p className="font-data text-[10px] uppercase tracking-[0.3em] text-ink-ghost">
+          FocusOne · Horizon v2.0 · Kratos Labs
+        </p>
+      </footer>
+    </main>
   )
 }
