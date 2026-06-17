@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { AuthGuard, ConfigNotice } from './AuthGuard'
+import { DemoBanner } from './DemoBanner'
 
 const nav = [
   { href: '/app', icon: LayoutDashboard, label: 'Centro de mando' },
@@ -59,6 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <AuthGuard>
       <ConfigNotice />
+      <DemoBanner />
       <div className="flex min-h-screen">
         {/* Sidebar de cristal — desktop */}
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 p-4 lg:block">

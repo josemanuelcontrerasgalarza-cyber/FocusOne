@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+// El listener de auth se registra una sola vez en AuthProvider (raíz).
 import { useAuthStore } from '@/store/authStore'
 import { supabaseConfigured } from '@/lib/supabase'
 import { GlassPanel } from '@/glass/GlassPanel'
@@ -36,10 +37,6 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    useAuthStore.getState().initialize()
-  }, [])
-
-  useEffect(() => {
     if (initialized && !user) router.replace('/login')
   }, [initialized, user, router])
 
@@ -51,10 +48,6 @@ export function AuthGuard({ children }: { children: ReactNode }) {
 export function GuestGuard({ children }: { children: ReactNode }) {
   const { user, initialized } = useAuthStore()
   const router = useRouter()
-
-  useEffect(() => {
-    useAuthStore.getState().initialize()
-  }, [])
 
   useEffect(() => {
     if (initialized && user) router.replace('/app')

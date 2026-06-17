@@ -15,7 +15,7 @@ interface ProjectState {
   updateProgress: (projectId: string) => Promise<void>
 }
 
-export const useProjectStore = create<ProjectState>((set, get) => ({
+export const useProjectStore = create<ProjectState>((set) => ({
   projects: [],
   mainProject: null,
   loading: false,
@@ -101,18 +101,23 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   updateProgress: async (projectId) => {
+    // El progreso lo calcula un trigger en Postgres al insertar/completar/borrar
+    // tareas. Aquí solo lo releemos para reflejarlo en la UI; el cliente no lo escribe.
     try {
-      const { data: tasks, error } = await supabase
-        .from('tasks')
-        .select('status')
-        .eq('project_id', projectId)
-      if (error) throw error
-      const total = tasks?.length ?? 0
-      const completed = tasks?.filter((t) => t.status === 'completed').length ?? 0
-      const progress = total === 0 ? 0 : Math.round((completed / total) * 100)
-      await get().updateProject(projectId, { progress })
+      const { data, error } = await supabase
+        .from('projects')
+        .select('progress')
+        .eq('id', projectId)
+        .single()
+      if (error || !data) return
+      set((state) => {
+        const projects = state.projects.map((p) =>
+          p.id === projectId ? { ...p, progress: data.progress } : p,
+        )
+        return { projects, mainProject: projects.find((mp) => mp.is_main) ?? null }
+      })
     } catch {
-      // silencioso: el progreso se reconciliará en la siguiente acción
+      // silencioso: el progreso se reconciliará en la siguiente lectura
     }
   },
 }))
