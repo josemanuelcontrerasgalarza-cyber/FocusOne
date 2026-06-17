@@ -17,7 +17,7 @@ import { useAuthStore } from '@/store/authStore'
 import { AuthGuard, ConfigNotice } from './AuthGuard'
 
 const nav = [
-  { href: '/', icon: LayoutDashboard, label: 'Centro de mando' },
+  { href: '/app', icon: LayoutDashboard, label: 'Centro de mando' },
   { href: '/focus', icon: Zap, label: 'Deep Work' },
   { href: '/projects', icon: Target, label: 'Misiones' },
   { href: '/ideas', icon: Lightbulb, label: 'Ideas' },
@@ -31,7 +31,7 @@ function NavItems({ compact }: { compact?: boolean }) {
   return (
     <>
       {nav.map(({ href, icon: Icon, label }) => {
-        const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
+        const active = href === '/app' ? pathname === '/app' : pathname.startsWith(href)
         return (
           <Link
             key={href}
@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Sidebar de cristal — desktop */}
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 p-4 lg:block">
           <div className="glass-panel flex h-full flex-col p-4">
-            <Link href="/" className="mb-8 flex items-center gap-3 px-2">
+            <Link href="/app" className="mb-8 flex items-center gap-3 px-2">
               <span className="h-8 w-8 rounded-full bg-gradient-to-br from-core to-plasma shadow-glow-core" />
               <span className="font-display text-lg font-semibold tracking-wide">
                 Focus<span className="text-gradient">One</span>

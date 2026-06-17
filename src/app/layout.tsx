@@ -4,8 +4,14 @@ import { CosmosRoot } from '@/cosmos/CosmosRoot'
 import { Toaster } from '@/glass/Toaster'
 
 export const metadata: Metadata = {
-  title: 'FocusOne — Termina lo que empiezas',
+  metadataBase: new URL('https://focusone.vercel.app'),
+  title: {
+    default: 'FocusOne — Termina lo que empiezas',
+    template: '%s · FocusOne',
+  },
   description: 'Plataforma de productividad AI-First. Tus misiones, en órbita.',
+  applicationName: 'FocusOne',
+  robots: { index: true, follow: true },
 }
 
 export const viewport: Viewport = {

@@ -19,12 +19,30 @@ const DURATIONS = [
   { label: 'Monk mode', minutes: 90 },
 ]
 
+const STORAGE_KEY = 'focusone_active_session'
+
 type Phase = 'setup' | 'running' | 'done'
+
+interface PersistedSession {
+  task: Task | null
+  minutes: number
+  startedAt: string
+  endTime: number
+}
 
 function format(seconds: number) {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+function enterFullscreen() {
+  const el = document.documentElement
+  el.requestFullscreen?.().catch(() => undefined)
+}
+
+function exitFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => undefined)
 }
 
 function FocusMode() {
@@ -36,36 +54,104 @@ function FocusMode() {
   const [task, setTask] = useState<Task | null>(null)
   const [minutes, setMinutes] = useState(25)
   const [secondsLeft, setSecondsLeft] = useState(0)
+  const [restored, setRestored] = useState(false)
   const startedAt = useRef<Date | null>(null)
+  const endTime = useRef<number | null>(null)
   const interval = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  function tick() {
+    if (endTime.current == null) return
+    const left = Math.round((endTime.current - Date.now()) / 1000)
+    if (left <= 0) {
+      setSecondsLeft(0)
+      finish(true)
+    } else {
+      setSecondsLeft(left)
+    }
+  }
+
+  function beginInterval() {
+    if (interval.current) clearInterval(interval.current)
+    interval.current = setInterval(tick, 250)
+  }
+
+  function persist(session: PersistedSession) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+    } catch {
+      /* almacenamiento no disponible */
+    }
+  }
+
+  function clearPersisted() {
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      /* noop */
+    }
+  }
 
   useEffect(() => {
     if (user?.id) fetchUserPending(user.id).then(setPendingTasks)
   }, [user?.id, fetchUserPending])
+
+  // Restaurar una sesión activa tras recarga o cierre accidental
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const s = JSON.parse(raw) as PersistedSession
+        if (s.endTime > Date.now()) {
+          // La sesión sigue viva: reanudar exactamente donde quedó
+          setTask(s.task)
+          setMinutes(s.minutes)
+          startedAt.current = new Date(s.startedAt)
+          endTime.current = s.endTime
+          setSecondsLeft(Math.round((s.endTime - Date.now()) / 1000))
+          setPhase('running')
+          useCosmos.getState().setFocusActive(true)
+          useCosmos.getState().setKratosState('listening')
+          beginInterval()
+          toast.info('Sesión de foco reanudada')
+        } else {
+          // Expiró mientras la pestaña estaba cerrada: contar como completada
+          setTask(s.task)
+          setMinutes(s.minutes)
+          startedAt.current = new Date(s.startedAt)
+          setPhase('done')
+          useCosmos.getState().celebrate()
+          void recordSession(true)
+          clearPersisted()
+        }
+      }
+    } catch {
+      /* sesión corrupta: ignorar */
+    }
+    setRestored(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     return () => {
       if (interval.current) clearInterval(interval.current)
       useCosmos.getState().setFocusActive(false)
       useCosmos.getState().setKratosState('idle')
+      exitFullscreen()
     }
   }, [])
 
   function start() {
-    setSecondsLeft(minutes * 60)
-    setPhase('running')
+    const totalSeconds = minutes * 60
+    const end = Date.now() + totalSeconds * 1000
     startedAt.current = new Date()
+    endTime.current = end
+    setSecondsLeft(totalSeconds)
+    setPhase('running')
     useCosmos.getState().setFocusActive(true)
     useCosmos.getState().setKratosState('listening')
-    interval.current = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          finish(true)
-          return 0
-        }
-        return s - 1
-      })
-    }, 1000)
+    persist({ task, minutes, startedAt: startedAt.current.toISOString(), endTime: end })
+    beginInterval()
+    enterFullscreen()
   }
 
   async function recordSession(completed: boolean) {
@@ -86,7 +172,10 @@ function FocusMode() {
 
   function finish(natural: boolean) {
     if (interval.current) clearInterval(interval.current)
+    endTime.current = null
+    clearPersisted()
     useCosmos.getState().setFocusActive(false)
+    exitFullscreen()
     if (natural) {
       setPhase('done')
       useCosmos.getState().celebrate()
@@ -111,6 +200,15 @@ function FocusMode() {
   }
 
   const progress = phase === 'running' ? 1 - secondsLeft / (minutes * 60) : 0
+
+  // Evitar parpadeo de "setup" antes de restaurar una sesión activa
+  if (!restored) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <div className="h-10 w-10 animate-pulse rounded-full bg-gradient-to-br from-core to-plasma shadow-glow-core" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6">
