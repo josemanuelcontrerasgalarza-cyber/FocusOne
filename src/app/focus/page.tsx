@@ -120,7 +120,11 @@ function FocusMode() {
           startedAt.current = new Date(s.startedAt)
           setPhase('done')
           useCosmos.getState().celebrate()
-          void recordSession(true)
+          void recordSession(true, {
+            task: s.task,
+            minutes: s.minutes,
+            startedAt: new Date(s.startedAt),
+          })
           clearPersisted()
         }
       }
@@ -154,17 +158,25 @@ function FocusMode() {
     enterFullscreen()
   }
 
-  async function recordSession(completed: boolean) {
-    if (!user || !startedAt.current) return
+  async function recordSession(
+    completed: boolean,
+    override?: { task: Task | null; minutes: number; startedAt: Date },
+  ) {
+    // Al restaurar una sesión tras recarga, `user` y el estado aún no están
+    // poblados en el primer render; leemos del store y aceptamos overrides para
+    // no registrar valores obsoletos (planned_minutes/task_id incorrectos).
+    const activeUser = user ?? useAuthStore.getState().user
+    const start = override?.startedAt ?? startedAt.current
+    if (!activeUser || !start) return
     // Best-effort: si la tabla focus_sessions aún no existe, no rompe nada
     await supabase
       .from('focus_sessions')
       .insert({
-        user_id: user.id,
-        task_id: task?.id ?? null,
-        started_at: startedAt.current.toISOString(),
+        user_id: activeUser.id,
+        task_id: (override ? override.task?.id : task?.id) ?? null,
+        started_at: start.toISOString(),
         ended_at: new Date().toISOString(),
-        planned_minutes: minutes,
+        planned_minutes: override?.minutes ?? minutes,
         completed,
       })
       .then(() => undefined, () => undefined)

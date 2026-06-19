@@ -49,6 +49,7 @@ function NavItem({ href, icon: Icon, label, compact }: {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user)
+  const isDemo = useAuthStore((s) => s.isDemo)
   const initials = user?.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() ?? '?'
 
   return (
@@ -96,8 +97,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        {/* Contenido principal */}
-        <main className="flex-1 px-4 pb-28 pt-5 lg:ml-60 lg:px-8 lg:pb-8">
+        {/* Contenido principal — deja espacio arriba para el banner demo fijo */}
+        <main
+          className={cn(
+            'flex-1 px-4 pb-28 lg:ml-60 lg:px-8 lg:pb-8',
+            isDemo ? 'pt-16 lg:pt-16' : 'pt-5',
+          )}
+        >
           <div className="mx-auto max-w-5xl">{children}</div>
         </main>
 
