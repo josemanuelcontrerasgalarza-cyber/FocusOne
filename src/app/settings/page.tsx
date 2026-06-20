@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { LogOut, Sparkles, Cpu, Zap, BarChart2, Lock } from 'lucide-react'
+import { LogOut, Sparkles, Cpu, Zap, BarChart2, Lock, Keyboard, Database } from 'lucide-react'
 import { AppShell } from '@/components/AppShell'
 import { GlassPanel } from '@/glass/GlassPanel'
 import { Button } from '@/glass/Button'
+import { DataExport } from '@/components/DataExport'
 import { useAuthStore } from '@/store/authStore'
+import { useUIStore } from '@/store/uiStore'
 import { toast } from '@/lib/toast'
 
 function UpgradeCard() {
@@ -97,6 +99,7 @@ const ROADMAP = [
 
 function Settings() {
   const { user, isDemo, signOut } = useAuthStore()
+  const setShortcutsOpen = useUIStore((s) => s.setShortcutsOpen)
   const initials = user?.name?.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '?'
 
   return (
@@ -143,6 +146,38 @@ function Settings() {
               <span className="badge badge-ghost ml-auto">Pronto</span>
             </div>
           ))}
+        </div>
+      </GlassPanel>
+
+      {/* Datos y herramientas */}
+      <GlassPanel className="p-6" delay={0.15}>
+        <p className="mb-4 font-data text-[11px] uppercase tracking-[0.25em] text-ink-ghost">
+          Datos y herramientas
+        </p>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3 rounded-xl border border-glass-border bg-black/15 px-4 py-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-core/10 text-core">
+              <Database size={15} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-ink-dim">Exportar mis datos</p>
+              <p className="text-[11px] text-ink-ghost">Descarga todo en formato JSON</p>
+            </div>
+            <DataExport />
+          </div>
+          <button
+            onClick={() => setShortcutsOpen(true)}
+            className="flex items-center gap-3 rounded-xl border border-glass-border bg-black/15 px-4 py-3 text-left transition-colors hover:border-glass-border-hi"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-plasma/10 text-[#c4b5fd]">
+              <Keyboard size={15} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-ink-dim">Atajos de teclado</p>
+              <p className="text-[11px] text-ink-ghost">Navega más rápido con ⌘K y más</p>
+            </div>
+            <span className="badge badge-ghost">Ver</span>
+          </button>
         </div>
       </GlassPanel>
 

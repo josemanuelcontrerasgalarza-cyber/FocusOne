@@ -56,3 +56,19 @@ export interface DailyStat {
   date: string
   tasks_completed: number
 }
+
+export interface FocusSession {
+  id: string
+  user_id: string
+  task_id?: string | null
+  started_at: string
+  ended_at?: string | null
+  planned_minutes: number
+  completed: boolean
+  created_at: string
+}
+
+/** Tarea con el nombre de su misión adjunto (para la agenda del dashboard). */
+export interface AgendaTask extends Task {
+  project_name?: string
+}

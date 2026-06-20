@@ -3,22 +3,32 @@
 import { useEffect, useState } from 'react'
 import { format, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Flame, Trophy, CheckCircle2, Star, Zap, Target } from 'lucide-react'
+import { Flame, Trophy, CheckCircle2, Star, Zap, Target, Timer, History } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AppShell } from '@/components/AppShell'
 import { GlassPanel } from '@/glass/GlassPanel'
 import { HoloStat } from '@/glass/HoloStat'
 import { useAuthStore } from '@/store/authStore'
+import { useFocusStore } from '@/store/focusStore'
 import { supabase } from '@/lib/supabase'
 import { type DailyStat } from '@/types'
+
+function fmtMins(m: number) {
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  const mm = m % 60
+  return mm === 0 ? `${h}h` : `${h}h ${mm}m`
+}
 
 function Stats() {
   const user = useAuthStore((s) => s.user)
   const [stats, setStats] = useState<DailyStat[]>([])
   const [hoveredDay, setHoveredDay] = useState<number | null>(null)
+  const { sessions, stats: focus, fetchSessions } = useFocusStore()
 
   useEffect(() => {
     if (!user?.id) return
+    fetchSessions(user.id)
     const from = format(subDays(new Date(), 13), 'yyyy-MM-dd')
     supabase
       .from('daily_stats')
@@ -27,7 +37,7 @@ function Stats() {
       .gte('date', from)
       .order('date', { ascending: true })
       .then(({ data }) => setStats(data ?? []))
-  }, [user?.id])
+  }, [user?.id, fetchSessions])
 
   const days = Array.from({ length: 14 }, (_, i) => {
     const date = format(subDays(new Date(), 13 - i), 'yyyy-MM-dd')
@@ -198,6 +208,48 @@ function Stats() {
           </div>
         </div>
       </GlassPanel>
+
+      {/* Deep Work — historial de foco */}
+      <div className="flex flex-col gap-3">
+        <p className="font-data text-[10px] uppercase tracking-[0.3em] text-ink-ghost">
+          Deep Work
+        </p>
+        <div className="grid grid-cols-3 gap-3 lg:gap-4">
+          <HoloStat label="Foco hoy" value={fmtMins(focus.todayMinutes)} icon={<Timer size={16} />} accent="core" />
+          <HoloStat label="Esta semana" value={fmtMins(focus.weekMinutes)} icon={<Timer size={16} />} accent="plasma" delay={0.05} />
+          <HoloStat label="Total" value={fmtMins(focus.totalMinutes)} icon={<Timer size={16} />} accent="solar" delay={0.1} sublabel={`${focus.totalSessions} sesiones`} />
+        </div>
+
+        {sessions.length > 0 && (
+          <GlassPanel className="p-5" delay={0.15}>
+            <div className="mb-3 flex items-center gap-2 text-ink-ghost">
+              <History size={14} />
+              <p className="font-data text-[11px] uppercase tracking-[0.25em]">Sesiones recientes</p>
+            </div>
+            <div className="flex flex-col divide-y divide-glass-border">
+              {sessions.slice(0, 6).map((s) => {
+                const mins = s.ended_at
+                  ? Math.max(1, Math.round((new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000))
+                  : s.planned_minutes
+                return (
+                  <div key={s.id} className="flex items-center gap-3 py-2.5">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${s.completed ? 'bg-core shadow-glow-core' : 'bg-ink-ghost'}`}
+                    />
+                    <span className="flex-1 font-data text-xs text-ink-dim">
+                      {format(new Date(s.started_at), "d MMM · HH:mm", { locale: es })}
+                    </span>
+                    <span className="font-data text-xs text-ink-ghost">
+                      {s.completed ? 'Completada' : 'Abortada'}
+                    </span>
+                    <span className="font-data text-sm font-semibold text-core">{fmtMins(mins)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </GlassPanel>
+        )}
+      </div>
 
       {/* Sección logros personales */}
       <div className="flex flex-col gap-2">

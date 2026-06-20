@@ -10,21 +10,38 @@ import { PlasmaBar } from '@/glass/PlasmaBar'
 import { Button } from '@/glass/Button'
 import { useTaskStore } from '@/store/taskStore'
 import { useCosmos } from '@/cosmos/state/useCosmos'
-import { type Task, type Project } from '@/types'
+import { DailyGoal } from '@/components/DailyGoal'
+import { Agenda } from '@/components/Agenda'
+import { type Task, type Project, type AgendaTask } from '@/types'
 
 interface Props {
+  userId: string
   mainProject: Project | null
   otherProjects: Project[]
   pendingTasks: Task[]
+  agenda: AgendaTask[]
+  completedToday: number
 }
 
-export function DashboardClient({ mainProject, otherProjects, pendingTasks }: Props) {
+export function DashboardClient({
+  userId,
+  mainProject,
+  otherProjects,
+  pendingTasks,
+  agenda,
+  completedToday,
+}: Props) {
   const { completeTask } = useTaskStore()
   const router = useRouter()
   const [tasks, setTasks] = useState(pendingTasks)
+  const [agendaItems, setAgendaItems] = useState(agenda)
+  // Avance optimista de la meta: refleja al instante lo completado en esta vista
+  const [doneToday, setDoneToday] = useState(completedToday)
 
   async function handleComplete(taskId: string, projectId: string) {
     setTasks((prev) => prev.filter((t) => t.id !== taskId))
+    setAgendaItems((prev) => prev.filter((t) => t.id !== taskId))
+    setDoneToday((n) => n + 1)
     await completeTask(taskId, projectId)
     useCosmos.getState().celebrate()
     router.refresh()
@@ -32,6 +49,14 @@ export function DashboardClient({ mainProject, otherProjects, pendingTasks }: Pr
 
   return (
     <>
+      {/* Meta diaria + agenda */}
+      <div className={agendaItems.length > 0 ? 'grid gap-4 md:grid-cols-2' : ''}>
+        <DailyGoal userId={userId} completedToday={doneToday} delay={0.12} />
+        {agendaItems.length > 0 && (
+          <Agenda items={agendaItems} onComplete={handleComplete} delay={0.14} />
+        )}
+      </div>
+
       {mainProject ? (
         <GlassPanel className="p-6 card-accent-core" delay={0.15}>
           <div className="flex items-start justify-between gap-4">

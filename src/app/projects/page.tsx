@@ -10,10 +10,12 @@ import { PlasmaBar } from '@/glass/PlasmaBar'
 import { Button } from '@/glass/Button'
 import { useAuthStore } from '@/store/authStore'
 import { useProjectStore } from '@/store/projectStore'
+import { useUIStore } from '@/store/uiStore'
 
 function Projects() {
   const user = useAuthStore((s) => s.user)
   const { projects, fetchProjects, createProject, setMainProject } = useProjectStore()
+  const consumeIntent = useUIStore((s) => s.consumeIntent)
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [goal, setGoal] = useState('')
@@ -21,6 +23,11 @@ function Projects() {
   useEffect(() => {
     if (user?.id) fetchProjects(user.id)
   }, [user?.id, fetchProjects])
+
+  // Si llegamos desde la paleta con la intención de crear, abre el formulario
+  useEffect(() => {
+    if (consumeIntent() === 'new-project') setCreating(true)
+  }, [consumeIntent])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()

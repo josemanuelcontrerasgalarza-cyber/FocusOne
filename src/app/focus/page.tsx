@@ -2,26 +2,31 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Square, CheckCircle2 } from 'lucide-react'
+import { Zap, Square, CheckCircle2, Coffee, SkipForward } from 'lucide-react'
 import { AppShell } from '@/components/AppShell'
 import { GlassPanel } from '@/glass/GlassPanel'
 import { Button } from '@/glass/Button'
+import { Ring } from '@/glass/Ring'
 import { useAuthStore } from '@/store/authStore'
 import { useTaskStore } from '@/store/taskStore'
+import { useFocusStore } from '@/store/focusStore'
 import { useCosmos } from '@/cosmos/state/useCosmos'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { type Task } from '@/types'
 
 const DURATIONS = [
+  { label: 'Express', minutes: 15 },
   { label: 'Sprint', minutes: 25 },
   { label: 'Profundo', minutes: 50 },
   { label: 'Monk mode', minutes: 90 },
 ]
 
+const BREAKS = [5, 15]
+
 const STORAGE_KEY = 'focusone_active_session'
 
-type Phase = 'setup' | 'running' | 'done'
+type Phase = 'setup' | 'running' | 'done' | 'break'
 
 interface PersistedSession {
   task: Task | null
@@ -48,6 +53,7 @@ function exitFullscreen() {
 function FocusMode() {
   const user = useAuthStore((s) => s.user)
   const { fetchUserPending, completeTask } = useTaskStore()
+  const { stats: focusStats, fetchSessions } = useFocusStore()
 
   const [phase, setPhase] = useState<Phase>('setup')
   const [pendingTasks, setPendingTasks] = useState<Task[]>([])
@@ -55,9 +61,13 @@ function FocusMode() {
   const [minutes, setMinutes] = useState(25)
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [restored, setRestored] = useState(false)
+  const [breakLeft, setBreakLeft] = useState(0)
+  const [breakTotal, setBreakTotal] = useState(0)
   const startedAt = useRef<Date | null>(null)
   const endTime = useRef<number | null>(null)
   const interval = useRef<ReturnType<typeof setInterval> | null>(null)
+  const breakEnd = useRef<number | null>(null)
+  const breakInterval = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function tick() {
     if (endTime.current == null) return
@@ -92,8 +102,11 @@ function FocusMode() {
   }
 
   useEffect(() => {
-    if (user?.id) fetchUserPending(user.id).then(setPendingTasks)
-  }, [user?.id, fetchUserPending])
+    if (user?.id) {
+      fetchUserPending(user.id).then(setPendingTasks)
+      fetchSessions(user.id)
+    }
+  }, [user?.id, fetchUserPending, fetchSessions])
 
   // Restaurar una sesión activa tras recarga o cierre accidental
   useEffect(() => {
@@ -138,6 +151,7 @@ function FocusMode() {
   useEffect(() => {
     return () => {
       if (interval.current) clearInterval(interval.current)
+      if (breakInterval.current) clearInterval(breakInterval.current)
       useCosmos.getState().setFocusActive(false)
       useCosmos.getState().setKratosState('idle')
       exitFullscreen()
@@ -211,7 +225,37 @@ function FocusMode() {
     if (user?.id) fetchUserPending(user.id).then(setPendingTasks)
   }
 
+  function breakTick() {
+    if (breakEnd.current == null) return
+    const left = Math.round((breakEnd.current - Date.now()) / 1000)
+    if (left <= 0) {
+      setBreakLeft(0)
+      endBreak(true)
+    } else {
+      setBreakLeft(left)
+    }
+  }
+
+  function startBreak(min: number) {
+    const total = min * 60
+    breakEnd.current = Date.now() + total * 1000
+    setBreakTotal(total)
+    setBreakLeft(total)
+    setPhase('break')
+    useCosmos.getState().setKratosState('idle')
+    if (breakInterval.current) clearInterval(breakInterval.current)
+    breakInterval.current = setInterval(breakTick, 250)
+  }
+
+  function endBreak(natural: boolean) {
+    if (breakInterval.current) clearInterval(breakInterval.current)
+    breakEnd.current = null
+    setPhase('setup')
+    if (natural) toast.success('Descanso terminado. ¿List@ para otra ronda?')
+  }
+
   const progress = phase === 'running' ? 1 - secondsLeft / (minutes * 60) : 0
+  const breakProgress = breakTotal > 0 ? 1 - breakLeft / breakTotal : 0
 
   // Evitar parpadeo de "setup" antes de restaurar una sesión activa
   if (!restored) {
@@ -241,6 +285,13 @@ function FocusMode() {
 
               <p className="mt-0.5 text-sm text-ink-ghost">Selecciona un objetivo y una duración.</p>
 
+              {(focusStats.todayMinutes > 0 || focusStats.totalSessions > 0) && (
+                <div className="mt-3 flex items-center gap-3 rounded-xl border border-glass-border bg-black/20 px-3 py-2 font-data text-[11px] text-ink-ghost">
+                  <span className="text-core">◉ Hoy</span>
+                  <span>{focusStats.todayMinutes} min de foco</span>
+                </div>
+              )}
+
               <div className="mt-4 flex max-h-48 flex-col gap-1.5 overflow-y-auto pr-1">
                 {pendingTasks.length === 0 && (
                   <p className="rounded-xl border border-glass-border bg-black/20 px-3 py-3 text-sm text-ink-ghost">
@@ -262,7 +313,7 @@ function FocusMode() {
                 ))}
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-2">
+              <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {DURATIONS.map((d) => (
                   <button
                     key={d.minutes}
@@ -365,6 +416,23 @@ function FocusMode() {
                     <CheckCircle2 size={15} /> Marcar «{task.title.slice(0, 28)}» como completado
                   </Button>
                 )}
+
+                {/* Descanso (ciclo Pomodoro) */}
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 font-data text-[11px] uppercase tracking-wider text-ink-ghost">
+                    <Coffee size={13} /> Descanso
+                  </span>
+                  {BREAKS.map((b) => (
+                    <button
+                      key={b}
+                      onClick={() => startBreak(b)}
+                      className="flex-1 rounded-xl border border-solar/35 bg-solar/10 py-2 font-data text-sm text-solar transition-all hover:bg-solar/20 hover:shadow-glow-solar"
+                    >
+                      {b} min
+                    </button>
+                  ))}
+                </div>
+
                 <Button
                   variant="ghost"
                   fullWidth
@@ -377,6 +445,31 @@ function FocusMode() {
                 </Button>
               </div>
             </GlassPanel>
+          </motion.div>
+        )}
+
+        {phase === 'break' && (
+          <motion.div
+            key="break"
+            className="flex flex-col items-center gap-6 text-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+          >
+            <p className="flex items-center gap-2 rounded-full border border-solar/25 bg-solar/10 px-4 py-1.5 font-display text-sm text-solar">
+              <Coffee size={15} /> Descanso
+            </p>
+            <Ring progress={breakProgress} size={240} stroke={6} from="#F59E0B" to="#FB7185">
+              <p className="font-data text-[3.5rem] font-semibold leading-none text-ink [text-shadow:0_0_32px_rgba(245,158,11,0.4)]">
+                {format(breakLeft)}
+              </p>
+              <p className="mt-1 font-data text-[10px] uppercase tracking-[0.3em] text-ink-ghost">
+                Respira · recarga
+              </p>
+            </Ring>
+            <Button variant="ghost" onClick={() => endBreak(false)}>
+              <SkipForward size={14} /> Saltar descanso
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
