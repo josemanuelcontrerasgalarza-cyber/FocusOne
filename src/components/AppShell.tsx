@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Target, Lightbulb, BarChart2,
-  Settings, Zap, Music, Trophy, Search, Command,
+  Settings, Zap, Music, Trophy, Search, Command, BrainCircuit,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -17,6 +17,7 @@ import { ShortcutsHelp } from './ShortcutsHelp'
 
 const nav = [
   { href: '/app',          icon: LayoutDashboard, label: 'Centro de mando' },
+  { href: '/kratos',       icon: BrainCircuit,    label: 'KRATOS IA' },
   { href: '/focus',        icon: Zap,             label: 'Deep Work' },
   { href: '/projects',     icon: Target,          label: 'Misiones' },
   { href: '/ideas',        icon: Lightbulb,       label: 'Ideas' },

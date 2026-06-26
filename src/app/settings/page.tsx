@@ -91,7 +91,7 @@ function UpgradeCard() {
 }
 
 const ROADMAP = [
-  { icon: Cpu,      label: 'Kratos AI',             desc: 'Copiloto de productividad (Groq + Llama)' },
+  { icon: Cpu,      label: 'Kratos con tus datos',  desc: 'El copiloto leerá tus misiones y tareas en contexto' },
   { icon: Zap,      label: 'FocusOne Pulse',         desc: 'Feedback físico con ESP32' },
   { icon: BarChart2, label: 'Coach en tiempo real',  desc: 'Análisis de sesiones de foco' },
   { icon: Lock,     label: 'Informe ejecutivo',       desc: 'Resumen semanal de rendimiento' },

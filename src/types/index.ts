@@ -72,3 +72,36 @@ export interface FocusSession {
 export interface AgendaTask extends Task {
   project_name?: string
 }
+
+/** Conteo de actividad por día (gráficos del dashboard/telemetría). */
+export interface DayCount {
+  date: string
+  count: number
+}
+
+/** Elemento del feed de actividad reciente del dashboard. */
+export interface ActivityItem {
+  id: string
+  kind: 'task' | 'focus' | 'idea'
+  title: string
+  at: string
+}
+
+/** KRATOS IA — conversación del chat. */
+export interface KratosConversation {
+  id: string
+  user_id: string
+  title: string
+  created_at: string
+  updated_at: string
+}
+
+/** KRATOS IA — mensaje individual dentro de una conversación. */
+export interface KratosMessage {
+  id: string
+  conversation_id: string
+  user_id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  created_at: string
+}

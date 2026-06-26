@@ -12,7 +12,11 @@ import { useTaskStore } from '@/store/taskStore'
 import { useCosmos } from '@/cosmos/state/useCosmos'
 import { DailyGoal } from '@/components/DailyGoal'
 import { Agenda } from '@/components/Agenda'
-import { type Task, type Project, type AgendaTask } from '@/types'
+import { WeeklyProductivity } from './WeeklyProductivity'
+import { FocusTimeCard } from './FocusTimeCard'
+import { MiniCalendar } from './MiniCalendar'
+import { ActivityFeed } from './ActivityFeed'
+import { type Task, type Project, type AgendaTask, type DayCount, type ActivityItem } from '@/types'
 
 interface Props {
   userId: string
@@ -21,6 +25,11 @@ interface Props {
   pendingTasks: Task[]
   agenda: AgendaTask[]
   completedToday: number
+  weekly: DayCount[]
+  monthActiveDates: string[]
+  focusToday: number
+  focusWeek: number
+  activity: ActivityItem[]
 }
 
 export function DashboardClient({
@@ -30,6 +39,11 @@ export function DashboardClient({
   pendingTasks,
   agenda,
   completedToday,
+  weekly,
+  monthActiveDates,
+  focusToday,
+  focusWeek,
+  activity,
 }: Props) {
   const { completeTask } = useTaskStore()
   const router = useRouter()
@@ -134,6 +148,18 @@ export function DashboardClient({
           </Link>
         </GlassPanel>
       )}
+
+      {/* Insights: productividad semanal, tiempo de foco, calendario y actividad */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <WeeklyProductivity data={weekly} delay={0.18} />
+        </div>
+        <FocusTimeCard todayMinutes={focusToday} weekMinutes={focusWeek} delay={0.2} />
+        <MiniCalendar activeDates={monthActiveDates} delay={0.22} />
+        <div className="lg:col-span-2">
+          <ActivityFeed items={activity} delay={0.24} />
+        </div>
+      </div>
 
       {otherProjects.length > 0 && (
         <div>

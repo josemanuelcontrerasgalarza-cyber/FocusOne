@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Zap, Target, Lightbulb, BarChart2, Music, Settings,
-  Plus, Search, CornerDownLeft, Trophy, type LucideIcon,
+  Plus, Search, CornerDownLeft, Trophy, BrainCircuit, type LucideIcon,
 } from 'lucide-react'
 import { Modal } from '@/glass/Modal'
 import { useUIStore } from '@/store/uiStore'
@@ -62,6 +62,7 @@ export function CommandPalette() {
   const commands = useMemo<Command[]>(() => {
     const nav: Command[] = [
       { id: 'go-app',      label: 'Centro de mando', icon: LayoutDashboard, group: 'Ir a', run: () => go('/app') },
+      { id: 'go-kratos',   label: 'KRATOS IA',       icon: BrainCircuit,    group: 'Ir a', keywords: 'chat asistente ia copiloto', run: () => go('/kratos') },
       { id: 'go-focus',    label: 'Deep Work',       icon: Zap,             group: 'Ir a', keywords: 'foco temporizador pomodoro', run: () => go('/focus') },
       { id: 'go-projects', label: 'Misiones',        icon: Target,          group: 'Ir a', keywords: 'proyectos', run: () => go('/projects') },
       { id: 'go-ideas',    label: 'Ideas',           icon: Lightbulb,       group: 'Ir a', keywords: 'bóveda', run: () => go('/ideas') },
@@ -71,6 +72,7 @@ export function CommandPalette() {
       { id: 'go-settings', label: 'Configuración',   icon: Settings,        group: 'Ir a', keywords: 'ajustes sistemas', run: () => go('/settings') },
     ]
     const actions: Command[] = [
+      { id: 'ask-kratos',  label: 'Preguntar a Kratos IA',        icon: BrainCircuit, group: 'Acciones', keywords: 'chat asistente', run: () => go('/kratos') },
       { id: 'new-focus',   label: 'Iniciar sesión de Deep Work', icon: Zap,       group: 'Acciones', run: () => go('/focus') },
       { id: 'new-project', label: 'Nueva misión',                 icon: Plus,      group: 'Acciones', keywords: 'crear proyecto', run: () => { setIntent('new-project'); go('/projects') } },
       { id: 'new-idea',    label: 'Capturar una idea',            icon: Lightbulb, group: 'Acciones', keywords: 'nueva idea', run: () => go('/ideas') },
