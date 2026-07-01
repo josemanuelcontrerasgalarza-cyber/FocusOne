@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
+import { APP_VERSION } from '@/lib/changelog'
 import { AuthGuard, ConfigNotice } from './AuthGuard'
 import { DemoBanner } from './DemoBanner'
 import { CommandPalette } from './CommandPalette'
@@ -115,7 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <div className="min-w-0">
                   <p className="truncate text-xs font-medium text-ink-dim">{user?.name}</p>
                   <p className="font-data text-[9px] uppercase tracking-[0.18em] text-ink-ghost">
-                    {isDemo ? 'Modo demo' : 'Horizon v2.0'}
+                    {isDemo ? 'Modo demo' : `FocusOne v${APP_VERSION}`}
                   </p>
                 </div>
               </Link>

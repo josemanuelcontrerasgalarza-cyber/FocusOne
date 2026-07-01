@@ -73,6 +73,15 @@ export interface AgendaTask extends Task {
   project_name?: string
 }
 
+/** Opinión anónima pública (landing). */
+export interface Review {
+  id: string
+  name: string | null
+  rating: number
+  comment: string
+  created_at: string
+}
+
 /** Conteo de actividad por día (gráficos del dashboard/telemetría). */
 export interface DayCount {
   date: string
