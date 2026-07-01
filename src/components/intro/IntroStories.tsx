@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Rocket, Star, Newspaper, ChevronLeft, ChevronRight,
-  Target, Zap, BarChart2, BrainCircuit, type LucideIcon,
+  Target, Zap, BarChart2, Trophy, type LucideIcon,
 } from 'lucide-react'
 import { GlassPanel } from '@/glass/GlassPanel'
 import { DemoButton } from '@/components/DemoButton'
@@ -25,7 +25,7 @@ const HIGHLIGHTS = [
   { icon: Target, text: 'Una misión a la vez' },
   { icon: Zap, text: 'Deep Work a pantalla completa' },
   { icon: BarChart2, text: 'Telemetría real de tu constancia' },
-  { icon: BrainCircuit, text: 'Copiloto KRATOS IA' },
+  { icon: Trophy, text: 'Logros e insignias por tu constancia' },
 ]
 
 const PILLARS = [

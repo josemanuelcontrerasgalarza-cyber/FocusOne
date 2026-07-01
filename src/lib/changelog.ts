@@ -19,13 +19,13 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '4.1',
-    title: 'KRATOS IA + Dashboard Pro',
+    title: 'Dashboard Pro y comunidad',
     date: '1 jul 2026',
     tag: 'Actual',
     items: [
-      'Nuevo asistente KRATOS IA: chat con historial, markdown y bloques de código.',
-      'Preparado para conectar modelos de IA (Groq, OpenAI, Anthropic, Gemini).',
       'Dashboard renovado: productividad semanal, tiempo enfocado, calendario del mes y actividad reciente.',
+      'Nuevo apartado «Descúbrela» con opiniones anónimas de la comunidad.',
+      'Historial de novedades público, versión a versión.',
     ],
   },
   {

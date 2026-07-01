@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { LogOut, Sparkles, Cpu, Zap, BarChart2, Lock, Keyboard, Database } from 'lucide-react'
+import { LogOut, Sparkles, Users, Zap, BarChart2, Lock, Keyboard, Database } from 'lucide-react'
 import { AppShell } from '@/components/AppShell'
 import { GlassPanel } from '@/glass/GlassPanel'
 import { Button } from '@/glass/Button'
@@ -91,7 +91,7 @@ function UpgradeCard() {
 }
 
 const ROADMAP = [
-  { icon: Cpu,      label: 'Kratos con tus datos',  desc: 'El copiloto leerá tus misiones y tareas en contexto' },
+  { icon: Users,    label: 'Colaboración en equipo', desc: 'Comparte misiones y avanza en conjunto' },
   { icon: Zap,      label: 'FocusOne Pulse',         desc: 'Feedback físico con ESP32' },
   { icon: BarChart2, label: 'Coach en tiempo real',  desc: 'Análisis de sesiones de foco' },
   { icon: Lock,     label: 'Informe ejecutivo',       desc: 'Resumen semanal de rendimiento' },
