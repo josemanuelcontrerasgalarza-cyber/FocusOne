@@ -56,3 +56,26 @@ export interface DailyStat {
   date: string
   tasks_completed: number
 }
+
+// === "La Fragua" — misiones ===
+export type MissionStatus = 'pending' | 'active' | 'completed'
+export type MissionSource = 'user' | 'ai'
+
+export interface Mission {
+  id: string
+  user_id: string
+  title: string
+  project?: string | null
+  estimated_minutes: number
+  status: MissionStatus
+  source: MissionSource
+  created_at: string
+  completed_at?: string | null
+  updated_at: string
+}
+
+/** Una estadística del panel "Hoy" del dashboard. */
+export interface TodayStat {
+  label: string
+  value: string
+}

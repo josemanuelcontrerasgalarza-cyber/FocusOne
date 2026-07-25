@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Misiones' }
  */
 export default function MisionesPage() {
   return (
-    <section className="flex flex-col gap-6">
+    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-10 sm:px-12">
       <header>
         <p className="font-num text-xs uppercase tracking-[0.2em] text-forge-ink-faint">
           El yunque
