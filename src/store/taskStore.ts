@@ -4,6 +4,7 @@ import { type Task } from '@/types'
 import { toast } from '@/lib/toast'
 import { useProjectStore } from './projectStore'
 import { useAuthStore } from './authStore'
+import { notificarESP32 } from '@/lib/notificarESP32'
 
 interface TaskState {
   tasks: Task[]
@@ -104,6 +105,11 @@ export const useTaskStore = create<TaskState>((set) => ({
         .update({ status: 'completed', completed_at: now })
         .eq('id', id)
       if (error) throw error
+      // Notificación física (ESP32) — fire-and-forget, no bloquea ni revierte.
+      const uid =
+        useAuthStore.getState().session?.user?.id ??
+        useAuthStore.getState().user?.id
+      if (uid) void notificarESP32(uid, 'tarea_completada')
       // Releemos lo que el trigger calculó en el servidor.
       await useProjectStore.getState().updateProgress(projectId)
       await useAuthStore.getState().refreshProfile()
