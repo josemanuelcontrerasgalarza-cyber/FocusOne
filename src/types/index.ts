@@ -57,6 +57,7 @@ export interface DailyStat {
   tasks_completed: number
 }
 
+// === Tipos del sistema anterior (main / PR #9) ===
 export interface FocusSession {
   id: string
   user_id: string
@@ -94,4 +95,44 @@ export interface ActivityItem {
   kind: 'task' | 'focus' | 'idea'
   title: string
   at: string
+}
+
+// === "La Fragua" — misiones ===
+export type MissionStatus = 'pending' | 'active' | 'completed'
+export type MissionSource = 'user' | 'ai'
+
+export interface Mission {
+  id: string
+  user_id: string
+  title: string
+  project?: string | null
+  estimated_minutes: number
+  status: MissionStatus
+  source: MissionSource
+  created_at: string
+  completed_at?: string | null
+  updated_at: string
+}
+
+/** Una estadística del panel "Hoy" del dashboard. */
+export interface TodayStat {
+  label: string
+  value: string
+}
+
+// === Quiz de cierre + puntos (Fase 4) ===
+export interface QuizResult {
+  id: string
+  user_id: string
+  mission_id: string
+  questions_json: unknown
+  score: number
+  points_earned: number
+  completed_at: string
+}
+
+export interface PointsRow {
+  user_id: string
+  total_points: number
+  updated_at: string
 }

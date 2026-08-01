@@ -13,6 +13,7 @@ import { useFocusStore } from '@/store/focusStore'
 import { useCosmos } from '@/cosmos/state/useCosmos'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
+import { notificarESP32 } from '@/lib/notificarESP32'
 import { type Task } from '@/types'
 
 const DURATIONS = [
@@ -194,6 +195,11 @@ function FocusMode() {
         completed,
       })
       .then(() => undefined, () => undefined)
+
+    // Sesión de Deep Work completada (finish natural o expirada) → notificación
+    // física ESP32. Fire-and-forget; no dispara al abortar (completed = false).
+    // Usa activeUser (tolera sesión restaurada donde `user` aún es null).
+    if (completed) void notificarESP32(activeUser.id, 'deep_work_completado')
   }
 
   function finish(natural: boolean) {

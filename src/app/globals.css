@@ -118,6 +118,23 @@
   50%       { opacity: 0.8; }
 }
 
+@layer components {
+  /* === La Fragua === */
+
+  /* Panel/tarjeta estándar del sistema de la fragua. */
+  .forge-panel {
+    @apply rounded-forge border border-forge-line bg-forge-surface;
+  }
+
+  /* Texto con el gradiente ember (solo para la misión activa / acentos). */
+  .text-ember {
+    background: linear-gradient(120deg, #ff6a2b 0%, #ffb13b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .plasma-fill { animation: none; }
 }
