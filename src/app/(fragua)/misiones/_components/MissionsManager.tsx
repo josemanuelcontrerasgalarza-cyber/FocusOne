@@ -110,6 +110,7 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
   }
 
   async function deleteMission(id: string) {
+    if (!confirm('¿Eliminar esta misión? No se puede deshacer.')) return
     setBusyId(id)
     try {
       const { error } = await supabase.from('missions').delete().eq('id', id)

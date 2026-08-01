@@ -140,7 +140,9 @@ function ProjectDetail() {
               <Zap size={14} className="text-ink-ghost transition-colors hover:text-core" />
             </Link>
             <button
-              onClick={() => deleteTask(t.id)}
+              onClick={() => {
+                if (confirm('¿Eliminar este objetivo? No se puede deshacer.')) deleteTask(t.id)
+              }}
               className="text-ink-ghost transition-colors hover:text-nova"
               title="Eliminar"
             >

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import { AuthGuard, ConfigNotice } from './AuthGuard'
 import { DemoBanner } from './DemoBanner'
+import { QuickCapture } from './QuickCapture'
 
 const nav = [
   { href: '/app', icon: LayoutDashboard, label: 'Centro de mando' },
@@ -94,6 +95,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </nav>
       </div>
+      <QuickCapture />
     </AuthGuard>
   )
 }

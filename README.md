@@ -42,6 +42,8 @@ npm run dev
    ⚠️ Son nuevas — las antiguas `VITE_*` ya no se usan.
 3. Ejecuta `supabase/migrations/02_focus_sessions.sql` en Supabase para habilitar
    el registro de sesiones de Deep Work.
+4. Ejecuta `supabase/migrations/05_notificaciones_esp32.sql` — asegura con RLS
+   la tabla de notificaciones físicas del ESP32 (creada previamente a mano).
 
 ## Rutas
 

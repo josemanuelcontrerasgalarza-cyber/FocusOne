@@ -74,7 +74,9 @@ function Ideas() {
                 </button>
               )}
               <button
-                onClick={() => deleteIdea(idea.id)}
+                onClick={() => {
+                  if (confirm('¿Eliminar esta idea? No se puede deshacer.')) deleteIdea(idea.id)
+                }}
                 className="text-ink-ghost transition-colors hover:text-nova"
               >
                 <Trash2 size={14} />
