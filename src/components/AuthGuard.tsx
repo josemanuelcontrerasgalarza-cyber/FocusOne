@@ -50,7 +50,8 @@ export function GuestGuard({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    if (initialized && user) router.replace('/app')
+    // Entrada a La Fragua: tras login/registro, al dashboard "Hoy".
+    if (initialized && user) router.replace('/hoy')
   }, [initialized, user, router])
 
   if (!initialized) return <BootScreen />

@@ -20,7 +20,7 @@ export function DemoButton({ className }: { className?: string }) {
     setLoading(true)
     try {
       await startDemo()
-      router.replace('/app')
+      router.replace('/hoy')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No se pudo iniciar el modo demo')
       setLoading(false)

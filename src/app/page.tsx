@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { DemoButton } from '@/components/DemoButton'
+import { IntroStories } from '@/components/intro/IntroStories'
+import { APP_VERSION } from '@/lib/changelog'
 
 export const metadata: Metadata = {
   title: 'FocusOne — Termina lo que empiezas | Productividad AI-First',
@@ -68,6 +70,12 @@ export default function LandingPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
+            href="#descubre"
+            className="hidden rounded-xl px-4 py-2 text-sm text-ink-dim transition-colors hover:text-ink sm:block"
+          >
+            Descúbrela
+          </Link>
+          <Link
             href="/login"
             className="rounded-xl px-4 py-2 text-sm text-ink-dim transition-colors hover:text-ink"
           >
@@ -109,6 +117,19 @@ export default function LandingPage() {
         </p>
       </section>
 
+      {/* Descúbrela — historias: qué es · Kratos Labs · opiniones · novedades */}
+      <section id="descubre" className="scroll-mt-6 py-10">
+        <div className="mb-6 text-center">
+          <p className="font-data text-[11px] uppercase tracking-[0.3em] text-core">
+            Conócela en un minuto
+          </p>
+          <h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">
+            Descubre <span className="text-gradient">FocusOne</span>
+          </h2>
+        </div>
+        <IntroStories />
+      </section>
+
       {/* Features */}
       <section className="py-12">
         <h2 className="text-center font-display text-2xl font-semibold sm:text-3xl">
@@ -145,7 +166,7 @@ export default function LandingPage() {
 
       <footer className="mt-auto border-t border-glass-border py-8 text-center">
         <p className="font-data text-[10px] uppercase tracking-[0.3em] text-ink-ghost">
-          FocusOne · Horizon v2.0 · Kratos Labs
+          FocusOne v{APP_VERSION} · Kratos Labs
         </p>
       </footer>
     </main>
