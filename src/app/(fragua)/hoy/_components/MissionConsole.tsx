@@ -7,6 +7,8 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
+import { useAuthStore } from '@/store/authStore'
+import { notificarESP32 } from '@/lib/notificarESP32'
 import type { Mission, TodayStat } from '@/types'
 
 interface Props {
@@ -122,6 +124,9 @@ function MissionTimer({
 }) {
   const total = mission.estimated_minutes * 60
 
+  // Id real del usuario (para la notificación ESP32). En demo no hay sesión.
+  const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
+
   const [isRunning, setIsRunning] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [forged, setForged] = useState(false)
@@ -130,22 +135,35 @@ function MissionTimer({
   const [spark, setSpark] = useState<{ x: number; y: number } | null>(null)
 
   const barRef = useRef<HTMLDivElement>(null)
+  // Evita disparar el pomodoro dos veces por misión.
+  const pomodoroFiredRef = useRef(false)
+  // Distingue "el timer llegó a 0 solo" (pomodoro) de "Terminar misión" (forzado).
+  const forcedRef = useRef(false)
 
-  // Tick de 1s: sube el calor mientras corre. Al llegar al tope, forja sola.
+  // Tick de 1s: sube el calor mientras corre. Al llegar al tope se detiene.
   useEffect(() => {
     if (!isRunning || forged) return
     const id = setInterval(() => {
       setElapsed((prev) => {
         const next = Math.min(prev + 1, total)
-        if (next >= total) {
-          // Deja que el efecto de abajo dispare la forja al detectar el tope.
-          setIsRunning(false)
-        }
+        if (next >= total) setIsRunning(false)
         return next
       })
     }, 1000)
     return () => clearInterval(id)
   }, [isRunning, forged, total])
+
+  // Pomodoro completado: el bloque de enfoque de la misión llegó a 00:00 por sí
+  // solo. NO cuenta cuando el usuario pulsa "Terminar misión" (forcedRef).
+  // Dispara la notificación física ESP32 una sola vez por misión.
+  useEffect(() => {
+    if (elapsed >= total && !pomodoroFiredRef.current) {
+      pomodoroFiredRef.current = true
+      if (!forcedRef.current && uid) {
+        void notificarESP32(uid, 'pomodoro_completado')
+      }
+    }
+  }, [elapsed, total, uid])
 
   const remaining = total - elapsed
   const heatPercent = Math.min(100, (elapsed / total) * 100)
@@ -162,6 +180,11 @@ function MissionTimer({
         .eq('id', mission.id)
       if (error) throw error
       toast.success('Misión forjada 🔥')
+      // TODO (Fase 4 — quiz): cuando la misión se verifique con el quiz de
+      // cierre, disparar aquí la notificación física de misión:
+      //   if (uid) void notificarESP32(uid, 'mision_completada')
+      // Se difiere a propósito: hoy "Terminar misión" NO pasa por el gate del
+      // quiz, así que aún no cumple "misión verificada por quiz".
       onForged() // refresca datos del servidor (stats, racha, próximas)
     } catch {
       // Nunca fallamos en silencio.
@@ -173,6 +196,10 @@ function MissionTimer({
 
   function completeMission() {
     if (forged || saving) return
+    // "Terminar misión" fuerza el calor al máximo: marca el flag para que el
+    // efecto del pomodoro NO lo confunda con un bloque de enfoque terminado.
+    forcedRef.current = true
+    pomodoroFiredRef.current = true
     setIsRunning(false)
     setElapsed(total) // llena el calor al máximo antes de drenar
 
