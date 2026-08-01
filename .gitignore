@@ -31,3 +31,9 @@ out
 next-env.d.ts
 .vercel
 .env
+
+# TypeScript
+*.tsbuildinfo
+
+# Claude Code
+.claude/worktrees/

@@ -56,3 +56,42 @@ export interface DailyStat {
   date: string
   tasks_completed: number
 }
+
+export interface FocusSession {
+  id: string
+  user_id: string
+  task_id?: string | null
+  started_at: string
+  ended_at?: string | null
+  planned_minutes: number
+  completed: boolean
+  created_at: string
+}
+
+/** Tarea con el nombre de su misión adjunto (para la agenda del dashboard). */
+export interface AgendaTask extends Task {
+  project_name?: string
+}
+
+/** Opinión anónima pública (landing). */
+export interface Review {
+  id: string
+  name: string | null
+  rating: number
+  comment: string
+  created_at: string
+}
+
+/** Conteo de actividad por día (gráficos del dashboard/telemetría). */
+export interface DayCount {
+  date: string
+  count: number
+}
+
+/** Elemento del feed de actividad reciente del dashboard. */
+export interface ActivityItem {
+  id: string
+  kind: 'task' | 'focus' | 'idea'
+  title: string
+  at: string
+}

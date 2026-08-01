@@ -56,10 +56,14 @@ export const useIdeaStore = create<IdeaState>((set) => ({
   },
 
   convertToProject: async (idea) => {
+    // Si es el primer proyecto del usuario, conviértelo en la misión principal
+    // para que el dashboard no quede sin misión activa.
+    const isFirst = useProjectStore.getState().projects.length === 0
     const project = await useProjectStore.getState().createProject({
       user_id: idea.user_id,
       name: idea.title,
       description: idea.description,
+      is_main: isFirst,
     })
     if (!project) return
     await supabase.from('ideas').update({ converted_to_project_id: project.id }).eq('id', idea.id)

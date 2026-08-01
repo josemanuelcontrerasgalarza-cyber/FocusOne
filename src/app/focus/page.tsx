@@ -2,26 +2,31 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Square, CheckCircle2 } from 'lucide-react'
+import { Zap, Square, CheckCircle2, Coffee, SkipForward } from 'lucide-react'
 import { AppShell } from '@/components/AppShell'
 import { GlassPanel } from '@/glass/GlassPanel'
 import { Button } from '@/glass/Button'
+import { Ring } from '@/glass/Ring'
 import { useAuthStore } from '@/store/authStore'
 import { useTaskStore } from '@/store/taskStore'
+import { useFocusStore } from '@/store/focusStore'
 import { useCosmos } from '@/cosmos/state/useCosmos'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { type Task } from '@/types'
 
 const DURATIONS = [
+  { label: 'Express', minutes: 15 },
   { label: 'Sprint', minutes: 25 },
   { label: 'Profundo', minutes: 50 },
   { label: 'Monk mode', minutes: 90 },
 ]
 
+const BREAKS = [5, 15]
+
 const STORAGE_KEY = 'focusone_active_session'
 
-type Phase = 'setup' | 'running' | 'done'
+type Phase = 'setup' | 'running' | 'done' | 'break'
 
 interface PersistedSession {
   task: Task | null
@@ -48,6 +53,7 @@ function exitFullscreen() {
 function FocusMode() {
   const user = useAuthStore((s) => s.user)
   const { fetchUserPending, completeTask } = useTaskStore()
+  const { stats: focusStats, fetchSessions } = useFocusStore()
 
   const [phase, setPhase] = useState<Phase>('setup')
   const [pendingTasks, setPendingTasks] = useState<Task[]>([])
@@ -55,9 +61,13 @@ function FocusMode() {
   const [minutes, setMinutes] = useState(25)
   const [secondsLeft, setSecondsLeft] = useState(0)
   const [restored, setRestored] = useState(false)
+  const [breakLeft, setBreakLeft] = useState(0)
+  const [breakTotal, setBreakTotal] = useState(0)
   const startedAt = useRef<Date | null>(null)
   const endTime = useRef<number | null>(null)
   const interval = useRef<ReturnType<typeof setInterval> | null>(null)
+  const breakEnd = useRef<number | null>(null)
+  const breakInterval = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function tick() {
     if (endTime.current == null) return
@@ -92,8 +102,11 @@ function FocusMode() {
   }
 
   useEffect(() => {
-    if (user?.id) fetchUserPending(user.id).then(setPendingTasks)
-  }, [user?.id, fetchUserPending])
+    if (user?.id) {
+      fetchUserPending(user.id).then(setPendingTasks)
+      fetchSessions(user.id)
+    }
+  }, [user?.id, fetchUserPending, fetchSessions])
 
   // Restaurar una sesión activa tras recarga o cierre accidental
   useEffect(() => {
@@ -120,7 +133,11 @@ function FocusMode() {
           startedAt.current = new Date(s.startedAt)
           setPhase('done')
           useCosmos.getState().celebrate()
-          void recordSession(true)
+          void recordSession(true, {
+            task: s.task,
+            minutes: s.minutes,
+            startedAt: new Date(s.startedAt),
+          })
           clearPersisted()
         }
       }
@@ -134,6 +151,7 @@ function FocusMode() {
   useEffect(() => {
     return () => {
       if (interval.current) clearInterval(interval.current)
+      if (breakInterval.current) clearInterval(breakInterval.current)
       useCosmos.getState().setFocusActive(false)
       useCosmos.getState().setKratosState('idle')
       exitFullscreen()
@@ -154,17 +172,25 @@ function FocusMode() {
     enterFullscreen()
   }
 
-  async function recordSession(completed: boolean) {
-    if (!user || !startedAt.current) return
+  async function recordSession(
+    completed: boolean,
+    override?: { task: Task | null; minutes: number; startedAt: Date },
+  ) {
+    // Al restaurar una sesión tras recarga, `user` y el estado aún no están
+    // poblados en el primer render; leemos del store y aceptamos overrides para
+    // no registrar valores obsoletos (planned_minutes/task_id incorrectos).
+    const activeUser = user ?? useAuthStore.getState().user
+    const start = override?.startedAt ?? startedAt.current
+    if (!activeUser || !start) return
     // Best-effort: si la tabla focus_sessions aún no existe, no rompe nada
     await supabase
       .from('focus_sessions')
       .insert({
-        user_id: user.id,
-        task_id: task?.id ?? null,
-        started_at: startedAt.current.toISOString(),
+        user_id: activeUser.id,
+        task_id: (override ? override.task?.id : task?.id) ?? null,
+        started_at: start.toISOString(),
         ended_at: new Date().toISOString(),
-        planned_minutes: minutes,
+        planned_minutes: override?.minutes ?? minutes,
         completed,
       })
       .then(() => undefined, () => undefined)
@@ -199,7 +225,37 @@ function FocusMode() {
     if (user?.id) fetchUserPending(user.id).then(setPendingTasks)
   }
 
+  function breakTick() {
+    if (breakEnd.current == null) return
+    const left = Math.round((breakEnd.current - Date.now()) / 1000)
+    if (left <= 0) {
+      setBreakLeft(0)
+      endBreak(true)
+    } else {
+      setBreakLeft(left)
+    }
+  }
+
+  function startBreak(min: number) {
+    const total = min * 60
+    breakEnd.current = Date.now() + total * 1000
+    setBreakTotal(total)
+    setBreakLeft(total)
+    setPhase('break')
+    useCosmos.getState().setKratosState('idle')
+    if (breakInterval.current) clearInterval(breakInterval.current)
+    breakInterval.current = setInterval(breakTick, 250)
+  }
+
+  function endBreak(natural: boolean) {
+    if (breakInterval.current) clearInterval(breakInterval.current)
+    breakEnd.current = null
+    setPhase('setup')
+    if (natural) toast.success('Descanso terminado. ¿List@ para otra ronda?')
+  }
+
   const progress = phase === 'running' ? 1 - secondsLeft / (minutes * 60) : 0
+  const breakProgress = breakTotal > 0 ? 1 - breakLeft / breakTotal : 0
 
   // Evitar parpadeo de "setup" antes de restaurar una sesión activa
   if (!restored) {
@@ -221,16 +277,25 @@ function FocusMode() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <GlassPanel className="p-6">
+            <GlassPanel className="p-6 card-accent-core">
               <p className="font-data text-[11px] uppercase tracking-[0.3em] text-core">
-                Modo Deep Work
+                ◉ Modo Deep Work
               </p>
               <h1 className="mt-1 font-display text-2xl font-semibold">¿Cuál es tu intención?</h1>
 
-              <div className="mt-4 flex max-h-52 flex-col gap-2 overflow-y-auto pr-1">
+              <p className="mt-0.5 text-sm text-ink-ghost">Selecciona un objetivo y una duración.</p>
+
+              {(focusStats.todayMinutes > 0 || focusStats.totalSessions > 0) && (
+                <div className="mt-3 flex items-center gap-3 rounded-xl border border-glass-border bg-black/20 px-3 py-2 font-data text-[11px] text-ink-ghost">
+                  <span className="text-core">◉ Hoy</span>
+                  <span>{focusStats.todayMinutes} min de foco</span>
+                </div>
+              )}
+
+              <div className="mt-4 flex max-h-48 flex-col gap-1.5 overflow-y-auto pr-1">
                 {pendingTasks.length === 0 && (
-                  <p className="text-sm text-ink-ghost">
-                    No tienes objetivos pendientes. Crea uno en tus misiones, o entra en foco libre.
+                  <p className="rounded-xl border border-glass-border bg-black/20 px-3 py-3 text-sm text-ink-ghost">
+                    Sin objetivos pendientes — puedes entrar en foco libre.
                   </p>
                 )}
                 {pendingTasks.map((t) => (
@@ -239,8 +304,8 @@ function FocusMode() {
                     onClick={() => setTask(task?.id === t.id ? null : t)}
                     className={`rounded-xl border px-3 py-2.5 text-left text-sm transition-all ${
                       task?.id === t.id
-                        ? 'border-core/60 bg-core/10 text-core shadow-glow-core'
-                        : 'border-glass-border bg-black/20 text-ink-dim hover:text-ink'
+                        ? 'border-core/55 bg-core/10 text-core shadow-glow-core'
+                        : 'border-glass-border bg-black/20 text-ink-dim hover:border-glass-border-hi hover:text-ink'
                     }`}
                   >
                     {t.title}
@@ -248,15 +313,15 @@ function FocusMode() {
                 ))}
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-2">
+              <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {DURATIONS.map((d) => (
                   <button
                     key={d.minutes}
                     onClick={() => setMinutes(d.minutes)}
-                    className={`rounded-xl border px-2 py-3 text-center transition-all ${
+                    className={`rounded-xl border px-2 py-3.5 text-center transition-all ${
                       minutes === d.minutes
-                        ? 'border-plasma/60 bg-plasma/15 shadow-glow-plasma'
-                        : 'border-glass-border bg-black/20 hover:bg-white/5'
+                        ? 'border-plasma/55 bg-plasma/15 shadow-glow-plasma'
+                        : 'border-glass-border bg-black/20 hover:bg-white/[0.06]'
                     }`}
                   >
                     <p className="font-data text-lg font-semibold">{d.minutes}′</p>
@@ -275,25 +340,50 @@ function FocusMode() {
         {phase === 'running' && (
           <motion.div
             key="running"
-            className="flex flex-col items-center gap-8 text-center"
+            className="flex flex-col items-center gap-6 text-center"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.05 }}
           >
             {task && (
-              <p className="max-w-md font-display text-lg text-ink-dim">
-                ◉ <span className="text-ink">{task.title}</span>
-              </p>
+              <motion.p
+                className="max-w-md rounded-full border border-core/25 bg-core/8 px-4 py-1.5 font-display text-sm text-core"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                ◉ {task.title}
+              </motion.p>
             )}
-            <p className="font-data text-[clamp(4rem,18vw,9rem)] font-semibold leading-none text-ink [text-shadow:0_0_40px_rgba(94,234,212,0.35)]">
-              {format(secondsLeft)}
-            </p>
-            <div className="h-1.5 w-72 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="plasma-fill h-full rounded-full transition-[width] duration-1000 ease-linear"
-                style={{ width: `${progress * 100}%` }}
-              />
+
+            {/* Progreso circular */}
+            <div className="relative flex items-center justify-center">
+              <svg width="240" height="240" className="-rotate-90">
+                <circle cx="120" cy="120" r="108" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                <motion.circle
+                  cx="120" cy="120" r="108" fill="none"
+                  stroke="url(#timerGrad)" strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 108}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 108 * (1 - progress) }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                />
+                <defs>
+                  <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#5EEAD4" />
+                    <stop offset="100%" stopColor="#8B5CF6" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute flex flex-col items-center">
+                <p className="font-data text-[3.5rem] font-semibold leading-none text-ink [text-shadow:0_0_32px_rgba(94,234,212,0.4)]">
+                  {format(secondsLeft)}
+                </p>
+                <p className="mt-1 font-data text-[10px] uppercase tracking-[0.3em] text-ink-ghost">
+                  {minutes} min · {Math.round(progress * 100)}%
+                </p>
+              </div>
             </div>
+
             <Button variant="ghost" onClick={() => finish(false)}>
               <Square size={14} /> Abortar sesión
             </Button>
@@ -326,6 +416,23 @@ function FocusMode() {
                     <CheckCircle2 size={15} /> Marcar «{task.title.slice(0, 28)}» como completado
                   </Button>
                 )}
+
+                {/* Descanso (ciclo Pomodoro) */}
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 font-data text-[11px] uppercase tracking-wider text-ink-ghost">
+                    <Coffee size={13} /> Descanso
+                  </span>
+                  {BREAKS.map((b) => (
+                    <button
+                      key={b}
+                      onClick={() => startBreak(b)}
+                      className="flex-1 rounded-xl border border-solar/35 bg-solar/10 py-2 font-data text-sm text-solar transition-all hover:bg-solar/20 hover:shadow-glow-solar"
+                    >
+                      {b} min
+                    </button>
+                  ))}
+                </div>
+
                 <Button
                   variant="ghost"
                   fullWidth
@@ -338,6 +445,31 @@ function FocusMode() {
                 </Button>
               </div>
             </GlassPanel>
+          </motion.div>
+        )}
+
+        {phase === 'break' && (
+          <motion.div
+            key="break"
+            className="flex flex-col items-center gap-6 text-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+          >
+            <p className="flex items-center gap-2 rounded-full border border-solar/25 bg-solar/10 px-4 py-1.5 font-display text-sm text-solar">
+              <Coffee size={15} /> Descanso
+            </p>
+            <Ring progress={breakProgress} size={240} stroke={6} from="#F59E0B" to="#FB7185">
+              <p className="font-data text-[3.5rem] font-semibold leading-none text-ink [text-shadow:0_0_32px_rgba(245,158,11,0.4)]">
+                {format(breakLeft)}
+              </p>
+              <p className="mt-1 font-data text-[10px] uppercase tracking-[0.3em] text-ink-ghost">
+                Respira · recarga
+              </p>
+            </Ring>
+            <Button variant="ghost" onClick={() => endBreak(false)}>
+              <SkipForward size={14} /> Saltar descanso
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
