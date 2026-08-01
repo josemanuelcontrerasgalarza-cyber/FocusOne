@@ -1,13 +1,20 @@
 import type { Metadata } from 'next'
+import { getMissionsBoard } from '@/lib/missions'
+import { MissionsManager } from './_components/MissionsManager'
 
 export const metadata: Metadata = { title: 'Misiones' }
 
+// Se leen las misiones del usuario por request.
+export const dynamic = 'force-dynamic'
+
 /**
- * Pantalla "Misiones": lista del día + CRUD.
- * Esqueleto en Fase 1 — se construye en Fase 3 (lista desde Supabase,
- * crear misión, activar una a la vez con validación en backend).
+ * Pantalla "Misiones" (Fase 3): CRUD completo del día.
+ * Server Component: lee el tablero (activa / apagadas / forjadas hoy) y lo
+ * pasa al manager interactivo.
  */
-export default function MisionesPage() {
+export default async function MisionesPage() {
+  const { active, pending, completedToday, isDemo } = await getMissionsBoard()
+
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-10 sm:px-12">
       <header>
@@ -19,13 +26,12 @@ export default function MisionesPage() {
         </h1>
       </header>
 
-      <div className="forge-panel flex min-h-[220px] flex-col items-center justify-center gap-2 p-8 text-center">
-        <p className="max-w-xs text-sm text-forge-ink-dim">
-          Tus misiones del día (apagada · encendida · forjada).
-          <br />
-          <span className="text-forge-ink-faint">Se construye en la Fase 3.</span>
-        </p>
-      </div>
+      <MissionsManager
+        active={active}
+        pending={pending}
+        completedToday={completedToday}
+        isDemo={isDemo}
+      />
     </section>
   )
 }

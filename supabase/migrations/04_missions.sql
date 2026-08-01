@@ -83,3 +83,33 @@ create policy "missions_update_own" on public.missions
 drop policy if exists "missions_delete_own" on public.missions;
 create policy "missions_delete_own" on public.missions
   for delete using (auth.uid() = user_id);
+
+-- ============================================================================
+-- 4. ACTIVAR MISIÓN (atómico, validado en el backend)
+--    Apaga cualquier otra misión activa del usuario y enciende la elegida en
+--    una sola transacción. Impone "una sola activa" en el servidor, no solo
+--    en la UI. SECURITY DEFINER + comprobación explícita de auth.uid().
+-- ============================================================================
+create or replace function public.activate_mission(p_mission uuid)
+returns void as $$
+begin
+  -- Solo el dueño puede activar su misión.
+  if not exists (
+    select 1 from public.missions
+    where id = p_mission and user_id = auth.uid()
+  ) then
+    raise exception 'Mission % no existe o no pertenece al usuario', p_mission;
+  end if;
+
+  -- Apaga la activa anterior (si la hay). Al quedar 0 activas antes de
+  -- encender la nueva, no se viola el índice único parcial.
+  update public.missions
+    set status = 'pending'
+    where user_id = auth.uid() and status = 'active' and id <> p_mission;
+
+  -- Enciende la elegida (a menos que ya esté forjada).
+  update public.missions
+    set status = 'active'
+    where id = p_mission and user_id = auth.uid() and status <> 'completed';
+end;
+$$ language plpgsql security definer;

@@ -50,6 +50,70 @@ function demoDashboard(): DashboardData {
   return { mission: DEMO_MISSION, isDemo: true, stats: DEMO_STATS, upcoming: DEMO_UPCOMING }
 }
 
+/** Tablero de la pantalla Misiones: activa + pendientes + forjadas hoy. */
+export interface MissionsBoard {
+  active: Mission | null
+  pending: Mission[]
+  completedToday: Mission[]
+  isDemo: boolean
+}
+
+/**
+ * Lee las misiones del día del usuario para la pantalla de gestión (Fase 3).
+ * En demo/sin sesión devuelve vacío + isDemo: la UI muestra un aviso para
+ * iniciar sesión (las mutaciones necesitan un usuario real).
+ */
+export async function getMissionsBoard(): Promise<MissionsBoard> {
+  const empty: MissionsBoard = {
+    active: null,
+    pending: [],
+    completedToday: [],
+    isDemo: true,
+  }
+  if (!supabaseConfigured) return empty
+
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return empty
+
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+
+  const [{ data: active }, { data: pending }, { data: completed }] =
+    await Promise.all([
+      supabase
+        .from('missions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('missions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('missions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .gte('completed_at', startOfToday.toISOString())
+        .order('completed_at', { ascending: false }),
+    ])
+
+  return {
+    active: (active as Mission | null) ?? null,
+    pending: (pending as Mission[]) ?? [],
+    completedToday: (completed as Mission[]) ?? [],
+    isDemo: false,
+  }
+}
+
 /**
  * Racha (días) para la insignia del header. En modo demo devuelve 12 para
  * reflejar el mockup; con sesión real lee `profiles.streak_current`.
