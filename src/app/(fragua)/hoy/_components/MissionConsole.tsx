@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Check } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import { notificarESP32 } from '@/lib/notificarESP32'
+import { QuizModal } from '@/components/forge/QuizModal'
+import type { QuizOutcome } from '@/lib/quiz'
 import type { Mission, TodayStat } from '@/types'
 
 interface Props {
@@ -130,7 +131,7 @@ function MissionTimer({
   const [isRunning, setIsRunning] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [forged, setForged] = useState(false)
-  const [saving, setSaving] = useState(false)
+  const [quizOpen, setQuizOpen] = useState(false)
   // Chispa de calor que "drena" hacia la racha al forjar (coords fixed).
   const [spark, setSpark] = useState<{ x: number; y: number } | null>(null)
 
@@ -169,46 +170,27 @@ function MissionTimer({
   const heatPercent = Math.min(100, (elapsed / total) * 100)
   const timeDisplay = formatTime(remaining)
 
-  async function persistCompletion() {
-    // En modo demo no hay fila real que actualizar.
-    if (isDemo || mission.id === 'demo') return
-    setSaving(true)
-    try {
-      const { error } = await supabase
-        .from('missions')
-        .update({ status: 'completed', completed_at: new Date().toISOString() })
-        .eq('id', mission.id)
-      if (error) throw error
-      toast.success('Misión forjada 🔥')
-      // TODO (Fase 4 — quiz): cuando la misión se verifique con el quiz de
-      // cierre, disparar aquí la notificación física de misión:
-      //   if (uid) void notificarESP32(uid, 'mision_completada')
-      // Se difiere a propósito: hoy "Terminar misión" NO pasa por el gate del
-      // quiz, así que aún no cumple "misión verificada por quiz".
-      onForged() // refresca datos del servidor (stats, racha, próximas)
-    } catch {
-      // Nunca fallamos en silencio.
-      toast.error('No se pudo guardar la misión. Inténtalo de nuevo.')
-    } finally {
-      setSaving(false)
-    }
+  // "Terminar misión" abre el quiz de cierre. La misión NO se completa hasta
+  // que el quiz se verifica (gate del quiz). El timer se pausa mientras tanto.
+  function completeMission() {
+    if (forged) return
+    setIsRunning(false)
+    setQuizOpen(true)
   }
 
-  function completeMission() {
-    if (forged || saving) return
-    // "Terminar misión" fuerza el calor al máximo: marca el flag para que el
-    // efecto del pomodoro NO lo confunda con un bloque de enfoque terminado.
+  // El quiz ya persistió todo (misión completada + quiz_results + puntos +
+  // notificación ESP32 'mision_completada'). Aquí solo hacemos el forjado
+  // visual (drenaje de calor hacia la racha) y refrescamos los datos.
+  function runForge() {
     forcedRef.current = true
     pomodoroFiredRef.current = true
-    setIsRunning(false)
     setElapsed(total) // llena el calor al máximo antes de drenar
 
     if (reduceMotion) {
       setForged(true)
-      void persistCompletion()
+      onForged()
       return
     }
-
     // Lanza la chispa desde el extremo derecho de la barra hacia la racha
     // (esquina superior derecha, donde vive la insignia).
     const rect = barRef.current?.getBoundingClientRect()
@@ -216,8 +198,14 @@ function MissionTimer({
       setSpark({ x: rect.right, y: rect.top + rect.height / 2 })
     } else {
       setForged(true)
-      void persistCompletion()
+      onForged()
     }
+  }
+
+  function handleQuizCompleted(outcome: QuizOutcome) {
+    setQuizOpen(false)
+    toast.success(`Misión forjada 🔥 +${outcome.pointsEarned} puntos`)
+    runForge()
   }
 
   return (
@@ -286,10 +274,9 @@ function MissionTimer({
           </button>
           <button
             onClick={completeMission}
-            disabled={saving}
-            className="rounded-full border border-white/[0.12] px-6 py-4 font-forge text-[15px] font-semibold text-forge-ink-dim transition-colors hover:border-white/30 hover:text-forge-ink disabled:opacity-50"
+            className="rounded-full border border-white/[0.12] px-6 py-4 font-forge text-[15px] font-semibold text-forge-ink-dim transition-colors hover:border-white/30 hover:text-forge-ink"
           >
-            {saving ? 'Guardando…' : 'Terminar misión'}
+            Terminar misión
           </button>
         </div>
       )}
@@ -310,8 +297,21 @@ function MissionTimer({
             onAnimationComplete={() => {
               setSpark(null)
               setForged(true)
-              void persistCompletion()
+              onForged() // refresca stats/racha/próximas
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Quiz de cierre — se abre al pulsar "Terminar misión" */}
+      <AnimatePresence>
+        {quizOpen && (
+          <QuizModal
+            mission={mission}
+            uid={uid}
+            isDemo={isDemo}
+            onClose={() => setQuizOpen(false)}
+            onCompleted={handleQuizCompleted}
           />
         )}
       </AnimatePresence>

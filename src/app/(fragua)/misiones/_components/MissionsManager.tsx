@@ -92,22 +92,8 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
     }
   }
 
-  async function completeMission(id: string) {
-    setBusyId(id)
-    try {
-      const { error } = await supabase
-        .from('missions')
-        .update({ status: 'completed', completed_at: new Date().toISOString() })
-        .eq('id', id)
-      if (error) throw error
-      toast.success('Misión forjada 🔥')
-      router.refresh()
-    } catch {
-      toast.error('No se pudo completar la misión.')
-    } finally {
-      setBusyId(null)
-    }
-  }
+  // Nota: completar una misión (con quiz de cierre) ocurre en /hoy, no aquí.
+  // Esta pantalla solo crea/enciende/borra; "Ir a forjar" lleva al dashboard.
 
   async function deleteMission(id: string) {
     setBusyId(id)

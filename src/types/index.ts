@@ -79,3 +79,20 @@ export interface TodayStat {
   label: string
   value: string
 }
+
+// === Quiz de cierre + puntos (Fase 4) ===
+export interface QuizResult {
+  id: string
+  user_id: string
+  mission_id: string
+  questions_json: unknown
+  score: number
+  points_earned: number
+  completed_at: string
+}
+
+export interface PointsRow {
+  user_id: string
+  total_points: number
+  updated_at: string
+}
