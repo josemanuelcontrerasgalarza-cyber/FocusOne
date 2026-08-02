@@ -8,6 +8,7 @@ import { Check } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import { notificarESP32 } from '@/lib/notificarESP32'
+import { useCountdownTitle } from '@/lib/useCountdownTitle'
 import { QuizModal } from '@/components/forge/QuizModal'
 import type { QuizOutcome } from '@/lib/quiz'
 import type { Mission, TodayStat } from '@/types'
@@ -169,6 +170,10 @@ function MissionTimer({
   const remaining = total - elapsed
   const heatPercent = Math.min(100, (elapsed / total) * 100)
   const timeDisplay = formatTime(remaining)
+
+  // Deja ver el tiempo restante en la pestaña aunque el usuario cambie de
+  // ventana — evita que pierda la misión activa de vista.
+  useCountdownTitle(isRunning ? `⏱ ${timeDisplay} · ${mission.title}` : null)
 
   // "Terminar misión" abre el quiz de cierre. La misión NO se completa hasta
   // que el quiz se verifica (gate del quiz). El timer se pausa mientras tanto.

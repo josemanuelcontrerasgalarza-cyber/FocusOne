@@ -14,6 +14,7 @@ import { useCosmos } from '@/cosmos/state/useCosmos'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { notificarESP32 } from '@/lib/notificarESP32'
+import { useCountdownTitle } from '@/lib/useCountdownTitle'
 import { type Task } from '@/types'
 
 const DURATIONS = [
@@ -69,6 +70,16 @@ function FocusMode() {
   const interval = useRef<ReturnType<typeof setInterval> | null>(null)
   const breakEnd = useRef<number | null>(null)
   const breakInterval = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Deja ver el tiempo restante en la pestaña aunque el usuario cambie de
+  // ventana — evita que pierda la sesión de foco o el descanso de vista.
+  useCountdownTitle(
+    phase === 'running'
+      ? `⏱ ${format(secondsLeft)} · ${task?.title ?? 'Enfocando'}`
+      : phase === 'break'
+        ? `☕ ${format(breakLeft)} · Descanso`
+        : null,
+  )
 
   function tick() {
     if (endTime.current == null) return
