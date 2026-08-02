@@ -9,6 +9,7 @@ import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import { notificarESP32 } from '@/lib/notificarESP32'
 import { QuizModal } from '@/components/forge/QuizModal'
+import { QuickAddMission } from './QuickAddMission'
 import type { QuizOutcome } from '@/lib/quiz'
 import type { Mission, TodayStat } from '@/types'
 
@@ -78,11 +79,11 @@ export function MissionConsole({ mission, stats, upcoming, isDemo }: Props) {
         <div>
           <SectionLabel>Próximas</SectionLabel>
           {upcoming.length === 0 ? (
-            <p className="text-sm text-forge-ink-faint">
+            <p className="mb-4 text-sm text-forge-ink-faint">
               Sin misiones pendientes.
             </p>
           ) : (
-            <div className="flex flex-col gap-0.5">
+            <div className="mb-4 flex flex-col gap-0.5">
               {upcoming.map((task) => (
                 <div
                   key={task.id}
@@ -94,6 +95,7 @@ export function MissionConsole({ mission, stats, upcoming, isDemo }: Props) {
               ))}
             </div>
           )}
+          <QuickAddMission placeholder="Anota una misión para después…" />
         </div>
       </aside>
     </div>
@@ -351,15 +353,16 @@ function EmptyMission() {
       <h1 className="m-0 mb-4 font-forge text-4xl font-extrabold leading-[1.05] tracking-tight">
         Sin misión activa
       </h1>
-      <p className="m-0 mb-8 text-[15px] text-forge-ink-dim">
-        Enciende una misión para empezar a forjar. Solo puede haber una activa a
-        la vez.
+      <p className="m-0 mb-6 text-[15px] text-forge-ink-dim">
+        Escribe qué vas a forjar y enciéndela al instante. Solo puede haber una
+        activa a la vez.
       </p>
+      <QuickAddMission activateOnCreate autoFocus className="max-w-md" />
       <Link
         href="/misiones"
-        className="inline-flex items-center rounded-full bg-ember px-7 py-4 font-forge text-[15px] font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px"
+        className="mt-5 inline-block text-sm text-forge-ink-faint underline-offset-2 hover:text-forge-ink-dim hover:underline"
       >
-        Ir a Misiones
+        O elige entre tus misiones guardadas
       </Link>
     </div>
   )

@@ -118,6 +118,7 @@ export async function saveQuizResult(
     .from('missions')
     .update({ status: 'completed', completed_at: new Date().toISOString() })
     .eq('id', mission.id)
+    .eq('user_id', uid)
   if (missionErr) throw missionErr
 
   // Notificación física: misión verificada por quiz (fire-and-forget).

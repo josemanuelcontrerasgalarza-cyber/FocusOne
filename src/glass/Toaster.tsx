@@ -11,22 +11,33 @@ const icons = {
 }
 
 export function Toaster() {
-  const { toasts, dismiss } = useToastStore()
+  const { toasts, dismiss, pause, resume } = useToastStore()
   return (
-    <div className="pointer-events-none fixed right-4 top-4 z-[120] flex flex-col gap-2">
+    <div
+      className="pointer-events-none fixed right-4 top-4 z-[120] flex flex-col gap-2"
+      aria-live="polite"
+      aria-atomic="true"
+    >
       <AnimatePresence>
         {toasts.map((t) => (
           <motion.div
             key={t.id}
+            role="status"
             className="glass-panel pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 text-sm"
             initial={{ opacity: 0, x: 60, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 60, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 480, damping: 32 }}
+            onMouseEnter={() => pause(t.id)}
+            onMouseLeave={() => resume(t.id)}
           >
             {icons[t.kind]}
             <span>{t.message}</span>
-            <button onClick={() => dismiss(t.id)} className="ml-1 text-ink-ghost hover:text-ink">
+            <button
+              onClick={() => dismiss(t.id)}
+              aria-label="Cerrar notificación"
+              className="ml-1 text-ink-ghost hover:text-ink"
+            >
               <X size={14} />
             </button>
           </motion.div>

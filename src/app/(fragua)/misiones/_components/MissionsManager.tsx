@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Flame, Plus, Check, Trash2, Loader2, ArrowRight } from 'lucide-react'
@@ -33,6 +33,14 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
   const [minutes, setMinutes] = useState(25)
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const titleRef = useRef<HTMLInputElement>(null)
+
+  // Llegada desde el comando "Nueva misión" (⌘K → /misiones?new=1): foco directo.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('new') === '1') {
+      titleRef.current?.focus()
+    }
+  }, [])
 
   // Sin sesión real no se puede gestionar (las mutaciones necesitan user_id).
   if (isDemo || !uid) {
@@ -114,6 +122,7 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
       {/* Crear misión */}
       <form onSubmit={createMission} className="forge-panel flex flex-col gap-3 p-5">
         <input
+          ref={titleRef}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="¿Qué vas a forjar?"
