@@ -6,7 +6,7 @@ import { Gift, Check, Loader2, Gem } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
-import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
+import { isDbSetupError, DB_SETUP_MSG, errText } from '@/lib/dbError'
 
 interface Props {
   claimedToday: boolean
@@ -72,7 +72,7 @@ export function DailyClaim({ claimedToday, amount, isDemo }: Props) {
       toast.success(`+${data ?? amt} 💎 reclamados. ¡Vuelve mañana!`)
       router.refresh()
     } catch (err) {
-      const msg = err instanceof Error ? err.message : ''
+      const msg = errText(err)
       if (msg.includes('reclamaste') || msg.includes('hoy')) {
         setClaimed(true)
         toast.info('Ya reclamaste tu recompensa de hoy.')

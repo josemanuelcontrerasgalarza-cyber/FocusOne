@@ -1,13 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Flame, Plus, Check, Trash2, Loader2, ArrowRight, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
-import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
+import { isDbSetupError, DB_SETUP_MSG, errText } from '@/lib/dbError'
 import type { Mission } from '@/types'
 
 interface Props {
@@ -56,6 +56,26 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   // Misiones recién creadas en esta sesión: se muestran al instante (optimista)
   // aunque el refresh del servidor tarde un momento.
   const [extra, setExtra] = useState<Mission[]>([])
+  // Borrado es irreversible: exige un segundo click ("¿Seguro?") antes de
+  // ejecutar. Si no se confirma en 3s, se desarma solo.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const confirmTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => {
+    if (confirmTimeout.current) clearTimeout(confirmTimeout.current)
+  }, [])
+
+  function askDelete(id: string) {
+    if (confirmDeleteId === id) {
+      if (confirmTimeout.current) clearTimeout(confirmTimeout.current)
+      setConfirmDeleteId(null)
+      void deleteMission(id)
+      return
+    }
+    if (confirmTimeout.current) clearTimeout(confirmTimeout.current)
+    setConfirmDeleteId(id)
+    confirmTimeout.current = setTimeout(() => setConfirmDeleteId(null), 3000)
+  }
 
   // Pendientes = las del servidor + las creadas al vuelo (deduplicadas por id).
   const pendingAll = useMemo(() => {
@@ -80,14 +100,6 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
         </Link>
       </div>
     )
-  }
-
-  /** Extrae el texto de error real de un PostgrestError (objeto plano) o Error. */
-  function errText(err: unknown): string {
-    if (err && typeof err === 'object' && 'message' in err) {
-      return String((err as { message: unknown }).message ?? '')
-    }
-    return typeof err === 'string' ? err : ''
   }
 
   async function createMission(e: React.FormEvent) {
@@ -157,6 +169,7 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
       const { error } = await supabase.from('missions').delete().eq('id', id)
       if (error) throw error
       setExtra((x) => x.filter((m) => m.id !== id))
+      toast.success('Misión borrada')
       router.refresh()
     } catch (err) {
       const msg = isDbSetupError(err) ? DB_SETUP_MSG : errText(err) || 'No se pudo borrar la misión.'
@@ -298,12 +311,24 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
                     Encender
                   </button>
                   <button
-                    onClick={() => deleteMission(m.id)}
+                    onClick={() => askDelete(m.id)}
                     disabled={busy}
-                    aria-label="Borrar misión"
-                    className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                    aria-label={confirmDeleteId === m.id ? 'Confirmar borrado' : 'Borrar misión'}
+                    className={`flex-shrink-0 rounded-full transition-colors disabled:opacity-40 ${
+                      confirmDeleteId === m.id
+                        ? 'flex items-center gap-1.5 border border-red-500/40 bg-red-500/10 px-3 py-2 font-forge text-xs font-semibold text-red-300'
+                        : 'p-2 text-forge-ink-faint hover:text-forge-ink'
+                    }`}
                   >
-                    <Trash2 size={16} />
+                    {busy ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : confirmDeleteId === m.id ? (
+                      <>
+                        <Trash2 size={14} /> ¿Seguro?
+                      </>
+                    ) : (
+                      <Trash2 size={16} />
+                    )}
                   </button>
                 </div>
               )

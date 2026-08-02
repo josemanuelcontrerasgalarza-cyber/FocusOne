@@ -6,7 +6,7 @@ import { Check, Lock, Loader2, Gem } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
-import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
+import { isDbSetupError, DB_SETUP_MSG, errText } from '@/lib/dbError'
 import type { Reward } from '@/types'
 
 interface Props {
@@ -46,7 +46,7 @@ export function RewardsStore({ rewards, unlockedIds, points, isDemo }: Props) {
       toast.success(`Desbloqueada: ${reward.name} 🔥`)
       router.refresh()
     } catch (err) {
-      const msg = err instanceof Error ? err.message : ''
+      const msg = errText(err)
       if (msg.includes('insuficientes')) toast.error('No tienes puntos suficientes.')
       else if (isDbSetupError(err)) toast.error(DB_SETUP_MSG)
       else toast.error('No se pudo desbloquear. Inténtalo de nuevo.')

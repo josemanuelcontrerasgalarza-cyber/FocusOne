@@ -32,3 +32,17 @@ export function isDbSetupError(err: unknown): boolean {
 
 export const DB_SETUP_MSG =
   'Falta activar la base de datos: ejecuta setup_all.sql en Supabase.'
+
+/**
+ * Extrae el mensaje real de un error de Supabase. Los PostgrestError son
+ * objetos planos (NO instancias de Error), así que `err instanceof Error`
+ * es siempre falso para ellos y `err.message` queda inaccesible con ese
+ * chequeo — por eso las excepciones del servidor (p. ej. "Puntos
+ * insuficientes") nunca llegaban a la UI.
+ */
+export function errText(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message ?? '')
+  }
+  return typeof err === 'string' ? err : ''
+}
