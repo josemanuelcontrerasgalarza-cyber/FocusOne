@@ -5,6 +5,7 @@ import { Check, Lock, Gem, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
+import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
 import type { PetItem, PetItemKind, UserPet } from '@/types'
 
 interface Props {
@@ -91,7 +92,9 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDem
       return true
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''
-      toast.error(msg.includes('insuficientes') ? 'Puntos insuficientes.' : 'No se pudo comprar.')
+      if (msg.includes('insuficientes')) toast.error('Puntos insuficientes.')
+      else if (isDbSetupError(err)) toast.error(DB_SETUP_MSG)
+      else toast.error('No se pudo comprar.')
       return false
     } finally {
       setBusyId(null)
