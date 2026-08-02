@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Flame, Plus, Check, Trash2, Loader2, ArrowRight } from 'lucide-react'
+import { Flame, Plus, Check, Trash2, Loader2, ArrowRight, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
@@ -13,9 +13,26 @@ import type { Mission } from '@/types'
 interface Props {
   active: Mission | null
   pending: Mission[]
-  completedToday: Mission[]
+  history: Mission[] // todas las forjadas (historial completo)
   isDemo: boolean
 }
+
+/** "2026-08-02T..." → "2 ago" (fecha corta para el historial). */
+function shortDate(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+  return `${d.getUTCDate()} ${months[d.getUTCMonth()]}`
+}
+
+/** Duraciones sugeridas (mismas que Deep Work). El usuario también puede poner
+ *  cualquier tiempo a mano en el campo de minutos. */
+const PRESETS = [
+  { label: 'Express', minutes: 15 },
+  { label: 'Sprint', minutes: 25 },
+  { label: 'Profundo', minutes: 50 },
+  { label: 'Monk mode', minutes: 90 },
+]
 
 /**
  * Gestión de misiones del día (Fase 3): crear, encender (activar), forjar
@@ -24,7 +41,7 @@ interface Props {
  *
  * Estados visuales: apagada (pending) · encendida (active) · forjada (completed).
  */
-export function MissionsManager({ active, pending, completedToday, isDemo }: Props) {
+export function MissionsManager({ active, pending, history, isDemo }: Props) {
   const router = useRouter()
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
 
@@ -33,6 +50,20 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
   const [minutes, setMinutes] = useState(25)
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Error visible y PERSISTENTE (no un toast que se desvanece): así, si algo
+  // falla al agregar, se ve el motivo real hasta el próximo intento.
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  // Misiones recién creadas en esta sesión: se muestran al instante (optimista)
+  // aunque el refresh del servidor tarde un momento.
+  const [extra, setExtra] = useState<Mission[]>([])
+
+  // Pendientes = las del servidor + las creadas al vuelo (deduplicadas por id).
+  const pendingAll = useMemo(() => {
+    const map = new Map<string, Mission>()
+    for (const m of pending) map.set(m.id, m)
+    for (const m of extra) if (!map.has(m.id)) map.set(m.id, m)
+    return Array.from(map.values())
+  }, [pending, extra])
 
   // Sin sesión real no se puede gestionar (las mutaciones necesitan user_id).
   if (isDemo || !uid) {
@@ -51,28 +82,47 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
     )
   }
 
+  /** Extrae el texto de error real de un PostgrestError (objeto plano) o Error. */
+  function errText(err: unknown): string {
+    if (err && typeof err === 'object' && 'message' in err) {
+      return String((err as { message: unknown }).message ?? '')
+    }
+    return typeof err === 'string' ? err : ''
+  }
+
   async function createMission(e: React.FormEvent) {
     e.preventDefault()
     const clean = title.trim()
     if (!clean) return
     setCreating(true)
+    setErrorMsg(null)
     try {
-      const { error } = await supabase.from('missions').insert({
-        user_id: uid,
-        title: clean,
-        project: project.trim() || null,
-        estimated_minutes: minutes,
-        status: 'pending',
-        source: 'user',
-      })
+      const { data, error } = await supabase
+        .from('missions')
+        .insert({
+          user_id: uid,
+          title: clean,
+          project: project.trim() || null,
+          estimated_minutes: minutes,
+          status: 'pending',
+          source: 'user',
+        })
+        .select('*')
+        .single()
       if (error) throw error
+      // Aparece de inmediato en "Apagadas".
+      if (data) setExtra((x) => [...x, data as Mission])
       setTitle('')
       setProject('')
       setMinutes(25)
       toast.success('Misión añadida')
       router.refresh()
     } catch (err) {
-      toast.error(isDbSetupError(err) ? DB_SETUP_MSG : 'No se pudo crear la misión. Inténtalo de nuevo.')
+      const msg = isDbSetupError(err)
+        ? DB_SETUP_MSG
+        : errText(err) || 'No se pudo crear la misión. Inténtalo de nuevo.'
+      setErrorMsg(msg)
+      toast.error(msg)
     } finally {
       setCreating(false)
     }
@@ -80,14 +130,18 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
 
   async function activateMission(id: string) {
     setBusyId(id)
+    setErrorMsg(null)
     try {
       // RPC atómica: apaga la activa anterior y enciende esta en el backend.
       const { error } = await supabase.rpc('activate_mission', { p_mission: id })
       if (error) throw error
+      setExtra((x) => x.filter((m) => m.id !== id))
       toast.success('Misión encendida 🔥')
       router.refresh()
     } catch (err) {
-      toast.error(isDbSetupError(err) ? DB_SETUP_MSG : 'No se pudo encender la misión.')
+      const msg = isDbSetupError(err) ? DB_SETUP_MSG : errText(err) || 'No se pudo encender la misión.'
+      setErrorMsg(msg)
+      toast.error(msg)
     } finally {
       setBusyId(null)
     }
@@ -98,12 +152,16 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
 
   async function deleteMission(id: string) {
     setBusyId(id)
+    setErrorMsg(null)
     try {
       const { error } = await supabase.from('missions').delete().eq('id', id)
       if (error) throw error
+      setExtra((x) => x.filter((m) => m.id !== id))
       router.refresh()
     } catch (err) {
-      toast.error(isDbSetupError(err) ? DB_SETUP_MSG : 'No se pudo borrar la misión.')
+      const msg = isDbSetupError(err) ? DB_SETUP_MSG : errText(err) || 'No se pudo borrar la misión.'
+      setErrorMsg(msg)
+      toast.error(msg)
     } finally {
       setBusyId(null)
     }
@@ -120,6 +178,28 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
           maxLength={200}
           className="w-full bg-transparent font-forge text-lg font-semibold text-forge-ink outline-none placeholder:text-forge-ink-faint"
         />
+
+        {/* Tiempos predefinidos (además del campo libre de minutos). */}
+        <div className="flex flex-wrap gap-2">
+          {PRESETS.map((p) => {
+            const on = minutes === p.minutes
+            return (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => setMinutes(p.minutes)}
+                className={`rounded-full border px-3 py-1.5 font-forge text-xs font-semibold transition-colors ${
+                  on
+                    ? 'border-ember/50 bg-ember/10 text-ember'
+                    : 'border-forge-line text-forge-ink-dim hover:text-forge-ink'
+                }`}
+              >
+                {p.label} · {p.minutes}m
+              </button>
+            )
+          })}
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
           <input
             value={project}
@@ -147,6 +227,14 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
             Añadir
           </button>
         </div>
+
+        {/* Error persistente: se queda a la vista hasta el próximo intento. */}
+        {errorMsg && (
+          <div className="flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2.5 text-sm text-red-300">
+            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
       </form>
 
       {/* Encendida (activa) */}
@@ -181,13 +269,13 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
       {/* Apagadas (pendientes) */}
       <section>
         <SectionLabel>Apagadas</SectionLabel>
-        {pending.length === 0 ? (
+        {pendingAll.length === 0 ? (
           <p className="text-sm text-forge-ink-faint">
             No hay misiones pendientes. Crea una arriba.
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {pending.map((m) => {
+            {pendingAll.map((m) => {
               const busy = busyId === m.id
               return (
                 <div
@@ -224,22 +312,25 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
         )}
       </section>
 
-      {/* Forjadas hoy (completadas) */}
-      {completedToday.length > 0 && (
+      {/* Historial completo de forjadas (todos los días) */}
+      {history.length > 0 && (
         <section>
-          <SectionLabel>Forjadas hoy</SectionLabel>
+          <SectionLabel>Forjadas · historial ({history.length})</SectionLabel>
           <div className="flex flex-col gap-2">
-            {completedToday.map((m) => (
+            {history.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center gap-3 rounded-forge border border-forge-line bg-forge-surface/50 p-4 opacity-70"
+                className="flex items-center gap-3 rounded-forge border border-forge-line bg-forge-surface/50 p-4 opacity-80"
               >
                 <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-metal/15">
                   <Check size={13} className="text-metal" strokeWidth={3} />
                 </span>
-                <p className="min-w-0 flex-1 truncate font-forge text-[15px] font-medium text-forge-ink-dim line-through">
+                <p className="min-w-0 flex-1 truncate font-forge text-[15px] font-medium text-forge-ink-dim">
                   {m.title}
                 </p>
+                <span className="flex-shrink-0 font-num text-[12px] text-forge-ink-faint">
+                  {shortDate(m.completed_at)}
+                </span>
               </div>
             ))}
           </div>
