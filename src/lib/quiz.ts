@@ -131,12 +131,15 @@ export async function saveQuizResult(
     pointsEarned = data?.points_earned ?? null
   }
 
-  // Verificada por quiz → marcar la misión como forjada (idempotente: el trigger
-  // de racha solo cuenta la transición a 'completed', reejecutar no la infla).
+  // Verificada por quiz → marcar la misión como forjada. `neq('completed')`
+  // evita reescribir una misión ya cerrada (en reintentos), y NO enviamos
+  // completed_at: lo sella el trigger handle_mission_completed en la transición,
+  // así la fecha no "avanza" y no corrompe el bucketing por día del historial.
   const { error: missionErr } = await supabase
     .from('missions')
-    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .update({ status: 'completed' })
     .eq('id', mission.id)
+    .neq('status', 'completed')
   if (missionErr) throw missionErr
 
   // Notificación física: misión verificada por quiz (fire-and-forget).

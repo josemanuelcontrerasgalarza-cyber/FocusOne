@@ -65,8 +65,10 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
     return Array.from(map.values())
   }, [pending, extra])
 
-  // Sin sesión real no se puede gestionar (las mutaciones necesitan user_id).
-  if (isDemo || !uid) {
+  // Gate por `isDemo` (autoritativo del servidor), NO por el uid del cliente:
+  // el store de auth se hidrata en el navegador, así que gatear por uid mostraba
+  // "Inicia sesión" un instante (y en el HTML del servidor) a usuarios reales.
+  if (isDemo) {
     return (
       <div className="forge-panel p-8 text-center">
         <p className="text-sm text-forge-ink-dim">
@@ -94,6 +96,10 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
     e.preventDefault()
     const clean = title.trim()
     if (!clean) return
+    if (!uid) {
+      setErrorMsg('Cargando tu sesión… espera un segundo e inténtalo de nuevo.')
+      return
+    }
     setCreating(true)
     setErrorMsg(null)
     try {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Lock, Loader2, Gem } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -30,8 +30,19 @@ export function RewardsStore({ rewards, unlockedIds, points, isDemo }: Props) {
   const router = useRouter()
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Estado optimista: marca la recompensa como tuya y descuenta puntos al
+  // instante para que un segundo clic no dispare otro unlock_reward (doble gasto).
+  const [extraUnlocked, setExtraUnlocked] = useState<Set<string>>(new Set())
+  const [spent, setSpent] = useState(0)
 
-  const unlocked = new Set(unlockedIds)
+  // Al llegar props frescas del servidor (tras refresh), resetea lo optimista.
+  useEffect(() => {
+    setExtraUnlocked(new Set())
+    setSpent(0)
+  }, [unlockedIds, points])
+
+  const unlocked = new Set([...unlockedIds, ...extraUnlocked])
+  const displayPoints = Math.max(0, points - spent)
   const canUse = !isDemo && Boolean(uid)
 
   async function unlock(reward: Reward) {
@@ -39,10 +50,13 @@ export function RewardsStore({ rewards, unlockedIds, points, isDemo }: Props) {
       toast.info('Inicia sesión para desbloquear recompensas.')
       return
     }
+    if (unlocked.has(reward.id)) return
     setBusyId(reward.id)
     try {
       const { error } = await supabase.rpc('unlock_reward', { p_reward: reward.id })
       if (error) throw error
+      setExtraUnlocked((s) => new Set(s).add(reward.id))
+      setSpent((s) => s + reward.cost_points)
       toast.success(`Desbloqueada: ${reward.name} 🔥`)
       router.refresh()
     } catch (err) {
@@ -63,7 +77,7 @@ export function RewardsStore({ rewards, unlockedIds, points, isDemo }: Props) {
         </div>
         <div className="flex items-center gap-1.5 text-sm">
           <Gem size={14} className="text-forge-ink-dim" />
-          <span className="font-num font-semibold text-forge-ink">{points}</span>
+          <span className="font-num font-semibold text-forge-ink">{displayPoints}</span>
           <span className="text-forge-ink-faint">pts</span>
         </div>
       </div>
@@ -71,7 +85,7 @@ export function RewardsStore({ rewards, unlockedIds, points, isDemo }: Props) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {rewards.map((reward) => {
           const owned = unlocked.has(reward.id)
-          const affordable = points >= reward.cost_points
+          const affordable = displayPoints >= reward.cost_points
           const busy = busyId === reward.id
           return (
             <div

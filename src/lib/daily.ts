@@ -14,8 +14,11 @@ function dailyAmount(streak: number): number {
 }
 
 /**
- * Estado de la recompensa diaria del usuario: si ya la reclamó hoy y cuánto
- * vale. En demo/sin sesión devuelve un valor de muestra sin reclamar.
+ * Valor inicial de la recompensa diaria (solo el monto, según la racha). NO
+ * decide "ya reclamó hoy": eso depende de la ZONA HORARIA del usuario, que solo
+ * el navegador conoce, así que lo reconcilia el componente cliente (DailyClaim)
+ * llamando a daily_claim_state con su fecha local. Aquí devolvemos
+ * claimedToday=false para evitar desajustes SSR/cliente en el borde del día.
  */
 export async function getDailyClaim(): Promise<DailyClaimState> {
   if (!supabaseConfigured) return { claimedToday: false, amount: 25, isDemo: true }
@@ -26,21 +29,12 @@ export async function getDailyClaim(): Promise<DailyClaimState> {
   } = await supabase.auth.getUser()
   if (!user) return { claimedToday: false, amount: 25, isDemo: true }
 
-  // El estado (¿ya reclamó hoy? + monto) lo decide el servidor con current_date,
-  // así no hay desajuste de zona horaria al comparar fechas en el cliente.
-  const { data, error } = await supabase.rpc('daily_claim_state').single()
+  const streak = await supabase
+    .from('profiles')
+    .select('streak_current')
+    .eq('id', user.id)
+    .maybeSingle()
+    .then((r) => (r.data as { streak_current: number } | null)?.streak_current ?? 0)
 
-  if (error || !data) {
-    // Sin la función/tablas aún (setup no corrido): degradar a "sin reclamar".
-    const streak = await supabase
-      .from('profiles')
-      .select('streak_current')
-      .eq('id', user.id)
-      .maybeSingle()
-      .then((r) => (r.data as { streak_current: number } | null)?.streak_current ?? 0)
-    return { claimedToday: false, amount: dailyAmount(streak), isDemo: false }
-  }
-
-  const state = data as { claimed: boolean; amount: number }
-  return { claimedToday: state.claimed, amount: state.amount, isDemo: false }
+  return { claimedToday: false, amount: dailyAmount(streak), isDemo: false }
 }

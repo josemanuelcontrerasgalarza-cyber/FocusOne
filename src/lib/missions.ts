@@ -224,11 +224,13 @@ export async function getDashboardData(): Promise<DashboardData> {
     .order('created_at', { ascending: true })
     .limit(3)
 
-  // Estadísticas reales que salen baratas: racha (profiles) y misiones de hoy.
+  // Estadísticas reales: racha (profiles), misiones de hoy y enfoque (focus_sessions).
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
+  const weekStart = new Date(startOfToday)
+  weekStart.setDate(weekStart.getDate() - 6)
 
-  const [{ data: profile }, { count: completedToday }, { count: totalToday }] =
+  const [{ data: profile }, { count: completedToday }, { count: openCount }, { data: focusWeek }] =
     await Promise.all([
       supabase.from('profiles').select('streak_current').eq('id', user.id).maybeSingle(),
       supabase
@@ -237,20 +239,51 @@ export async function getDashboardData(): Promise<DashboardData> {
         .eq('user_id', user.id)
         .eq('status', 'completed')
         .gte('completed_at', startOfToday.toISOString()),
+      // Denominador coherente: lo que sigue en tu plato (pendientes + activa).
       supabase
         .from('missions')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .gte('created_at', startOfToday.toISOString()),
+        .neq('status', 'completed'),
+      // focus_sessions puede no existir aún (setup sin correr): el error se ignora.
+      supabase
+        .from('focus_sessions')
+        .select('planned_minutes, started_at, ended_at, completed')
+        .eq('user_id', user.id)
+        .gte('started_at', weekStart.toISOString()),
     ])
 
   const streak = profile?.streak_current ?? 0
+  const done = completedToday ?? 0
+  const totalToday = done + (openCount ?? 0)
+
+  // Minutos REALES por sesión (abandonadas cuentan el tiempo transcurrido, no el
+  // planeado). De ahí salen "Enfoque hoy" y el "Promedio semanal".
+  const sessions = (focusWeek ?? []) as {
+    planned_minutes: number
+    started_at: string
+    ended_at: string | null
+    completed: boolean
+  }[]
+  const minutesOf = (f: (typeof sessions)[number]): number => {
+    const planned = f.planned_minutes ?? 0
+    if (f.completed) return planned
+    if (!f.ended_at) return 0
+    const el = Math.round((new Date(f.ended_at).getTime() - new Date(f.started_at).getTime()) / 60000)
+    return Math.max(0, Math.min(el, planned))
+  }
+  const todayIso = startOfToday.toISOString()
+  const focusTodayMin = sessions
+    .filter((f) => f.started_at >= todayIso)
+    .reduce((a, f) => a + minutesOf(f), 0)
+  const focusWeekMin = sessions.reduce((a, f) => a + minutesOf(f), 0)
+  const fmt = (m: number): string => (m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`)
+
   const stats: TodayStat[] = [
-    // TODO (Fase 4/5): "Enfoque hoy" y "Promedio semanal" salen de focus_sessions.
-    { label: 'Enfoque hoy', value: '—' },
-    { label: 'Misiones', value: `${completedToday ?? 0}/${totalToday ?? 0}` },
+    { label: 'Enfoque hoy', value: focusTodayMin > 0 ? fmt(focusTodayMin) : '—' },
+    { label: 'Misiones', value: `${done}/${totalToday}` },
     { label: 'Racha', value: `${streak} ${streak === 1 ? 'día' : 'días'}` },
-    { label: 'Promedio semanal', value: '—' },
+    { label: 'Promedio semanal', value: focusWeekMin > 0 ? fmt(Math.round(focusWeekMin / 7)) : '—' },
   ]
 
   return {

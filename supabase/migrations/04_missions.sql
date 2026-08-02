@@ -40,7 +40,7 @@ begin
   new.updated_at := now();
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public;
 
 drop trigger if exists on_missions_touch on public.missions;
 create trigger on_missions_touch
@@ -56,7 +56,7 @@ begin
   end if;
   return NEW;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public;
 
 drop trigger if exists on_mission_completed on public.missions;
 create trigger on_mission_completed
@@ -112,4 +112,4 @@ begin
     set status = 'active'
     where id = p_mission and user_id = auth.uid() and status <> 'completed';
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;

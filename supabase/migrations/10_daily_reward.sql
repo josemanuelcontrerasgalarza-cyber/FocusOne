@@ -59,7 +59,7 @@ begin
 
   return v_amount;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- Estado del reclamo del día LOCAL del cliente (evita el bug de zona horaria de
 -- comparar fechas en el cliente): ¿ya reclamó hoy? y ¿cuánto vale?
@@ -78,4 +78,4 @@ begin
     ),
     20 + least(coalesce(v_streak, 0), 15);
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;

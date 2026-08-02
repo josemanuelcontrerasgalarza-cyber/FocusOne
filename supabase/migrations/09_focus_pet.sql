@@ -97,4 +97,4 @@ begin
   insert into public.pet_owned (user_id, item_id) values (auth.uid(), p_item);
   return v_total - v_cost;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;

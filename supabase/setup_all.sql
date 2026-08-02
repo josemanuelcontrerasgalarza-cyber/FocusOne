@@ -266,14 +266,16 @@ drop policy if exists "quiz_select_own" on public.quiz_results;
 create policy "quiz_select_own" on public.quiz_results
   for select using (auth.uid() = user_id);
 
--- Solo puede insertar un cierre de UNA misión propia.
+-- Solo puede cerrar una misión propia que esté ACTIVA (encendida). Sin el
+-- filtro por estado se podían crear misiones y postear quiz_results en bucle
+-- para farmear puntos sin trabajo real de enfoque.
 drop policy if exists "quiz_insert_own" on public.quiz_results;
 create policy "quiz_insert_own" on public.quiz_results
   for insert with check (
     auth.uid() = user_id
     and exists (
       select 1 from public.missions m
-      where m.id = mission_id and m.user_id = auth.uid()
+      where m.id = mission_id and m.user_id = auth.uid() and m.status = 'active'
     )
   );
 
@@ -465,6 +467,34 @@ drop policy if exists "user_pet_update" on public.user_pet;
 create policy "user_pet_update" on public.user_pet
   for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+-- Anti-trampa: solo se pueden equipar ítems que el usuario POSEE (pet_owned).
+-- Sin esto, el cliente podía escribir directamente user_pet y lucir cosméticos
+-- de pago sin gastar puntos vía buy_pet_item. Cada slot no nulo debe estar en
+-- pet_owned (incluidas las mascotas gratis, que también generan fila al adoptar).
+create or replace function public.enforce_pet_ownership()
+returns trigger as $$
+declare
+  v_slot text;
+begin
+  foreach v_slot in array array[NEW.pet_id, NEW.hat_id, NEW.outfit_id, NEW.accessory_id]
+  loop
+    -- Las mascotas base son gratis y siempre equipables (no rompe cuentas previas).
+    if v_slot is not null and v_slot not in ('gato', 'perro') and not exists (
+      select 1 from public.pet_owned
+      where user_id = NEW.user_id and item_id = v_slot
+    ) then
+      raise exception 'No posees el ítem "%": cómpralo antes de equiparlo', v_slot;
+    end if;
+  end loop;
+  return NEW;
+end;
+$$ language plpgsql set search_path = public;
+
+drop trigger if exists on_user_pet_ownership on public.user_pet;
+create trigger on_user_pet_ownership
+  before insert or update on public.user_pet
+  for each row execute procedure public.enforce_pet_ownership();
+
 -- ============================================================================
 -- 4. Comprar un ítem (el COSTO lo decide el servidor, no el cliente)
 -- ============================================================================
@@ -532,8 +562,12 @@ create table if not exists public.daily_claims (
   user_id    uuid not null references auth.users (id) on delete cascade,
   claim_date date not null default current_date,
   amount     integer not null,
+  claimed_at timestamptz not null default now(),
   primary key (user_id, claim_date)
 );
+
+-- Marca de tiempo del reclamo (para el tope real de 1 cada 20h). Idempotente.
+alter table public.daily_claims add column if not exists claimed_at timestamptz not null default now();
 
 alter table public.daily_claims enable row level security;
 drop policy if exists "daily_claims_read" on public.daily_claims;
@@ -551,8 +585,8 @@ declare
   v_streak integer;
   v_amount integer;
 begin
-  -- Acota a ±1 día del servidor: cubre cualquier zona horaria pero impide
-  -- reclamar fechas arbitrarias (anti-farm).
+  -- Acota a ±1 día del servidor: cubre cualquier zona horaria (incluidas UTC+)
+  -- pero impide reclamar fechas arbitrarias.
   if p_local_date < current_date - 1 or p_local_date > current_date + 1 then
     raise exception 'Fecha fuera de rango';
   end if;
@@ -560,6 +594,15 @@ begin
   if exists (
     select 1 from public.daily_claims
     where user_id = auth.uid() and claim_date = p_local_date
+  ) then
+    raise exception 'Ya reclamaste tu recompensa de hoy';
+  end if;
+
+  -- Tope REAL anti-farm: máximo un reclamo por cada 20 horas, sin importar la
+  -- fecha enviada. Evita reclamar ayer+hoy+mañana de golpe abusando de la ventana.
+  if exists (
+    select 1 from public.daily_claims
+    where user_id = auth.uid() and claimed_at > now() - interval '20 hours'
   ) then
     raise exception 'Ya reclamaste tu recompensa de hoy';
   end if;
@@ -613,11 +656,16 @@ $$ language plpgsql security definer set search_path = public;
 
 create table if not exists public.reviews (
   id uuid default gen_random_uuid() primary key,
-  name text,
+  name text check (name is null or char_length(name) <= 80),
   rating int not null default 5 check (rating between 1 and 5),
   comment text not null check (char_length(comment) between 1 and 500),
   created_at timestamptz default now()
 );
+
+-- Límite de longitud del nombre también para tablas ya existentes (idempotente).
+alter table public.reviews drop constraint if exists reviews_name_len;
+alter table public.reviews add constraint reviews_name_len
+  check (name is null or char_length(name) <= 80);
 
 create index if not exists reviews_created_idx on public.reviews(created_at desc);
 
@@ -632,7 +680,9 @@ create policy "Anyone can read reviews" on public.reviews
 drop policy if exists "Anyone can post a review" on public.reviews;
 create policy "Anyone can post a review" on public.reviews
   for insert with check (
-    rating between 1 and 5 and char_length(comment) between 1 and 500
+    rating between 1 and 5
+    and char_length(comment) between 1 and 500
+    and (name is null or char_length(name) <= 80)
   );
 
 -- El rol anónimo (clave anon) necesita el privilegio a nivel de tabla

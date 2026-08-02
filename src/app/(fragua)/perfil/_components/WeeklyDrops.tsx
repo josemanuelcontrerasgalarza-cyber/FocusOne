@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Check, Gem, Lock, Loader2, ArrowRight, Sparkles } from 'lucide-react'
@@ -27,7 +27,17 @@ export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
   const canUse = !isDemo && Boolean(uid)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const owned = new Set(ownedIds)
+  // Estado optimista: evita que un segundo clic dispare otra compra (doble gasto).
+  const [extraOwned, setExtraOwned] = useState<Set<string>>(new Set())
+  const [spent, setSpent] = useState(0)
+
+  useEffect(() => {
+    setExtraOwned(new Set())
+    setSpent(0)
+  }, [ownedIds, points])
+
+  const owned = new Set([...ownedIds, ...extraOwned])
+  const displayPoints = Math.max(0, points - spent)
 
   async function buy(item: PetItem) {
     if (owned.has(item.id)) return
@@ -35,7 +45,7 @@ export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
       toast.info('Inicia sesión para comprar con puntos.')
       return
     }
-    if (points < item.cost_points) {
+    if (displayPoints < item.cost_points) {
       toast.error('Puntos insuficientes.')
       return
     }
@@ -43,6 +53,8 @@ export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
     try {
       const { error } = await supabase.rpc('buy_pet_item', { p_item: item.id })
       if (error) throw error
+      setExtraOwned((s) => new Set(s).add(item.id))
+      setSpent((s) => s + item.cost_points)
       toast.success(`Compraste: ${item.name}. ¡Vístela en Focus Pet!`)
       router.refresh()
     } catch (err) {
@@ -74,7 +86,7 @@ export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {featured.map((item) => {
           const isOwned = owned.has(item.id)
-          const affordable = points >= item.cost_points
+          const affordable = displayPoints >= item.cost_points
           const busy = busyId === item.id
           const locked = !isOwned && canUse && !affordable
           return (
@@ -109,7 +121,7 @@ export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
                 ) : (
                   <Gem size={12} />
                 )}
-                {isOwned ? 'Tienes' : locked ? `Faltan ${item.cost_points - points}` : `${item.cost_points}`}
+                {isOwned ? 'Tienes' : locked ? `Faltan ${item.cost_points - displayPoints}` : `${item.cost_points}`}
               </button>
             </div>
           )

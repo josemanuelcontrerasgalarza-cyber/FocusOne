@@ -38,7 +38,7 @@ begin
   end if;
   return NEW;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists on_mission_streak on public.missions;
 create trigger on_mission_streak
