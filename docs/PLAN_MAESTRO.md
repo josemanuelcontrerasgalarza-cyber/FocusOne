@@ -1,3 +1,12 @@
+> **Estado (actualización semanal 2026-08-02):** este documento describe una
+> auditoría de la base de código **anterior a la migración a Next.js**. La
+> Fase 1 que propone (shell Next.js 15, gamificación server-side vía triggers
+> `SECURITY DEFINER`, RLS endurecida) **ya está implementada** — ver
+> `supabase/migrations/` y el README. Los riesgos S1-S6 de la sección 1.7 ya
+> se cerraron salvo matices menores cubiertos en informes semanales
+> posteriores. Se conserva como registro histórico de decisiones; la sección
+> 3 (funciones IA/hardware) sigue siendo un roadmap a futuro, no implementado.
+
 # FocusOne — Auditoría Técnica y Plan Maestro AI-First
 
 > Documento estratégico. Objetivo: convertir FocusOne en la plataforma de productividad

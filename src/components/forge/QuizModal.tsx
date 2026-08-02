@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Loader2, Flame } from 'lucide-react'
 import { toast } from '@/lib/toast'
@@ -17,6 +17,8 @@ interface Props {
   mission: Mission
   uid?: string
   isDemo: boolean
+  /** Hora de inicio del bloque de enfoque (para registrar la sesión). */
+  startedAt?: string
   onClose: () => void
   onCompleted: (outcome: QuizOutcome) => void
 }
@@ -28,7 +30,7 @@ interface Props {
  *
  * En demo (sin sesión/misión real) solo previsualiza el resultado sin escribir.
  */
-export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props) {
+export function QuizModal({ mission, uid, isDemo, startedAt, onClose, onCompleted }: Props) {
   const total = MOCK_QUESTIONS.length
   const canSave = Boolean(uid) && !isDemo && mission.id !== 'demo'
 
@@ -36,6 +38,21 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
   const [answers, setAnswers] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState<QuizOutcome | null>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // Cierre con Escape (salvo mostrando el resultado, igual que el botón X) +
+  // foco inicial en el panel para que el teclado no se quede detrás del modal.
+  useEffect(() => {
+    panelRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && step < total) onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [step, total, onClose])
 
   async function choose(optionIndex: number) {
     if (saving) return
@@ -52,7 +69,10 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
     if (canSave && uid) {
       setSaving(true)
       try {
-        const outcome = await saveQuizResult(uid, mission, nextAnswers)
+        const session = startedAt
+          ? { startedAt, endedAt: new Date().toISOString() }
+          : undefined
+        const outcome = await saveQuizResult(uid, mission, nextAnswers, session)
         setResult(outcome)
         setStep(total)
       } catch {
@@ -84,7 +104,12 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
 
       {/* Panel */}
       <motion.div
-        className="relative w-full max-w-md rounded-forge border border-forge-line bg-forge-surface p-6 shadow-ember"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Cierre de misión"
+        tabIndex={-1}
+        className="relative w-full max-w-md rounded-forge border border-forge-line bg-forge-surface p-6 shadow-ember outline-none"
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 16, scale: 0.98 }}

@@ -3,14 +3,7 @@
 import { motion } from 'framer-motion'
 import { Timer } from 'lucide-react'
 import { GlassPanel } from '@/glass/GlassPanel'
-
-function fmt(m: number) {
-  if (m <= 0) return '0m'
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  const mm = m % 60
-  return mm === 0 ? `${h}h` : `${h}h ${mm}m`
-}
+import { formatFocusMinutes as fmt } from '@/lib/dates'
 
 export function FocusTimeCard({
   todayMinutes,

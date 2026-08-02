@@ -33,3 +33,15 @@ export const dueToneBadge: Record<DueTone, string> = {
   soon: 'badge badge-ghost',
   later: 'badge badge-ghost',
 }
+
+/**
+ * "1h 47m" / "45m" / "2h" — formato compacto de minutos de enfoque,
+ * compartido por los paneles de tiempo de enfoque de ambas zonas de la app.
+ */
+export function formatFocusMinutes(totalMinutes: number): string {
+  const m = Math.max(0, Math.round(totalMinutes))
+  if (m < 60) return `${m}m`
+  const h = Math.floor(m / 60)
+  const mm = m % 60
+  return mm === 0 ? `${h}h` : `${h}h ${mm}m`
+}

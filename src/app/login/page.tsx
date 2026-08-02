@@ -89,7 +89,7 @@ export default function LoginPage() {
                 />
               </div>
               <Button type="submit" loading={loading} fullWidth size="lg" className="mt-3">
-                Entrar al centro de mando
+                Entrar
               </Button>
             </form>
 

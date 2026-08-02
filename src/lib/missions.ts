@@ -1,7 +1,43 @@
 import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
+import { formatFocusMinutes } from '@/lib/dates'
 import type { Mission, TodayStat } from '@/types'
+
+/**
+ * Minutos de enfoque de hoy y promedio diario de los últimos 7 días, a partir
+ * de `focus_sessions` (poblada tanto por el Modo Deep Work clásico como por
+ * el timer de misiones de La Fragua — ver `saveQuizResult` en `lib/quiz.ts`).
+ * Misma fórmula que `useFocusStore` (cliente): minutos reales si la sesión
+ * terminó, o los planeados si no.
+ */
+async function getFocusStatsToday(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+): Promise<{ todayMinutes: number; weekAvgMinutes: number }> {
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const weekAgo = new Date(startOfToday)
+  weekAgo.setDate(weekAgo.getDate() - 6)
+
+  const { data } = await supabase
+    .from('focus_sessions')
+    .select('started_at, ended_at, planned_minutes')
+    .eq('user_id', userId)
+    .gte('started_at', weekAgo.toISOString())
+
+  let todayMinutes = 0
+  let weekMinutes = 0
+  for (const s of data ?? []) {
+    const mins = s.ended_at
+      ? Math.max(0, Math.round((new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000))
+      : s.planned_minutes
+    weekMinutes += mins
+    if (new Date(s.started_at).getTime() >= startOfToday.getTime()) todayMinutes += mins
+  }
+
+  return { todayMinutes, weekAvgMinutes: Math.round(weekMinutes / 7) }
+}
 
 /**
  * Datos que alimentan el dashboard "Hoy".
@@ -220,7 +256,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
 
-  const [{ data: profile }, { count: completedToday }, { count: totalToday }] =
+  const [{ data: profile }, { count: completedToday }, { count: totalToday }, focusStats] =
     await Promise.all([
       supabase.from('profiles').select('streak_current').eq('id', user.id).single(),
       supabase
@@ -234,15 +270,15 @@ export async function getDashboardData(): Promise<DashboardData> {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .gte('created_at', startOfToday.toISOString()),
+      getFocusStatsToday(supabase, user.id),
     ])
 
   const streak = profile?.streak_current ?? 0
   const stats: TodayStat[] = [
-    // TODO (Fase 4/5): "Enfoque hoy" y "Promedio semanal" salen de focus_sessions.
-    { label: 'Enfoque hoy', value: '—' },
+    { label: 'Enfoque hoy', value: formatFocusMinutes(focusStats.todayMinutes) },
     { label: 'Misiones', value: `${completedToday ?? 0}/${totalToday ?? 0}` },
     { label: 'Racha', value: `${streak} ${streak === 1 ? 'día' : 'días'}` },
-    { label: 'Promedio semanal', value: '—' },
+    { label: 'Promedio semanal', value: formatFocusMinutes(focusStats.weekAvgMinutes) },
   ]
 
   return {

@@ -47,10 +47,23 @@ npm run dev
 
 | Ruta | Descripción |
 |---|---|
-| `/` | Centro de mando — misión principal, telemetría, objetivos |
+| `/app` | Centro de mando — misión principal, telemetría, objetivos |
 | `/focus` | **Modo Deep Work** — sesiones de foco de 25/50/90 min |
 | `/projects` | Misiones (proyectos) |
 | `/ideas` | Bóveda de ideas |
 | `/stats` | Telemetría de rendimiento |
 | `/music` | Frecuencias de foco (Spotify) |
 | `/settings` | Configuración |
+
+### La Fragua
+
+Experiencia paralela de misiones diarias con timer, quiz de cierre, racha,
+puntos y tienda de recompensas. Es el destino tras iniciar sesión.
+
+| Ruta | Descripción |
+|---|---|
+| `/hoy` | Dashboard "Hoy" — misión activa, timer y estadísticas del día |
+| `/misiones` | Gestor de misiones (crear, activar, forjar) |
+| `/progreso` | Racha, récord y puntos acumulados |
+| `/perfil` | Accesos rápidos + tienda de recompensas |
+| `/musica` | Frecuencias de foco (Spotify) |

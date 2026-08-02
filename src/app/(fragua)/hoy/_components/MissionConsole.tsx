@@ -136,6 +136,8 @@ function MissionTimer({
   const [spark, setSpark] = useState<{ x: number; y: number } | null>(null)
 
   const barRef = useRef<HTMLDivElement>(null)
+  // Instante del primer "Comenzar enfoque" — se registra en focus_sessions al forjar.
+  const startedAtRef = useRef<string | null>(null)
   // Evita disparar el pomodoro dos veces por misión.
   const pomodoroFiredRef = useRef(false)
   // Distingue "el timer llegó a 0 solo" (pomodoro) de "Terminar misión" (forzado).
@@ -267,7 +269,13 @@ function MissionTimer({
       ) : (
         <div className="flex items-center gap-3.5">
           <button
-            onClick={() => setIsRunning((r) => !r)}
+            onClick={() =>
+              setIsRunning((r) => {
+                const next = !r
+                if (next && !startedAtRef.current) startedAtRef.current = new Date().toISOString()
+                return next
+              })
+            }
             className="flex items-center gap-2.5 rounded-full bg-ember px-7 py-4 font-forge text-[15px] font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px"
           >
             {isRunning ? 'Pausar' : 'Comenzar enfoque'}
@@ -310,6 +318,7 @@ function MissionTimer({
             mission={mission}
             uid={uid}
             isDemo={isDemo}
+            startedAt={startedAtRef.current ?? undefined}
             onClose={() => setQuizOpen(false)}
             onCompleted={handleQuizCompleted}
           />

@@ -97,6 +97,7 @@ export async function saveQuizResult(
   uid: string,
   mission: Mission,
   answers: number[],
+  session?: { startedAt: string; endedAt: string },
 ): Promise<QuizOutcome> {
   const score = computeScore(answers)
   const questionsJson = MOCK_QUESTIONS.map((q, i) => ({
@@ -128,6 +129,25 @@ export async function saveQuizResult(
 
   // Notificación física: misión verificada por quiz (fire-and-forget).
   void notificarESP32(uid, 'mision_completada')
+
+  // Registra el bloque de enfoque de la misión en focus_sessions — alimenta
+  // "Enfoque hoy"/"Promedio semanal" en el dashboard "Hoy" (antes solo se
+  // registraban ahí las sesiones del Modo Deep Work clásico). Best-effort:
+  // un fallo aquí nunca debe impedir que la misión quede forjada.
+  if (session) {
+    void supabase
+      .from('focus_sessions')
+      .insert({
+        user_id: uid,
+        started_at: session.startedAt,
+        ended_at: session.endedAt,
+        planned_minutes: mission.estimated_minutes,
+        completed: true,
+      })
+      .then(({ error }) => {
+        if (error) console.error('[focus_sessions] no se pudo registrar la misión:', error)
+      })
+  }
 
   return { score, pointsEarned: data?.points_earned ?? previewPoints(score) }
 }
