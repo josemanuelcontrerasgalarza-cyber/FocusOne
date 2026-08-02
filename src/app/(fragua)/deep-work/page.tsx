@@ -38,6 +38,8 @@ export default function DeepWorkPage() {
   const [minutes, setMinutes] = useState(25)
   const [intention, setIntention] = useState('')
   const [secondsLeft, setSecondsLeft] = useState(0)
+  // Abortar pierde la sesión en curso: exige un segundo toque para confirmar.
+  const [confirmAbort, setConfirmAbort] = useState(false)
   const endRef = useRef<number | null>(null)
   const startRef = useRef<Date | null>(null)
   const tick = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -64,6 +66,7 @@ export default function DeepWorkPage() {
   }
 
   function start() {
+    setConfirmAbort(false)
     const total = minutes * 60
     startRef.current = new Date()
     endRef.current = Date.now() + total * 1000
@@ -85,6 +88,7 @@ export default function DeepWorkPage() {
   function finish(natural: boolean) {
     if (tick.current) clearInterval(tick.current)
     endRef.current = null
+    setConfirmAbort(false)
     if (natural) {
       setPhase('done')
       void recordSession(true)
@@ -92,6 +96,15 @@ export default function DeepWorkPage() {
       setPhase('setup')
       void recordSession(false)
       toast.info('Sesión abortada')
+    }
+  }
+
+  // Primer toque: arma la confirmación. Segundo toque: aborta de verdad.
+  function handleAbortClick() {
+    if (confirmAbort) {
+      finish(false)
+    } else {
+      setConfirmAbort(true)
     }
   }
 
@@ -194,10 +207,15 @@ export default function DeepWorkPage() {
               />
             </div>
             <button
-              onClick={() => finish(false)}
-              className="inline-flex items-center gap-2 rounded-full border border-white/[0.12] px-5 py-2.5 font-forge text-sm font-semibold text-forge-ink-dim transition-colors hover:border-white/30 hover:text-forge-ink"
+              onClick={handleAbortClick}
+              onBlur={() => setConfirmAbort(false)}
+              className={`inline-flex items-center gap-2 rounded-full border px-5 py-2.5 font-forge text-sm font-semibold transition-colors ${
+                confirmAbort
+                  ? 'border-red-500/40 bg-red-500/10 text-red-300 hover:text-red-200'
+                  : 'border-white/[0.12] text-forge-ink-dim hover:border-white/30 hover:text-forge-ink'
+              }`}
             >
-              <Square size={14} /> Abortar sesión
+              <Square size={14} /> {confirmAbort ? '¿Seguro? Toca de nuevo' : 'Abortar sesión'}
             </button>
           </motion.div>
         )}

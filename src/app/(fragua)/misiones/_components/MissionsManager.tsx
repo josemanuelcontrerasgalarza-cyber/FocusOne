@@ -50,6 +50,8 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   const [minutes, setMinutes] = useState(25)
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Borrado es irreversible: el primer clic solo arma la confirmación.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   // Error visible y PERSISTENTE (no un toast que se desvanece): así, si algo
   // falla al agregar, se ve el motivo real hasta el próximo intento.
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -170,6 +172,16 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
       toast.error(msg)
     } finally {
       setBusyId(null)
+      setConfirmDeleteId(null)
+    }
+  }
+
+  // Primer clic: arma la confirmación. Segundo clic (mismo id): borra de verdad.
+  function handleDeleteClick(id: string) {
+    if (confirmDeleteId === id) {
+      void deleteMission(id)
+    } else {
+      setConfirmDeleteId(id)
     }
   }
 
@@ -276,7 +288,7 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
       <section>
         <SectionLabel>Apagadas</SectionLabel>
         {pendingAll.length === 0 ? (
-          <p className="text-sm text-forge-ink-faint">
+          <p className="text-sm text-forge-ink-dim">
             No hay misiones pendientes. Crea una arriba.
           </p>
         ) : (
@@ -304,12 +316,17 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
                     Encender
                   </button>
                   <button
-                    onClick={() => deleteMission(m.id)}
+                    onClick={() => handleDeleteClick(m.id)}
+                    onBlur={() => setConfirmDeleteId((c) => (c === m.id ? null : c))}
                     disabled={busy}
-                    aria-label="Borrar misión"
-                    className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                    aria-label={confirmDeleteId === m.id ? 'Confirmar borrado' : 'Borrar misión'}
+                    className={`flex-shrink-0 rounded-full p-2 transition-colors disabled:opacity-40 ${
+                      confirmDeleteId === m.id
+                        ? 'bg-red-500/15 text-red-300 hover:text-red-200'
+                        : 'text-forge-ink-faint hover:text-forge-ink'
+                    }`}
                   >
-                    <Trash2 size={16} />
+                    {busy ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                   </button>
                 </div>
               )

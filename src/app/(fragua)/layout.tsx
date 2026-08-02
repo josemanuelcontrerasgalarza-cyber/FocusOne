@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { ForgeNav } from '@/components/forge/ForgeNav'
 import { StreakBadge } from '@/components/forge/StreakBadge'
 import { PointsBadge } from '@/components/forge/PointsBadge'
@@ -51,8 +52,11 @@ export default async function FraguaLayout({
             <PointsBadge points={points} />
           </div>
           <StreakBadge days={streak} />
-          {/* Avatar (placeholder — perfil real en Fase 6) */}
-          <div className="h-9 w-9 rounded-full border border-forge-line bg-forge-raised" />
+          <Link
+            href="/perfil"
+            aria-label="Perfil"
+            className="h-9 w-9 rounded-full border border-forge-line bg-forge-raised transition-colors hover:border-forge-ink-faint"
+          />
         </div>
       </header>
 

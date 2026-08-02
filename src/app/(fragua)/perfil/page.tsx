@@ -6,6 +6,7 @@ import { getPetData } from '@/lib/pet'
 import { RewardsStore } from './_components/RewardsStore'
 import { WeeklyDrops } from './_components/WeeklyDrops'
 import { LogoutButton } from '@/components/forge/LogoutButton'
+import { DataExport } from '@/components/forge/DataExport'
 
 export const metadata: Metadata = { title: 'Perfil' }
 export const dynamic = 'force-dynamic'
@@ -76,6 +77,7 @@ export default async function PerfilPage() {
         isDemo={isDemo}
       />
 
+      <DataExport />
       <LogoutButton />
     </section>
   )

@@ -11,6 +11,15 @@
     overflow-x: hidden;
   }
 
+  /* Foco visible para navegación por teclado — los componentes quitan el
+     outline nativo (outline-none) y no todos definen un reemplazo, así que
+     lo garantizamos aquí para cualquier elemento enfocable de la app. */
+  :focus-visible {
+    outline: 2px solid #FF6A2B;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
   ::selection { background: rgba(94, 234, 212, 0.22); }
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }

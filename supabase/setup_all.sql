@@ -740,3 +740,10 @@ create policy "esp32_select_own" on public.notificaciones_esp32
 drop policy if exists "esp32_insert_own" on public.notificaciones_esp32;
 create policy "esp32_insert_own" on public.notificaciones_esp32
   for insert with check (auth.uid() = usuario_id);
+
+-- Sin esta política el ESP32 (autenticado como el propio usuario) no puede
+-- marcar consumida=true tras mover el servo: la fila quedaría "pendiente"
+-- para siempre y el polling la reprocesaría en cada ciclo.
+drop policy if exists "esp32_update_own" on public.notificaciones_esp32;
+create policy "esp32_update_own" on public.notificaciones_esp32
+  for update using (auth.uid() = usuario_id) with check (auth.uid() = usuario_id);

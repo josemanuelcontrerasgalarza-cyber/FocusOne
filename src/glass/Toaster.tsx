@@ -28,6 +28,7 @@ export function Toaster() {
             <span>{t.message}</span>
             <button
               onClick={() => dismiss(t.id)}
+              aria-label="Cerrar notificación"
               className="ml-1 text-forge-ink-faint transition-colors hover:text-forge-ink"
             >
               <X size={14} />

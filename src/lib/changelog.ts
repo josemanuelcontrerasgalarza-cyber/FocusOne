@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.1'
+export const APP_VERSION = '5.2'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.2',
+    title: 'Fragua accesible — exporta tus datos',
+    date: '2 ago 2026',
+    tag: 'Actual',
+    items: [
+      'Exporta tus datos: descarga misiones, puntos, racha, mascota y sesiones en un JSON desde tu Perfil.',
+      'Navegación por teclado más clara: foco visible en todos los controles.',
+      'Formularios de entrar/crear cuenta accesibles para lectores de pantalla y gestores de contraseñas.',
+      'Confirmación antes de borrar una misión o abortar una sesión de Deep Work.',
+      'El avatar del header ahora lleva a tu Perfil.',
+      'Docenas de kilobytes menos de código sin usar; dependencias con vulnerabilidades conocidas actualizadas.',
+    ],
+  },
+  {
     version: '5.1',
     title: 'Fragua sólida — seguridad y precisión',
     date: '2 ago 2026',
-    tag: 'Actual',
     items: [
       'Todas tus misiones en un solo lugar: historial completo de forjadas, con su fecha.',
       'Seguridad reforzada de tu cuenta, tus puntos y la tienda (economía a prueba de trampas).',

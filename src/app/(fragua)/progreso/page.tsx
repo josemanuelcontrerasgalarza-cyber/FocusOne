@@ -182,7 +182,7 @@ function RecentActivity({ activity }: { activity: ActivityItem[] }) {
     <div className="forge-panel p-5">
       <PanelTitle icon={Hammer}>Actividad reciente</PanelTitle>
       {activity.length === 0 ? (
-        <p className="text-sm text-forge-ink-faint">
+        <p className="text-sm text-forge-ink-dim">
           Aún no hay actividad. Forja una misión o inicia un Deep Work.
         </p>
       ) : (
