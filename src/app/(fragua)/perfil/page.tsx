@@ -18,7 +18,7 @@ const LINKS = [
 ]
 
 export default async function PerfilPage() {
-  const [{ rewards, unlockedIds, points, isDemo }, pet] = await Promise.all([
+  const [{ rewards, unlockedIds, points, isDemo, isDeveloper }, pet] = await Promise.all([
     getRewardsData(),
     getPetData(),
   ])
@@ -39,7 +39,14 @@ export default async function PerfilPage() {
         <p className="font-num text-xs uppercase tracking-[0.2em] text-forge-ink-faint">
           El herrero
         </p>
-        <h1 className="mt-1 font-forge text-3xl font-extrabold tracking-tight">Perfil</h1>
+        <div className="mt-1 flex items-center gap-3">
+          <h1 className="font-forge text-3xl font-extrabold tracking-tight">Perfil</h1>
+          {isDeveloper && (
+            <span className="rounded-full border border-ember/40 bg-ember/10 px-2.5 py-1 font-num text-[11px] font-bold uppercase tracking-[0.14em] text-ember">
+              DEV · ∞
+            </span>
+          )}
+        </div>
       </header>
 
       {/* Accesos */}
@@ -65,6 +72,7 @@ export default async function PerfilPage() {
         featured={featured}
         ownedIds={pet.ownedIds}
         points={pet.points}
+        isDeveloper={pet.isDeveloper}
         isDemo={pet.isDemo}
       />
 
@@ -73,6 +81,7 @@ export default async function PerfilPage() {
         rewards={rewards}
         unlockedIds={unlockedIds}
         points={points}
+        isDeveloper={isDeveloper}
         isDemo={isDemo}
       />
 

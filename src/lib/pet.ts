@@ -2,6 +2,7 @@ import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
 import { PET_CATALOG } from '@/lib/petCatalog'
+import { readIsDeveloper } from '@/lib/developer'
 import type { PetItem, UserPet } from '@/types'
 
 export interface PetData {
@@ -9,6 +10,7 @@ export interface PetData {
   ownedIds: string[]
   pet: UserPet | null
   points: number
+  isDeveloper: boolean
   isDemo: boolean
 }
 
@@ -21,7 +23,7 @@ export interface PetData {
  */
 export async function getPetData(): Promise<PetData> {
   if (!supabaseConfigured) {
-    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 240, isDemo: true }
+    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 240, isDeveloper: false, isDemo: true }
   }
 
   const supabase = await createSupabaseServerClient()
@@ -29,13 +31,14 @@ export async function getPetData(): Promise<PetData> {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 240, isDemo: true }
+    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 240, isDeveloper: false, isDemo: true }
   }
 
-  const [owned, pet, pts] = await Promise.all([
+  const [owned, pet, pts, isDeveloper] = await Promise.all([
     supabase.from('pet_owned').select('item_id').eq('user_id', user.id).then((r) => r.data),
     supabase.from('user_pet').select('*').eq('user_id', user.id).maybeSingle().then((r) => r.data),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle().then((r) => r.data),
+    readIsDeveloper(supabase, user.id),
   ])
 
   return {
@@ -43,6 +46,7 @@ export async function getPetData(): Promise<PetData> {
     ownedIds: (owned ?? []).map((o) => o.item_id as string),
     pet: (pet as UserPet | null) ?? null,
     points: (pts as { total_points: number } | null)?.total_points ?? 0,
+    isDeveloper,
     isDemo: false,
   }
 }

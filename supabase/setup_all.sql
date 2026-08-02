@@ -19,6 +19,7 @@ create table if not exists public.profiles (
   streak_current     integer default 0,
   streak_best        integer default 0,
   streak_last_date   date,
+  is_developer       boolean not null default false,
   created_at         timestamptz default now()
 );
 
@@ -26,12 +27,22 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists streak_current   integer default 0;
 alter table public.profiles add column if not exists streak_best      integer default 0;
 alter table public.profiles add column if not exists streak_last_date date;
+-- Rol de desarrollador: diamantes ilimitados y todo desbloqueado (ver más abajo).
+alter table public.profiles add column if not exists is_developer boolean not null default false;
 
 alter table public.profiles enable row level security;
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles
   for select using (auth.uid() = id);
--- La racha la escribe un trigger SECURITY DEFINER, no el cliente.
+-- La racha y is_developer los escribe el servidor (trigger / SQL admin), NUNCA
+-- el cliente: profiles no tiene policy de UPDATE, así nadie se auto-asigna dev.
+
+-- ¿La cuenta actual es de desarrollador? SECURITY DEFINER para poder leer el
+-- flag desde las RPC de economía sin depender de la RLS del que llama.
+create or replace function public.is_dev()
+returns boolean as $$
+  select coalesce((select is_developer from public.profiles where id = auth.uid()), false);
+$$ language sql security definer set search_path = public stable;
 
 -- Alta automática del perfil al registrarse un usuario nuevo.
 create or replace function public.handle_new_user()
@@ -391,6 +402,14 @@ begin
     raise exception 'Recompensa desconocida: %', p_reward;
   end if;
 
+  -- Developer: desbloquea gratis y sin errores (idempotente), puntos ilimitados.
+  if public.is_dev() then
+    insert into public.reward_unlocks (user_id, reward_id)
+      values (auth.uid(), p_reward)
+      on conflict do nothing;
+    return 999999;
+  end if;
+
   if exists (
     select 1 from public.reward_unlocks where user_id = auth.uid() and reward_id = p_reward
   ) then
@@ -476,6 +495,11 @@ returns trigger as $$
 declare
   v_slot text;
 begin
+  -- Developer: equipa lo que quiera sin validar posesión.
+  if public.is_dev() then
+    return NEW;
+  end if;
+
   foreach v_slot in array array[NEW.pet_id, NEW.hat_id, NEW.outfit_id, NEW.accessory_id]
   loop
     -- Las mascotas base son gratis y siempre equipables (no rompe cuentas previas).
@@ -521,6 +545,14 @@ begin
 
   if v_cost is null then
     raise exception 'Ítem desconocido: %', p_item;
+  end if;
+
+  -- Developer: compra gratis y sin errores (idempotente), puntos ilimitados.
+  if public.is_dev() then
+    insert into public.pet_owned (user_id, item_id)
+      values (auth.uid(), p_item)
+      on conflict do nothing;
+    return 999999;
   end if;
 
   if exists (
@@ -585,6 +617,22 @@ declare
   v_streak integer;
   v_amount integer;
 begin
+  select coalesce(streak_current, 0) into v_streak
+    from public.profiles where id = auth.uid();
+  v_amount := 20 + least(coalesce(v_streak, 0), 15);
+
+  -- Developer: reclama sin límite (ignora ventana, duplicado y tope de 20h).
+  if public.is_dev() then
+    insert into public.daily_claims (user_id, claim_date, amount)
+      values (auth.uid(), p_local_date, v_amount)
+      on conflict (user_id, claim_date) do update set claimed_at = now();
+    insert into public.points (user_id, total_points)
+      values (auth.uid(), v_amount)
+      on conflict (user_id) do update
+        set total_points = public.points.total_points + v_amount, updated_at = now();
+    return v_amount;
+  end if;
+
   -- Acota a ±1 día del servidor: cubre cualquier zona horaria (incluidas UTC+)
   -- pero impide reclamar fechas arbitrarias.
   if p_local_date < current_date - 1 or p_local_date > current_date + 1 then
@@ -607,12 +655,7 @@ begin
     raise exception 'Ya reclamaste tu recompensa de hoy';
   end if;
 
-  select coalesce(streak_current, 0) into v_streak
-    from public.profiles where id = auth.uid();
-
-  -- Base 20 + hasta 15 según la racha (premia la constancia).
-  v_amount := 20 + least(coalesce(v_streak, 0), 15);
-
+  -- v_amount (base 20 + hasta 15 por racha) ya se calculó al inicio.
   insert into public.daily_claims (user_id, claim_date, amount)
     values (auth.uid(), p_local_date, v_amount);
 
@@ -740,3 +783,16 @@ create policy "esp32_select_own" on public.notificaciones_esp32
 drop policy if exists "esp32_insert_own" on public.notificaciones_esp32;
 create policy "esp32_insert_own" on public.notificaciones_esp32
   for insert with check (auth.uid() = usuario_id);
+
+-- ==================================================================
+-- CUENTA DE DESARROLLADOR
+-- ==================================================================
+-- Marca una cuenta como developer: diamantes ilimitados, todo desbloqueado,
+-- equipar sin comprar y reclamo diario sin límite. Solo se puede activar aquí
+-- (SQL admin): el cliente no tiene policy de UPDATE sobre profiles, así que
+-- nadie puede auto-asignarse el rol. Cambia el email para mover el rol de cuenta.
+-- Si la cuenta aún no existe (sin registrar), no pasa nada: actualiza 0 filas;
+-- registra ese correo y vuelve a ejecutar esta línea (o todo el script).
+update public.profiles set is_developer = true  where email = 'kratos2704@outlook.es';
+-- (Opcional) revocar a las demás cuentas para que solo esa sea developer:
+update public.profiles set is_developer = false where email <> 'kratos2704@outlook.es';

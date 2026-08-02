@@ -39,6 +39,7 @@ export interface ProgressDashboard {
   calendar: CalendarDay[] // rejilla del mes (con huecos iniciales), semana inicia lunes
   monthLabel: string
   activity: ActivityItem[]
+  isDeveloper: boolean
   isDemo: boolean
 }
 
@@ -77,7 +78,7 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
   const windowStart = weekStart < monthStart ? weekStart : monthStart
 
   const [profileRes, pointsRes, forgedCountRes, missionsRes, focusRes] = await Promise.all([
-    supabase.from('profiles').select('streak_current, streak_best').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('streak_current, streak_best, is_developer').eq('id', user.id).maybeSingle(),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('missions')
@@ -194,6 +195,7 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
     calendar,
     monthLabel: `${MONTHS[m]} ${y}`,
     activity,
+    isDeveloper: Boolean((profileRes.data as { is_developer?: boolean } | null)?.is_developer),
     isDemo: false,
   }
 }
@@ -243,6 +245,7 @@ function demoProgress(): ProgressDashboard {
       { kind: 'focus', title: 'Sesión de Deep Work', at: now.toISOString(), meta: '50 min' },
       { kind: 'mission', title: 'Estudiar para el examen', at: now.toISOString(), meta: 'Misión forjada' },
     ],
+    isDeveloper: false,
     isDemo: true,
   }
 }

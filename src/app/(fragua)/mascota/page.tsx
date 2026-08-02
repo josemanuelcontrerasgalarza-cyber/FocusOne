@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
  * gastando los puntos que ganas forjando misiones.
  */
 export default async function MascotaPage() {
-  const { catalog, ownedIds, pet, points, isDemo } = await getPetData()
+  const { catalog, ownedIds, pet, points, isDeveloper, isDemo } = await getPetData()
 
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-10 sm:px-12">
@@ -28,6 +28,7 @@ export default async function MascotaPage() {
         ownedIds={ownedIds}
         pet={pet}
         points={points}
+        isDeveloper={isDeveloper}
         isDemo={isDemo}
       />
     </section>

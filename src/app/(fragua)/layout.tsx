@@ -25,7 +25,7 @@ export default async function FraguaLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { streak, points } = await getHeaderStats()
+  const { streak, points, isDeveloper } = await getHeaderStats()
 
   return (
     <div className="relative z-10 flex min-h-screen flex-col bg-forge-canvas font-forge text-forge-ink">
@@ -48,7 +48,7 @@ export default async function FraguaLayout({
         <div className="flex items-center gap-2.5 sm:gap-3.5">
           <CommandButton />
           <div className="hidden sm:block">
-            <PointsBadge points={points} />
+            <PointsBadge points={points} isDeveloper={isDeveloper} />
           </div>
           <StreakBadge days={streak} />
           {/* Avatar (placeholder — perfil real en Fase 6) */}

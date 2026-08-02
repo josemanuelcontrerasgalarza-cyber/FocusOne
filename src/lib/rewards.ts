@@ -2,12 +2,14 @@ import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
 import { REWARDS_CATALOG } from '@/lib/rewardsCatalog'
+import { readIsDeveloper } from '@/lib/developer'
 import type { Reward } from '@/types'
 
 export interface RewardsData {
   rewards: Reward[]
   unlockedIds: string[]
   points: number
+  isDeveloper: boolean
   isDemo: boolean
 }
 
@@ -18,7 +20,7 @@ export interface RewardsData {
  */
 export async function getRewardsData(): Promise<RewardsData> {
   if (!supabaseConfigured) {
-    return { rewards: REWARDS_CATALOG, unlockedIds: [], points: 240, isDemo: true }
+    return { rewards: REWARDS_CATALOG, unlockedIds: [], points: 240, isDeveloper: false, isDemo: true }
   }
 
   const supabase = await createSupabaseServerClient()
@@ -26,18 +28,20 @@ export async function getRewardsData(): Promise<RewardsData> {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return { rewards: REWARDS_CATALOG, unlockedIds: [], points: 240, isDemo: true }
+    return { rewards: REWARDS_CATALOG, unlockedIds: [], points: 240, isDeveloper: false, isDemo: true }
   }
 
-  const [unlocks, pts] = await Promise.all([
+  const [unlocks, pts, isDeveloper] = await Promise.all([
     supabase.from('reward_unlocks').select('reward_id').eq('user_id', user.id).then((r) => r.data),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle().then((r) => r.data),
+    readIsDeveloper(supabase, user.id),
   ])
 
   return {
     rewards: REWARDS_CATALOG,
     unlockedIds: (unlocks ?? []).map((u) => u.reward_id as string),
     points: (pts as { total_points: number } | null)?.total_points ?? 0,
+    isDeveloper,
     isDemo: false,
   }
 }

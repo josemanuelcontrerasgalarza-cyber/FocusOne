@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
+import { INFINITE } from '@/lib/developer'
 import type { PetItem, PetItemKind, UserPet } from '@/types'
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
   ownedIds: string[]
   pet: UserPet | null
   points: number
+  isDeveloper: boolean
   isDemo: boolean
 }
 
@@ -36,7 +38,7 @@ const CAT_FILTER = 'sepia(1) saturate(9) hue-rotate(-38deg) brightness(0.82) con
 const emojiStyle = (emoji: string): React.CSSProperties | undefined =>
   emoji === '🐱' ? { filter: CAT_FILTER } : undefined
 
-export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDemo }: Props) {
+export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDeveloper, isDemo }: Props) {
   const router = useRouter()
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
   const canUse = !isDemo && Boolean(uid)
@@ -86,7 +88,7 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDem
 
   async function buy(item: PetItem): Promise<boolean> {
     if (owned.has(item.id)) return true
-    if (item.cost_points > points) {
+    if (!isDeveloper && item.cost_points > points) {
       toast.error('Puntos insuficientes.')
       return false
     }
@@ -104,7 +106,7 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDem
       const { error } = await supabase.rpc('buy_pet_item', { p_item: item.id })
       if (error) throw error
       setOwned((s) => new Set(s).add(item.id))
-      setPoints((p) => p - item.cost_points)
+      if (!isDeveloper) setPoints((p) => p - item.cost_points) // dev: diamantes ∞
       if (item.cost_points > 0) toast.success(`Compraste: ${item.name}`)
       // Sincroniza el badge de puntos del header (vive en el layout servidor).
       router.refresh()
@@ -216,8 +218,10 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDem
             Focus Pet · Tienda
           </div>
           <div className="flex items-center gap-1.5 text-sm">
-            <Gem size={14} className="text-forge-ink-dim" />
-            <span className="font-num font-semibold text-forge-ink">{points}</span>
+            <Gem size={14} className={isDeveloper ? 'text-ember' : 'text-forge-ink-dim'} />
+            <span className={`font-num font-semibold ${isDeveloper ? 'text-ember' : 'text-forge-ink'}`}>
+              {isDeveloper ? INFINITE : points}
+            </span>
             <span className="text-forge-ink-faint">pts</span>
           </div>
         </div>
@@ -246,12 +250,13 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDem
             const active = isPet
               ? slots.pet_id === item.id
               : slots[SLOT[item.kind as Exclude<PetItemKind, 'pet'>]] === item.id
-            const affordable = points >= item.cost_points
+            const affordable = isDeveloper || points >= item.cost_points
             const busy = busyId === item.id
 
             let label: string
             if (active) label = isPet ? 'En uso' : 'Equipado'
             else if (isOwned) label = isPet ? 'Elegir' : 'Equipar'
+            else if (isDeveloper) label = 'Gratis'
             else if (!canUse && item.cost_points > 0) label = `${item.cost_points}`
             else if (affordable) label = item.cost_points === 0 ? 'Gratis' : `${item.cost_points}`
             else label = `Faltan ${item.cost_points - points}`

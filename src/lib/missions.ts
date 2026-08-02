@@ -125,6 +125,7 @@ export async function getMissionsBoard(): Promise<MissionsBoard> {
 export interface HeaderStats {
   streak: number
   points: number
+  isDeveloper: boolean
 }
 
 export interface ProgressData {
@@ -132,12 +133,13 @@ export interface ProgressData {
   best: number
   points: number
   forged: number
+  isDeveloper: boolean
   isDemo: boolean
 }
 
 /** Datos de la pantalla Progreso (Fase 5): racha, récord, puntos, forjadas. */
 export async function getProgressData(): Promise<ProgressData> {
-  const demo: ProgressData = { streak: 12, best: 21, points: 240, forged: 37, isDemo: true }
+  const demo: ProgressData = { streak: 12, best: 21, points: 240, forged: 37, isDeveloper: false, isDemo: true }
   if (!supabaseConfigured) return demo
 
   const supabase = await createSupabaseServerClient()
@@ -147,7 +149,7 @@ export async function getProgressData(): Promise<ProgressData> {
   if (!user) return demo
 
   const [{ data: profile }, { data: pts }, { count: forged }] = await Promise.all([
-    supabase.from('profiles').select('streak_current, streak_best').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('streak_current, streak_best, is_developer').eq('id', user.id).maybeSingle(),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('missions')
@@ -161,6 +163,7 @@ export async function getProgressData(): Promise<ProgressData> {
     best: profile?.streak_best ?? 0,
     points: pts?.total_points ?? 0,
     forged: forged ?? 0,
+    isDeveloper: Boolean(profile?.is_developer),
     isDemo: false,
   }
 }
@@ -171,7 +174,7 @@ export async function getProgressData(): Promise<ProgressData> {
  * salen de points.total_points. En demo devuelve valores de muestra.
  */
 export async function getHeaderStats(): Promise<HeaderStats> {
-  const demo: HeaderStats = { streak: 12, points: 240 }
+  const demo: HeaderStats = { streak: 12, points: 240, isDeveloper: false }
   if (!supabaseConfigured) return demo
 
   const supabase = await createSupabaseServerClient()
@@ -181,13 +184,14 @@ export async function getHeaderStats(): Promise<HeaderStats> {
   if (!user) return demo
 
   const [{ data: profile }, { data: pts }] = await Promise.all([
-    supabase.from('profiles').select('streak_current').eq('id', user.id).maybeSingle(),
+    supabase.from('profiles').select('streak_current, is_developer').eq('id', user.id).maybeSingle(),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
   ])
 
   return {
     streak: profile?.streak_current ?? 0,
     points: pts?.total_points ?? 0,
+    isDeveloper: Boolean(profile?.is_developer),
   }
 }
 
