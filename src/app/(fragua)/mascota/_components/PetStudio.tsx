@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Check, Lock, Gem, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
@@ -36,6 +37,7 @@ const emojiStyle = (emoji: string): React.CSSProperties | undefined =>
   emoji === '🐱' ? { filter: CAT_FILTER } : undefined
 
 export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDemo }: Props) {
+  const router = useRouter()
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
   const canUse = !isDemo && Boolean(uid)
 
@@ -89,6 +91,8 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDem
       setOwned((s) => new Set(s).add(item.id))
       setPoints((p) => p - item.cost_points)
       if (item.cost_points > 0) toast.success(`Compraste: ${item.name}`)
+      // Sincroniza el badge de puntos del header (vive en el layout servidor).
+      router.refresh()
       return true
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''

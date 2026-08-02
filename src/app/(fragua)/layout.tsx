@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: 'La Fragua',
 }
 
+// Las insignias del header (puntos/racha) son datos por-usuario: nunca cachear.
+export const dynamic = 'force-dynamic'
+
 /**
  * Shell de la experiencia "La Fragua" (diseño FocusOne Dashboard).
  *

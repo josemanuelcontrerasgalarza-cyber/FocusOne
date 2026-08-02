@@ -51,3 +51,21 @@ begin
   return v_amount;
 end;
 $$ language plpgsql security definer;
+
+-- Estado del reclamo de HOY calculado en el servidor (evita el bug de zona
+-- horaria de comparar fechas en el cliente): ¿ya reclamó hoy? y ¿cuánto vale?
+create or replace function public.daily_claim_state()
+returns table(claimed boolean, amount integer) as $$
+declare
+  v_streak integer;
+begin
+  select coalesce(streak_current, 0) into v_streak
+    from public.profiles where id = auth.uid();
+  return query select
+    exists(
+      select 1 from public.daily_claims
+      where user_id = auth.uid() and claim_date = current_date
+    ),
+    20 + least(coalesce(v_streak, 0), 15);
+end;
+$$ language plpgsql security definer;

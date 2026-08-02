@@ -1,7 +1,64 @@
 -- FocusOne · La Fragua — Setup de base de datos (robusto)
 -- Pega TODO esto en Supabase -> SQL Editor -> New query -> Run. Es idempotente.
--- Solo incluye lo de La Fragua (autocontenido): misiones, puntos+quiz, racha,
--- recompensas, Focus Pet, recompensa diaria y opiniones. No depende de tablas viejas.
+-- Solo incluye lo de La Fragua (autocontenido): perfiles, misiones, puntos+quiz,
+-- racha, recompensas, Focus Pet, recompensa diaria, ESP32 y opiniones.
+-- No depende de tablas viejas (tasks/projects).
+
+-- ==================================================================
+-- 00_profiles.sql  (BASE — imprescindible: racha y recompensa diaria la usan)
+-- ==================================================================
+-- La Fragua guarda la racha en columnas de `profiles`. Esta tabla solo depende
+-- de auth.users, así que es autocontenida. SIN esta tabla, forjar una misión y
+-- reclamar diamantes fallan (el trigger de racha y claim_daily leen profiles).
+
+create table if not exists public.profiles (
+  id                 uuid primary key references auth.users (id) on delete cascade,
+  email              text unique not null,
+  name               text,
+  avatar_url         text,
+  streak_current     integer default 0,
+  streak_best        integer default 0,
+  streak_last_date   date,
+  created_at         timestamptz default now()
+);
+
+-- Por si la tabla ya existía de una versión vieja sin las columnas de racha.
+alter table public.profiles add column if not exists streak_current   integer default 0;
+alter table public.profiles add column if not exists streak_best      integer default 0;
+alter table public.profiles add column if not exists streak_last_date date;
+
+alter table public.profiles enable row level security;
+drop policy if exists "profiles_select_own" on public.profiles;
+create policy "profiles_select_own" on public.profiles
+  for select using (auth.uid() = id);
+-- La racha la escribe un trigger SECURITY DEFINER, no el cliente.
+
+-- Alta automática del perfil al registrarse un usuario nuevo.
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, name)
+  values (
+    new.id,
+    coalesce(new.email, new.id::text || '@focusone.local'),
+    coalesce(new.raw_user_meta_data->>'name', split_part(coalesce(new.email, ''), '@', 1))
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- Backfill: crea el perfil de los usuarios que YA existían antes de este setup
+-- (si no, su racha nunca se guardaría porque el UPDATE no encontraría fila).
+insert into public.profiles (id, email)
+select id, coalesce(email, id::text || '@focusone.local')
+from auth.users
+on conflict (id) do nothing;
 
 -- ==================================================================
 -- 04_missions.sql
@@ -149,6 +206,11 @@ create table if not exists public.quiz_results (
 
 create index if not exists quiz_results_user_idx
   on public.quiz_results (user_id, completed_at desc);
+
+-- Un solo cierre por misión: si el cliente reintenta el guardado, el segundo
+-- insert falla y NO se otorgan puntos dos veces por la misma misión.
+create unique index if not exists quiz_results_mission_unique
+  on public.quiz_results (mission_id);
 
 -- ============================================================================
 -- 2. points (total agregado por usuario)
@@ -333,7 +395,9 @@ begin
     raise exception 'Recompensa ya desbloqueada';
   end if;
 
-  select total_points into v_total from public.points where user_id = auth.uid();
+  -- FOR UPDATE bloquea la fila de puntos: dos compras simultáneas no pueden
+  -- pasar ambas la validación de saldo y dejar el total en negativo.
+  select total_points into v_total from public.points where user_id = auth.uid() for update;
   v_total := coalesce(v_total, 0);
   if v_total < v_cost then
     raise exception 'Puntos insuficientes';
@@ -435,7 +499,8 @@ begin
     raise exception 'Ya tienes este ítem';
   end if;
 
-  select total_points into v_total from public.points where user_id = auth.uid();
+  -- FOR UPDATE bloquea la fila: evita doble-gasto en compras concurrentes.
+  select total_points into v_total from public.points where user_id = auth.uid() for update;
   v_total := coalesce(v_total, 0);
   if v_total < v_cost then
     raise exception 'Puntos insuficientes';
@@ -509,6 +574,24 @@ begin
 end;
 $$ language plpgsql security definer;
 
+-- Estado del reclamo de HOY calculado en el servidor (evita el bug de zona
+-- horaria de comparar fechas en el cliente): ¿ya reclamó hoy? y ¿cuánto vale?
+create or replace function public.daily_claim_state()
+returns table(claimed boolean, amount integer) as $$
+declare
+  v_streak integer;
+begin
+  select coalesce(streak_current, 0) into v_streak
+    from public.profiles where id = auth.uid();
+  return query select
+    exists(
+      select 1 from public.daily_claims
+      where user_id = auth.uid() and claim_date = current_date
+    ),
+    20 + least(coalesce(v_streak, 0), 15);
+end;
+$$ language plpgsql security definer;
+
 -- ==================================================================
 -- 05_reviews.sql
 -- ==================================================================
@@ -544,3 +627,32 @@ create policy "Anyone can post a review" on public.reviews
 
 -- El rol anónimo (clave anon) necesita el privilegio a nivel de tabla
 grant select, insert on public.reviews to anon, authenticated;
+
+-- ==================================================================
+-- 11_esp32.sql  (notificaciones físicas — cola que consume el ESP32)
+-- ==================================================================
+-- Cada evento de enfoque completado inserta una fila. El ESP32 hace polling y
+-- consume las filas con consumida=false para mover el servo. Sin esta tabla, la
+-- notificación física simplemente nunca dispara (el insert es best-effort).
+
+create table if not exists public.notificaciones_esp32 (
+  id         uuid primary key default gen_random_uuid(),
+  usuario_id uuid not null references auth.users (id) on delete cascade,
+  tipo       text not null,
+  consumida  boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists notificaciones_esp32_pendientes_idx
+  on public.notificaciones_esp32 (usuario_id, consumida, created_at);
+
+alter table public.notificaciones_esp32 enable row level security;
+
+drop policy if exists "esp32_select_own" on public.notificaciones_esp32;
+create policy "esp32_select_own" on public.notificaciones_esp32
+  for select using (auth.uid() = usuario_id);
+
+-- El usuario solo encola notificaciones propias.
+drop policy if exists "esp32_insert_own" on public.notificaciones_esp32;
+create policy "esp32_insert_own" on public.notificaciones_esp32
+  for insert with check (auth.uid() = usuario_id);

@@ -139,7 +139,7 @@ export async function getProgressData(): Promise<ProgressData> {
   if (!user) return demo
 
   const [{ data: profile }, { data: pts }, { count: forged }] = await Promise.all([
-    supabase.from('profiles').select('streak_current, streak_best').eq('id', user.id).single(),
+    supabase.from('profiles').select('streak_current, streak_best').eq('id', user.id).maybeSingle(),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('missions')
@@ -173,7 +173,7 @@ export async function getHeaderStats(): Promise<HeaderStats> {
   if (!user) return demo
 
   const [{ data: profile }, { data: pts }] = await Promise.all([
-    supabase.from('profiles').select('streak_current').eq('id', user.id).single(),
+    supabase.from('profiles').select('streak_current').eq('id', user.id).maybeSingle(),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
   ])
 
@@ -222,7 +222,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const [{ data: profile }, { count: completedToday }, { count: totalToday }] =
     await Promise.all([
-      supabase.from('profiles').select('streak_current').eq('id', user.id).single(),
+      supabase.from('profiles').select('streak_current').eq('id', user.id).maybeSingle(),
       supabase
         .from('missions')
         .select('id', { count: 'exact', head: true })

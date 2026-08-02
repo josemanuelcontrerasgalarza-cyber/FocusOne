@@ -82,7 +82,7 @@ begin
     raise exception 'Ya tienes este ítem';
   end if;
 
-  select total_points into v_total from public.points where user_id = auth.uid();
+  select total_points into v_total from public.points where user_id = auth.uid() for update;
   v_total := coalesce(v_total, 0);
   if v_total < v_cost then
     raise exception 'Puntos insuficientes';

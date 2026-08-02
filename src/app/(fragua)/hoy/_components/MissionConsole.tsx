@@ -141,24 +141,28 @@ function MissionTimer({
   // Distingue "el timer llegó a 0 solo" (pomodoro) de "Terminar misión" (forzado).
   const forcedRef = useRef(false)
 
-  // Tick de 1s: sube el calor mientras corre. Al llegar al tope se detiene.
+  // Timer anclado al RELOJ REAL (no cuenta ticks): así una pestaña en segundo
+  // plano no infla la duración ni retrasa el fin del pomodoro. Al arrancar o
+  // reanudar, se ancla el inicio a partir del tiempo ya transcurrido.
   useEffect(() => {
     if (!isRunning || forged) return
+    const start = Date.now() - elapsed * 1000
     const id = setInterval(() => {
-      setElapsed((prev) => {
-        const next = Math.min(prev + 1, total)
-        if (next >= total) setIsRunning(false)
-        return next
-      })
-    }, 1000)
+      const next = Math.min(Math.floor((Date.now() - start) / 1000), total)
+      setElapsed(next)
+      if (next >= total) setIsRunning(false)
+    }, 250)
     return () => clearInterval(id)
+    // `elapsed` se lee solo al anclar el inicio; incluirlo reiniciaría el ancla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, forged, total])
 
   // Pomodoro completado: el bloque de enfoque de la misión llegó a 00:00 por sí
   // solo. NO cuenta cuando el usuario pulsa "Terminar misión" (forcedRef).
   // Dispara la notificación física ESP32 una sola vez por misión.
   useEffect(() => {
-    if (elapsed >= total && !pomodoroFiredRef.current) {
+    // total > 0 evita que una misión de 0 min dispare el pomodoro al montar.
+    if (total > 0 && elapsed >= total && !pomodoroFiredRef.current) {
       pomodoroFiredRef.current = true
       if (!forcedRef.current && uid) {
         void notificarESP32(uid, 'pomodoro_completado')
@@ -167,7 +171,7 @@ function MissionTimer({
   }, [elapsed, total, uid])
 
   const remaining = total - elapsed
-  const heatPercent = Math.min(100, (elapsed / total) * 100)
+  const heatPercent = total > 0 ? Math.min(100, (elapsed / total) * 100) : 0
   const timeDisplay = formatTime(remaining)
 
   // "Terminar misión" abre el quiz de cierre. La misión NO se completa hasta
