@@ -37,7 +37,7 @@ export function StarRating({ value, onChange, size = 18, readOnly = false }: Pro
             size={size}
             className={cn(
               'transition-colors',
-              n <= active ? 'fill-solar text-solar' : 'text-ink-ghost',
+              n <= active ? 'fill-metal text-metal' : 'text-forge-ink-faint',
             )}
           />
         </button>

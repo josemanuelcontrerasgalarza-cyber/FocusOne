@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { GuestGuard, ConfigNotice } from '@/components/AuthGuard'
-import { GlassPanel } from '@/glass/GlassPanel'
-import { Button } from '@/glass/Button'
 import { toast } from '@/lib/toast'
+
+const inputCls =
+  'w-full rounded-lg border border-forge-line bg-forge-canvas px-4 py-2.5 text-sm text-forge-ink outline-none placeholder:text-forge-ink-faint focus:border-ember/50'
 
 export default function RegisterPage() {
   const { signUp, loading } = useAuthStore()
@@ -20,10 +20,10 @@ export default function RegisterPage() {
     pwdLength === 0 ? 'empty' : pwdLength < 6 ? 'weak' : pwdLength < 10 ? 'ok' : 'strong'
 
   const strengthConfig = {
-    empty: { label: '', bars: 0, color: '' },
-    weak: { label: 'Débil', bars: 1, color: 'bg-nova' },
-    ok: { label: 'Aceptable', bars: 2, color: 'bg-solar' },
-    strong: { label: 'Segura', bars: 3, color: 'bg-core' },
+    empty: { label: '', bars: 0, color: '', text: '' },
+    weak: { label: 'Débil', bars: 1, color: 'bg-forge-ink-faint', text: 'text-forge-ink-faint' },
+    ok: { label: 'Aceptable', bars: 2, color: 'bg-metal', text: 'text-metal' },
+    strong: { label: 'Segura', bars: 3, color: 'bg-ember', text: 'text-ember' },
   }[pwdStrength]
 
   async function handleSubmit(e: React.FormEvent) {
@@ -43,59 +43,46 @@ export default function RegisterPage() {
   return (
     <GuestGuard>
       <ConfigNotice />
-      <div className="relative flex min-h-screen items-center justify-center p-4">
-        {/* Fondo con glow plasma */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute left-1/2 top-1/3 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-plasma/5 blur-[120px]" />
-          <div className="absolute left-1/3 top-2/3 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-core/[0.04] blur-[100px]" />
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 24, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 26 }}
-          className="relative w-full max-w-sm"
-        >
-          <GlassPanel className="card-accent-plasma p-8" tilt={false}>
-            {/* Logo con acento plasma */}
+      <main className="relative z-10 flex min-h-screen items-center justify-center bg-forge-canvas p-4 font-forge text-forge-ink">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/3 h-[500px] w-[500px] -translate-x-1/2 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(255,106,43,0.10), transparent 70%)' }}
+        />
+        <div className="relative w-full max-w-sm">
+          <div className="forge-panel p-8">
             <div className="mb-8 text-center">
-              <div className="relative mx-auto mb-5 h-16 w-16">
-                <motion.div
-                  animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.15, 0.4] }}
-                  transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-                  className="absolute inset-0 rounded-full bg-gradient-to-br from-plasma to-core"
-                />
-                <div className="absolute inset-1.5 rounded-full bg-gradient-to-br from-plasma via-core to-plasma shadow-glow-plasma" />
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <span className="h-3 w-3 rounded-[2px] bg-ember" />
+                <span className="font-forge text-xl font-extrabold tracking-tight">FocusOne</span>
               </div>
-
-              <h1 className="font-display text-2xl font-semibold">Crea tu cuenta</h1>
-              <p className="mt-1.5 text-sm text-ink-dim">Tu centro de mando te espera.</p>
+              <h1 className="font-forge text-2xl font-extrabold">Crea tu cuenta</h1>
+              <p className="mt-1.5 text-sm text-forge-ink-dim">Tu primera misión te espera.</p>
             </div>
 
-            {/* Formulario */}
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
-                <label className="font-data text-[10px] uppercase tracking-wider text-ink-ghost">
+                <label className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
                   Nombre
                 </label>
                 <input
                   required
                   placeholder="Tu nombre"
-                  className="glass-input"
+                  className={inputCls}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="font-data text-[10px] uppercase tracking-wider text-ink-ghost">
+                <label className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
                   Correo
                 </label>
                 <input
                   type="email"
                   required
                   placeholder="correo@ejemplo.com"
-                  className="glass-input"
+                  className={inputCls}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -103,19 +90,11 @@ export default function RegisterPage() {
 
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <label className="font-data text-[10px] uppercase tracking-wider text-ink-ghost">
+                  <label className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
                     Contraseña
                   </label>
                   {pwdStrength !== 'empty' && (
-                    <span
-                      className={`font-data text-[9px] uppercase tracking-wider ${
-                        pwdStrength === 'weak'
-                          ? 'text-nova'
-                          : pwdStrength === 'ok'
-                            ? 'text-solar'
-                            : 'text-core'
-                      }`}
-                    >
+                    <span className={`font-num text-[9px] uppercase tracking-wider ${strengthConfig.text}`}>
                       {strengthConfig.label}
                     </span>
                   )}
@@ -124,11 +103,10 @@ export default function RegisterPage() {
                   type="password"
                   required
                   placeholder="Mínimo 8 caracteres"
-                  className="glass-input"
+                  className={inputCls}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                {/* Indicador visual de fortaleza */}
                 {pwdStrength !== 'empty' && (
                   <div className="flex gap-1 pt-0.5">
                     {[1, 2, 3].map((bar) => (
@@ -141,40 +119,31 @@ export default function RegisterPage() {
                     ))}
                   </div>
                 )}
-                <p className="font-data text-[9px] text-ink-ghost">
+                <p className="font-num text-[9px] text-forge-ink-faint">
                   {pwdLength > 0
                     ? `${pwdLength} caracteres${pwdLength < 8 ? ` — faltan ${8 - pwdLength}` : ''}`
                     : 'Mín. 8 caracteres'}
                 </p>
               </div>
 
-              <Button
+              <button
                 type="submit"
-                variant="plasma"
-                loading={loading}
-                fullWidth
-                size="lg"
-                className="mt-3"
+                disabled={loading}
+                className="mt-3 rounded-full bg-ember px-6 py-3 font-forge text-[15px] font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px disabled:opacity-50"
               >
-                Iniciar despegue
-              </Button>
+                {loading ? 'Creando…' : 'Crear cuenta'}
+              </button>
             </form>
 
-            {/* Link login */}
-            <div className="mt-6 rounded-xl border border-glass-border bg-white/[0.03] p-3 text-center">
-              <p className="text-sm text-ink-dim">
-                ¿Ya tienes cuenta?{' '}
-                <Link
-                  href="/login"
-                  className="font-medium text-[#c4b5fd] transition-all hover:text-plasma hover:underline"
-                >
-                  Entrar →
-                </Link>
-              </p>
-            </div>
-          </GlassPanel>
-        </motion.div>
-      </div>
+            <p className="mt-6 text-center text-sm text-forge-ink-dim">
+              ¿Ya tienes cuenta?{' '}
+              <Link href="/login" className="text-ember hover:underline">
+                Entrar →
+              </Link>
+            </p>
+          </div>
+        </div>
+      </main>
     </GuestGuard>
   )
 }
