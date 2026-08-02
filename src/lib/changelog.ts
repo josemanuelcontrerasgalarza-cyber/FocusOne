@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '4.1'
+export const APP_VERSION = '5.0'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.0',
+    title: 'La Fragua',
+    date: '2 ago 2026',
+    tag: 'Actual',
+    items: [
+      'Rediseño completo: cada tarea es ahora una misión que enciendes, forjas y cierras con un quiz.',
+      'Deep Work nativo con presets (15/25/50/90 min) o duración personalizada, y su tiempo ahora se ve reflejado en «Hoy» y en tu promedio semanal.',
+      'Tienda de recompensas: gasta tus puntos en playlists, temas visuales e insignias.',
+      'Racha y puntos calculados siempre en el servidor — nunca falsificables desde el navegador.',
+      'Notificaciones físicas a tu FocusOne Pulse (ESP32) al completar pomodoros, sesiones y misiones.',
+      'Paleta de comandos (⌘K) y navegación rediseñada para llegar a cualquier sitio en un tecleo.',
+    ],
+  },
+  {
     version: '4.1',
     title: 'Dashboard Pro y comunidad',
     date: '1 jul 2026',
-    tag: 'Actual',
     items: [
       'Dashboard renovado: productividad semanal, tiempo enfocado, calendario del mes y actividad reciente.',
       'Nuevo apartado «Descúbrela» con opiniones anónimas de la comunidad.',

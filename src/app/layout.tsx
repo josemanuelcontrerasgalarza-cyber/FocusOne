@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { CosmosRoot } from '@/cosmos/CosmosRoot'
 import { Toaster } from '@/glass/Toaster'
 import { AuthProvider } from '@/components/AuthProvider'
 
@@ -31,7 +30,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <CosmosRoot />
         <Toaster />
         <AuthProvider>{children}</AuthProvider>
       </body>

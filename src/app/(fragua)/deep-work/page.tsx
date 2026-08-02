@@ -41,24 +41,41 @@ export default function DeepWorkPage() {
   const startRef = useRef<Date | null>(null)
   const tick = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  useEffect(() => () => { if (tick.current) clearInterval(tick.current) }, [])
+  // Refs "vivas" para que el cleanup de desmontaje (closure fijada al montar)
+  // siempre lea el valor más reciente, no el de la primera render.
+  const phaseRef = useRef<Phase>('setup')
+  const uidRef = useRef(uid)
+  const minutesRef = useRef(minutes)
+  useEffect(() => { phaseRef.current = phase }, [phase])
+  useEffect(() => { uidRef.current = uid }, [uid])
+  useEffect(() => { minutesRef.current = minutes }, [minutes])
 
   async function recordSession(completed: boolean) {
-    if (!uid || !startRef.current) return
+    const id = uidRef.current
+    if (!id || !startRef.current) return
     await supabase
       .from('focus_sessions')
       .insert({
-        user_id: uid,
+        user_id: id,
         task_id: null,
         started_at: startRef.current.toISOString(),
         ended_at: new Date().toISOString(),
-        planned_minutes: minutes,
+        planned_minutes: minutesRef.current,
         completed,
       })
       .then(() => undefined, () => undefined)
     // Deep Work completado → notificación física ESP32 (fire-and-forget).
-    if (completed) void notificarESP32(uid, 'deep_work_completado')
+    if (completed) void notificarESP32(id, 'deep_work_completado')
   }
+
+  // Si el usuario navega fuera (o cierra la sesión) con el timer corriendo,
+  // registramos la sesión como abortada en vez de perder ese tiempo en
+  // silencio — antes no se guardaba nada si nunca se pulsaba "Abortar".
+  useEffect(() => () => {
+    if (tick.current) clearInterval(tick.current)
+    if (phaseRef.current === 'running') void recordSession(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function start() {
     const total = minutes * 60

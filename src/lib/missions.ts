@@ -50,6 +50,39 @@ function demoDashboard(): DashboardData {
   return { mission: DEMO_MISSION, isDemo: true, stats: DEMO_STATS, upcoming: DEMO_UPCOMING }
 }
 
+/** "1h 47m" o "23m" — formato compacto para las stats de "Hoy". */
+function formatFocusMinutes(minutes: number): string {
+  if (minutes <= 0) return '0m'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+
+/**
+ * Minutos de foco reales a partir de `focus_sessions` (sesiones de la última
+ * semana). Cuenta el tiempo transcurrido (ended_at - started_at) tanto en
+ * sesiones completadas como abortadas: el usuario igual estuvo enfocado ese
+ * rato. Las sesiones sin `ended_at` (en curso) no suman todavía.
+ */
+function summarizeFocusSessions(
+  sessions: { started_at: string; ended_at: string | null }[],
+  startOfToday: Date,
+): { todayMinutes: number; weekAvgMinutes: number } {
+  const todayMs = startOfToday.getTime()
+  let todayMinutes = 0
+  let weekMinutes = 0
+
+  for (const s of sessions) {
+    if (!s.ended_at) continue
+    const started = new Date(s.started_at).getTime()
+    const mins = Math.max(0, Math.round((new Date(s.ended_at).getTime() - started) / 60000))
+    weekMinutes += mins
+    if (started >= todayMs) todayMinutes += mins
+  }
+
+  return { todayMinutes, weekAvgMinutes: Math.round(weekMinutes / 7) }
+}
+
 /** Tablero de la pantalla Misiones: activa + pendientes + forjadas hoy. */
 export interface MissionsBoard {
   active: Mission | null
@@ -219,8 +252,10 @@ export async function getDashboardData(): Promise<DashboardData> {
   // Estadísticas reales que salen baratas: racha (profiles) y misiones de hoy.
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
+  const startOfWeek = new Date(startOfToday)
+  startOfWeek.setDate(startOfWeek.getDate() - 6)
 
-  const [{ data: profile }, { count: completedToday }, { count: totalToday }] =
+  const [{ data: profile }, { count: completedToday }, { count: totalToday }, { data: sessions }] =
     await Promise.all([
       supabase.from('profiles').select('streak_current').eq('id', user.id).single(),
       supabase
@@ -234,15 +269,20 @@ export async function getDashboardData(): Promise<DashboardData> {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .gte('created_at', startOfToday.toISOString()),
+      supabase
+        .from('focus_sessions')
+        .select('started_at, ended_at')
+        .eq('user_id', user.id)
+        .gte('started_at', startOfWeek.toISOString()),
     ])
 
   const streak = profile?.streak_current ?? 0
+  const { todayMinutes, weekAvgMinutes } = summarizeFocusSessions(sessions ?? [], startOfToday)
   const stats: TodayStat[] = [
-    // TODO (Fase 4/5): "Enfoque hoy" y "Promedio semanal" salen de focus_sessions.
-    { label: 'Enfoque hoy', value: '—' },
+    { label: 'Enfoque hoy', value: formatFocusMinutes(todayMinutes) },
     { label: 'Misiones', value: `${completedToday ?? 0}/${totalToday ?? 0}` },
     { label: 'Racha', value: `${streak} ${streak === 1 ? 'día' : 'días'}` },
-    { label: 'Promedio semanal', value: '—' },
+    { label: 'Promedio semanal', value: formatFocusMinutes(weekAvgMinutes) },
   ]
 
   return {

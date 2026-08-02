@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Flame, Plus, Check, Trash2, Loader2, ArrowRight } from 'lucide-react'
+import { Flame, Plus, Check, Trash2, Loader2, ArrowRight, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
@@ -32,6 +32,7 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
   const [minutes, setMinutes] = useState(25)
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [confirmId, setConfirmId] = useState<string | null>(null)
 
   // Sin sesión real no se puede gestionar (las mutaciones necesitan user_id).
   if (isDemo || !uid) {
@@ -70,8 +71,10 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
       setMinutes(25)
       toast.success('Misión añadida')
       router.refresh()
-    } catch {
-      toast.error('No se pudo crear la misión. Inténtalo de nuevo.')
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'No se pudo crear la misión. Inténtalo de nuevo.',
+      )
     } finally {
       setCreating(false)
     }
@@ -85,8 +88,8 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
       if (error) throw error
       toast.success('Misión encendida 🔥')
       router.refresh()
-    } catch {
-      toast.error('No se pudo encender la misión.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo encender la misión.')
     } finally {
       setBusyId(null)
     }
@@ -100,11 +103,13 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
     try {
       const { error } = await supabase.from('missions').delete().eq('id', id)
       if (error) throw error
+      toast.success('Misión borrada')
       router.refresh()
-    } catch {
-      toast.error('No se pudo borrar la misión.')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo borrar la misión.')
     } finally {
       setBusyId(null)
+      setConfirmId(null)
     }
   }
 
@@ -208,14 +213,35 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
                     {busy ? <Loader2 size={14} className="animate-spin" /> : <Flame size={14} />}
                     Encender
                   </button>
-                  <button
-                    onClick={() => deleteMission(m.id)}
-                    disabled={busy}
-                    aria-label="Borrar misión"
-                    className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {confirmId === m.id ? (
+                    <div className="flex flex-shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => deleteMission(m.id)}
+                        disabled={busy}
+                        aria-label="Confirmar borrado de la misión"
+                        className="rounded-full bg-red-500/15 p-2 text-red-400 transition-colors hover:bg-red-500/25 disabled:opacity-40"
+                      >
+                        {busy ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                      </button>
+                      <button
+                        onClick={() => setConfirmId(null)}
+                        disabled={busy}
+                        aria-label="Cancelar borrado"
+                        className="rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmId(m.id)}
+                      disabled={busy}
+                      aria-label="Borrar misión"
+                      className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               )
             })}
