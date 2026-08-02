@@ -541,16 +541,25 @@ create policy "daily_claims_read" on public.daily_claims
   for select using (auth.uid() = user_id);
 revoke insert, update, delete on public.daily_claims from authenticated, anon;
 
--- Reclamar la recompensa del día. Devuelve el monto reclamado.
-create or replace function public.claim_daily()
+-- Reclamar la recompensa del día. `p_local_date` es la fecha LOCAL del cliente
+-- (YYYY-MM-DD): así el día resetea a las 12:00 am de SU zona horaria y se puede
+-- reclamar hasta las 11:59 pm de ese día. Sin argumento usa la fecha del server.
+drop function if exists public.claim_daily();
+create or replace function public.claim_daily(p_local_date date default current_date)
 returns integer as $$
 declare
   v_streak integer;
   v_amount integer;
 begin
+  -- Acota a ±1 día del servidor: cubre cualquier zona horaria pero impide
+  -- reclamar fechas arbitrarias (anti-farm).
+  if p_local_date < current_date - 1 or p_local_date > current_date + 1 then
+    raise exception 'Fecha fuera de rango';
+  end if;
+
   if exists (
     select 1 from public.daily_claims
-    where user_id = auth.uid() and claim_date = current_date
+    where user_id = auth.uid() and claim_date = p_local_date
   ) then
     raise exception 'Ya reclamaste tu recompensa de hoy';
   end if;
@@ -562,7 +571,7 @@ begin
   v_amount := 20 + least(coalesce(v_streak, 0), 15);
 
   insert into public.daily_claims (user_id, claim_date, amount)
-    values (auth.uid(), current_date, v_amount);
+    values (auth.uid(), p_local_date, v_amount);
 
   insert into public.points (user_id, total_points)
     values (auth.uid(), v_amount)
@@ -574,9 +583,10 @@ begin
 end;
 $$ language plpgsql security definer;
 
--- Estado del reclamo de HOY calculado en el servidor (evita el bug de zona
--- horaria de comparar fechas en el cliente): ¿ya reclamó hoy? y ¿cuánto vale?
-create or replace function public.daily_claim_state()
+-- Estado del reclamo del día LOCAL del cliente (evita el bug de zona horaria de
+-- comparar fechas en el cliente): ¿ya reclamó hoy? y ¿cuánto vale?
+drop function if exists public.daily_claim_state();
+create or replace function public.daily_claim_state(p_local_date date default current_date)
 returns table(claimed boolean, amount integer) as $$
 declare
   v_streak integer;
@@ -586,7 +596,7 @@ begin
   return query select
     exists(
       select 1 from public.daily_claims
-      where user_id = auth.uid() and claim_date = current_date
+      where user_id = auth.uid() and claim_date = p_local_date
     ),
     20 + least(coalesce(v_streak, 0), 15);
 end;
@@ -627,6 +637,30 @@ create policy "Anyone can post a review" on public.reviews
 
 -- El rol anónimo (clave anon) necesita el privilegio a nivel de tabla
 grant select, insert on public.reviews to anon, authenticated;
+
+-- ==================================================================
+-- 02b_focus_sessions.sql  (sesiones de Deep Work — versión autocontenida)
+-- ==================================================================
+-- Sin FK a tasks (la app inserta task_id = null): solo depende de auth.users.
+
+create table if not exists public.focus_sessions (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid not null references auth.users (id) on delete cascade,
+  task_id         uuid,
+  started_at      timestamptz not null,
+  ended_at        timestamptz,
+  planned_minutes integer not null default 25,
+  completed       boolean not null default false,
+  created_at      timestamptz default now()
+);
+
+create index if not exists focus_sessions_user_idx
+  on public.focus_sessions (user_id, started_at desc);
+
+alter table public.focus_sessions enable row level security;
+drop policy if exists "Users manage own focus sessions" on public.focus_sessions;
+create policy "Users manage own focus sessions" on public.focus_sessions
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ==================================================================
 -- 11_esp32.sql  (notificaciones físicas — cola que consume el ESP32)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Gift, Check, Loader2, Gem } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -15,6 +15,18 @@ interface Props {
 }
 
 /**
+ * Fecha LOCAL del navegador en formato YYYY-MM-DD. La usamos como "el día de
+ * hoy" del usuario para que el reclamo resetee a las 12:00 am de SU zona horaria
+ * (reclamable hasta las 11:59 pm), no a medianoche UTC del servidor.
+ */
+function localDateStr(): string {
+  const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
+
+/**
  * Recompensa diaria de diamantes: motiva a volver cada día. Se reclama una vez
  * al día (RPC claim_daily, que suma puntos en el servidor). El bono sube con la
  * racha. Banner visible en el dashboard "Hoy".
@@ -23,7 +35,27 @@ export function DailyClaim({ claimedToday, amount, isDemo }: Props) {
   const router = useRouter()
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
   const [claimed, setClaimed] = useState(claimedToday)
+  const [amt, setAmt] = useState(amount)
   const [busy, setBusy] = useState(false)
+
+  // Al montar, reconcilia el estado con el DÍA LOCAL del usuario (el servidor,
+  // que renderizó el estado inicial, no conoce la zona horaria del navegador).
+  useEffect(() => {
+    if (isDemo || !uid) return
+    let alive = true
+    supabase
+      .rpc('daily_claim_state', { p_local_date: localDateStr() })
+      .single()
+      .then(({ data }) => {
+        if (!alive || !data) return
+        const s = data as { claimed: boolean; amount: number }
+        setClaimed(s.claimed)
+        setAmt(s.amount)
+      })
+    return () => {
+      alive = false
+    }
+  }, [isDemo, uid])
 
   async function claim() {
     if (isDemo || !uid) {
@@ -32,10 +64,12 @@ export function DailyClaim({ claimedToday, amount, isDemo }: Props) {
     }
     setBusy(true)
     try {
-      const { data, error } = await supabase.rpc('claim_daily')
+      const { data, error } = await supabase.rpc('claim_daily', {
+        p_local_date: localDateStr(),
+      })
       if (error) throw error
       setClaimed(true)
-      toast.success(`+${data ?? amount} 💎 reclamados. ¡Vuelve mañana!`)
+      toast.success(`+${data ?? amt} 💎 reclamados. ¡Vuelve mañana!`)
       router.refresh()
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''
@@ -80,7 +114,7 @@ export function DailyClaim({ claimedToday, amount, isDemo }: Props) {
             className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-ember px-4 py-2 font-forge text-sm font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px disabled:opacity-50"
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Gem size={14} />}
-            Reclamar +{amount}
+            Reclamar +{amt}
           </button>
         )}
       </div>
