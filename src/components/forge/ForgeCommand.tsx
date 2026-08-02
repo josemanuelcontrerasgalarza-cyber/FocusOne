@@ -10,6 +10,7 @@ import {
   Plus,
   Music,
   Zap,
+  Gift,
   Search,
   CornerDownLeft,
   type LucideIcon,
@@ -33,6 +34,7 @@ const COMMANDS: Cmd[] = [
   { id: 'nueva', label: 'Nueva misión', hint: 'Crear', icon: Plus, group: 'Acciones', href: '/misiones', keywords: 'crear add' },
   { id: 'deep', label: 'Deep Work', hint: 'Temporizador de enfoque', icon: Zap, group: 'Acciones', href: '/focus', keywords: 'foco timer pomodoro concentracion' },
   { id: 'musica', label: 'Música', hint: 'Frecuencias de foco', icon: Music, group: 'Acciones', href: '/musica', keywords: 'spotify playlist sonido' },
+  { id: 'tienda', label: 'Recompensas', hint: 'Tienda', icon: Gift, group: 'Acciones', href: '/perfil', keywords: 'tienda puntos desbloquear premios' },
 ]
 
 /** Evento global para abrir la paleta desde un botón del header. */

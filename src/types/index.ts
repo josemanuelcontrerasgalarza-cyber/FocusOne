@@ -136,3 +136,16 @@ export interface PointsRow {
   total_points: number
   updated_at: string
 }
+
+// === Tienda de recompensas (Fase 6) ===
+export type RewardType = 'playlist' | 'theme' | 'badge'
+
+export interface Reward {
+  id: string
+  name: string
+  description?: string | null
+  type: RewardType
+  cost_points: number
+  icon?: string | null
+  created_at: string
+}

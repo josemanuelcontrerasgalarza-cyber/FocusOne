@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Music, Zap, TrendingUp, ChevronRight } from 'lucide-react'
+import { getRewardsData } from '@/lib/rewards'
+import { RewardsStore } from './_components/RewardsStore'
 
 export const metadata: Metadata = { title: 'Perfil' }
+export const dynamic = 'force-dynamic'
 
 const LINKS = [
   { href: '/musica', label: 'Música', hint: 'Frecuencias de foco', icon: Music },
@@ -13,7 +16,9 @@ const LINKS = [
 /**
  * Pantalla "Perfil": accesos y (Fase 6) tienda de recompensas.
  */
-export default function PerfilPage() {
+export default async function PerfilPage() {
+  const { rewards, unlockedIds, points, isDemo } = await getRewardsData()
+
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-10 sm:px-12">
       <header>
@@ -43,11 +48,12 @@ export default function PerfilPage() {
         ))}
       </div>
 
-      <div className="forge-panel flex min-h-[120px] flex-col items-center justify-center gap-2 p-8 text-center">
-        <p className="max-w-xs text-sm text-forge-ink-dim">
-          La tienda de recompensas se construye en la Fase 6.
-        </p>
-      </div>
+      <RewardsStore
+        rewards={rewards}
+        unlockedIds={unlockedIds}
+        points={points}
+        isDemo={isDemo}
+      />
     </section>
   )
 }
