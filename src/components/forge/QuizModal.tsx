@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { X, Check, Loader2, Flame } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import {
@@ -31,6 +31,7 @@ interface Props {
 export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props) {
   const total = MOCK_QUESTIONS.length
   const canSave = Boolean(uid) && !isDemo && mission.id !== 'demo'
+  const reduceMotion = useReducedMotion()
 
   const [step, setStep] = useState(0) // 0..total-1 = preguntas; total = resultado
   const [answers, setAnswers] = useState<number[]>([])
@@ -76,7 +77,7 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
       {/* Backdrop */}
       <motion.div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        initial={{ opacity: 0 }}
+        initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={showingResult ? undefined : onClose}
@@ -85,9 +86,9 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
       {/* Panel */}
       <motion.div
         className="relative w-full max-w-md rounded-forge border border-forge-line bg-forge-surface p-6 shadow-ember"
-        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 16, scale: 0.98 }}
+        exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.98 }}
       >
         {!showingResult && (
           <button
@@ -104,6 +105,7 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
             result={result}
             missionTitle={mission.title}
             isDemo={!canSave}
+            reduceMotion={reduceMotion}
             onForge={() => onCompleted(result)}
           />
         ) : (
@@ -128,9 +130,9 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
             <AnimatePresence mode="wait">
               <motion.div
                 key={question.id}
-                initial={{ opacity: 0, x: 20 }}
+                initial={reduceMotion ? false : { opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
                 <div className="mb-1 font-num text-xs text-forge-ink-faint">
@@ -168,17 +170,19 @@ function ResultView({
   result,
   missionTitle,
   isDemo,
+  reduceMotion,
   onForge,
 }: {
   result: QuizOutcome
   missionTitle: string
   isDemo: boolean
+  reduceMotion: boolean | null
   onForge: () => void
 }) {
   return (
     <div className="text-center">
       <motion.div
-        initial={{ scale: 0 }}
+        initial={reduceMotion ? false : { scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 200, damping: 15 }}
         className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-ember/15 shadow-ember"

@@ -45,7 +45,7 @@ export default function DeepWorkPage() {
 
   async function recordSession(completed: boolean) {
     if (!uid || !startRef.current) return
-    await supabase
+    const { error } = await supabase
       .from('focus_sessions')
       .insert({
         user_id: uid,
@@ -55,7 +55,11 @@ export default function DeepWorkPage() {
         planned_minutes: minutes,
         completed,
       })
-      .then(() => undefined, () => undefined)
+    if (error) {
+      console.error('[deep-work] no se pudo guardar la sesión:', error)
+      toast.error('No se pudo guardar la sesión de enfoque')
+      return
+    }
     // Deep Work completado → notificación física ESP32 (fire-and-forget).
     if (completed) void notificarESP32(uid, 'deep_work_completado')
   }

@@ -26,9 +26,9 @@ export async function getDailyClaim(): Promise<DailyClaimState> {
   } = await supabase.auth.getUser()
   if (!user) return { claimedToday: false, amount: 25, isDemo: true }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = today.toISOString().slice(0, 10)
+  // Fecha UTC de hoy, para que coincida con current_date en Postgres (UTC
+  // por defecto en Supabase) sin desplazarse un día en TZ de offset positivo.
+  const todayStr = new Date().toISOString().slice(0, 10)
 
   const [claim, profile] = await Promise.all([
     supabase

@@ -6,6 +6,7 @@ import { getPetData } from '@/lib/pet'
 import { RewardsStore } from './_components/RewardsStore'
 import { WeeklyDrops } from './_components/WeeklyDrops'
 import { LogoutButton } from '@/components/forge/LogoutButton'
+import { SaveAccountCard } from '@/components/forge/SaveAccountCard'
 
 export const metadata: Metadata = { title: 'Perfil' }
 export const dynamic = 'force-dynamic'
@@ -41,6 +42,9 @@ export default async function PerfilPage() {
         </p>
         <h1 className="mt-1 font-forge text-3xl font-extrabold tracking-tight">Perfil</h1>
       </header>
+
+      {/* Guardar cuenta demo (si aplica) */}
+      <SaveAccountCard />
 
       {/* Accesos */}
       <div className="flex flex-col gap-2">
