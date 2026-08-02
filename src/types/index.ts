@@ -149,3 +149,25 @@ export interface Reward {
   icon?: string | null
   created_at: string
 }
+
+// === Focus Pet (mascota de enfoque) ===
+export type PetItemKind = 'pet' | 'hat' | 'outfit' | 'accessory'
+
+export interface PetItem {
+  id: string
+  name: string
+  kind: PetItemKind
+  cost_points: number
+  emoji: string
+  created_at: string
+}
+
+export interface UserPet {
+  user_id: string
+  name: string
+  pet_id: string | null
+  hat_id: string | null
+  outfit_id: string | null
+  accessory_id: string | null
+  updated_at: string
+}

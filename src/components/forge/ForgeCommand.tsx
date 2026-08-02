@@ -11,6 +11,7 @@ import {
   Music,
   Zap,
   Gift,
+  PawPrint,
   Search,
   CornerDownLeft,
   type LucideIcon,
@@ -35,6 +36,7 @@ const COMMANDS: Cmd[] = [
   { id: 'deep', label: 'Deep Work', hint: 'Temporizador de enfoque', icon: Zap, group: 'Acciones', href: '/deep-work', keywords: 'foco timer pomodoro concentracion' },
   { id: 'musica', label: 'Música', hint: 'Frecuencias de foco', icon: Music, group: 'Acciones', href: '/musica', keywords: 'spotify playlist sonido' },
   { id: 'tienda', label: 'Recompensas', hint: 'Tienda', icon: Gift, group: 'Acciones', href: '/perfil', keywords: 'tienda puntos desbloquear premios' },
+  { id: 'mascota', label: 'Focus Pet', hint: 'Tu mascota', icon: PawPrint, group: 'Acciones', href: '/mascota', keywords: 'mascota pet compañero ropa' },
 ]
 
 /** Evento global para abrir la paleta desde un botón del header. */
