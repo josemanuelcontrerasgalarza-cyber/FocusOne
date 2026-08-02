@@ -84,12 +84,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         password,
         options: { data: { name } },
       })
-      if (error) {
-        if (error.message.includes('already registered')) {
-          throw new Error('Este correo ya está registrado')
-        }
-        throw new Error('Error al crear la cuenta. Intenta de nuevo.')
-      }
+      // No se distingue "correo ya registrado" de otros errores para no revelar
+      // si un correo existe en el sistema (evita enumeración de cuentas).
+      if (error) throw new Error('No se pudo crear la cuenta. Verifica los datos e intenta de nuevo.')
     } finally {
       set({ loading: false })
     }
@@ -119,12 +116,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true })
     try {
       const { error } = await supabase.auth.updateUser({ email, password, data: { name } })
-      if (error) {
-        if (error.message.includes('already')) throw new Error('Este correo ya está registrado')
-        throw new Error('No se pudo guardar la cuenta. Intenta de nuevo.')
-      }
+      if (error) throw new Error('No se pudo guardar la cuenta. Verifica los datos e intenta de nuevo.')
       const uid = get().session?.user.id
-      if (uid) await supabase.from('profiles').update({ email, name }).eq('id', uid)
+      if (uid) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ email, name })
+          .eq('id', uid)
+        if (profileError) throw new Error('La cuenta se creó, pero no se pudo guardar el perfil. Intenta de nuevo.')
+      }
       set({ isDemo: false })
       await get().refreshProfile()
       toast.success('Cuenta guardada. Revisa tu correo para confirmar el acceso.')

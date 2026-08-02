@@ -25,6 +25,17 @@ drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles
   for select using (auth.uid() = id);
 
+-- El usuario puede actualizar su propio nombre/email/avatar (p.ej. al pasar
+-- de cuenta demo a cuenta real en upgradeAccount), pero SOLO esas columnas:
+-- streak_current/streak_best/streak_last_date quedan fuera del grant para que
+-- nadie pueda falsificar su racha escribiendo directo a profiles. Esos campos
+-- los escribe únicamente el trigger SECURITY DEFINER de la racha.
+revoke update on public.profiles from authenticated;
+grant update (email, name, avatar_url) on public.profiles to authenticated;
+drop policy if exists "profiles_update_own" on public.profiles;
+create policy "profiles_update_own" on public.profiles
+  for update using (auth.uid() = id) with check (auth.uid() = id);
+
 -- Alta automática del perfil al registrarse un usuario nuevo.
 create or replace function public.handle_new_user()
 returns trigger as $$

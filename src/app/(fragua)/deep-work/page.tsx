@@ -8,6 +8,7 @@ import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import { notificarESP32 } from '@/lib/notificarESP32'
 import { isDbSetupError } from '@/lib/dbError'
+import { notifySessionComplete, requestNotificationPermission } from '@/lib/sessionAlert'
 
 const PRESETS = [
   { label: 'Express', minutes: 15 },
@@ -64,6 +65,7 @@ export default function DeepWorkPage() {
   }
 
   function start() {
+    requestNotificationPermission()
     const total = minutes * 60
     startRef.current = new Date()
     endRef.current = Date.now() + total * 1000
@@ -88,6 +90,7 @@ export default function DeepWorkPage() {
     if (natural) {
       setPhase('done')
       void recordSession(true)
+      notifySessionComplete(minutes)
     } else {
       setPhase('setup')
       void recordSession(false)

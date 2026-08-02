@@ -141,6 +141,11 @@ export function CommandPalette() {
           onKeyDown={onKeyDown}
           placeholder="Buscar acciones, páginas o misiones…"
           className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-ghost"
+          role="combobox"
+          aria-expanded={commandOpen}
+          aria-controls="command-palette-list"
+          aria-autocomplete="list"
+          aria-activedescendant={filtered[active] ? `command-opt-${active}` : undefined}
         />
         <kbd className="hidden shrink-0 rounded border border-glass-border bg-white/5 px-1.5 py-0.5 font-data text-[10px] text-ink-ghost sm:block">
           ESC
@@ -148,7 +153,7 @@ export function CommandPalette() {
       </div>
 
       {/* Resultados */}
-      <div ref={listRef} className="max-h-[52vh] overflow-y-auto p-2">
+      <div ref={listRef} id="command-palette-list" role="listbox" className="max-h-[52vh] overflow-y-auto p-2">
         {filtered.length === 0 && (
           <p className="px-3 py-6 text-center text-sm text-ink-ghost">Sin resultados para «{query}»</p>
         )}
@@ -165,6 +170,9 @@ export function CommandPalette() {
               return (
                 <button
                   key={c.id}
+                  id={`command-opt-${idx}`}
+                  role="option"
+                  aria-selected={isActive}
                   data-idx={idx}
                   onClick={c.run}
                   onMouseEnter={() => setActive(idx)}

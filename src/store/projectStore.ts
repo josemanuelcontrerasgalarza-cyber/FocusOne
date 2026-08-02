@@ -83,11 +83,12 @@ export const useProjectStore = create<ProjectState>((set) => ({
 
   setMainProject: async (id, userId) => {
     try {
-      await supabase
+      const { error: unsetError } = await supabase
         .from('projects')
         .update({ is_main: false })
         .eq('user_id', userId)
         .eq('is_main', true)
+      if (unsetError) throw unsetError
       const { error } = await supabase.from('projects').update({ is_main: true }).eq('id', id)
       if (error) throw error
       set((state) => {
