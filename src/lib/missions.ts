@@ -114,24 +114,73 @@ export async function getMissionsBoard(): Promise<MissionsBoard> {
   }
 }
 
-/**
- * Racha (días) para la insignia del header. En modo demo devuelve 12 para
- * reflejar el mockup; con sesión real lee `profiles.streak_current`.
- * TODO (Fase 5): mantener la racha con su propia lógica/tabla `streaks`.
- */
-export async function getStreakDays(): Promise<number> {
-  if (!supabaseConfigured) return 12
+export interface HeaderStats {
+  streak: number
+  points: number
+}
+
+export interface ProgressData {
+  streak: number
+  best: number
+  points: number
+  forged: number
+  isDemo: boolean
+}
+
+/** Datos de la pantalla Progreso (Fase 5): racha, récord, puntos, forjadas. */
+export async function getProgressData(): Promise<ProgressData> {
+  const demo: ProgressData = { streak: 12, best: 21, points: 240, forged: 37, isDemo: true }
+  if (!supabaseConfigured) return demo
+
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return 12
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('streak_current')
-    .eq('id', user.id)
-    .single()
-  return profile?.streak_current ?? 0
+  if (!user) return demo
+
+  const [{ data: profile }, { data: pts }, { count: forged }] = await Promise.all([
+    supabase.from('profiles').select('streak_current, streak_best').eq('id', user.id).single(),
+    supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
+    supabase
+      .from('missions')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'completed'),
+  ])
+
+  return {
+    streak: profile?.streak_current ?? 0,
+    best: profile?.streak_best ?? 0,
+    points: pts?.total_points ?? 0,
+    forged: forged ?? 0,
+    isDemo: false,
+  }
+}
+
+/**
+ * Racha + puntos para el header (Fase 5). La racha la mantiene el trigger
+ * de misiones (07_mission_streak.sql) en profiles.streak_current; los puntos
+ * salen de points.total_points. En demo devuelve valores de muestra.
+ */
+export async function getHeaderStats(): Promise<HeaderStats> {
+  const demo: HeaderStats = { streak: 12, points: 240 }
+  if (!supabaseConfigured) return demo
+
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return demo
+
+  const [{ data: profile }, { data: pts }] = await Promise.all([
+    supabase.from('profiles').select('streak_current').eq('id', user.id).single(),
+    supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
+  ])
+
+  return {
+    streak: profile?.streak_current ?? 0,
+    points: pts?.total_points ?? 0,
+  }
 }
 
 /**

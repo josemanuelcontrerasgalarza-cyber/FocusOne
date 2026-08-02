@@ -1,10 +1,17 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
+import { Music, Zap, TrendingUp, ChevronRight } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Perfil' }
 
+const LINKS = [
+  { href: '/musica', label: 'Música', hint: 'Frecuencias de foco', icon: Music },
+  { href: '/focus', label: 'Deep Work', hint: 'Temporizador de enfoque (duración a tu medida)', icon: Zap },
+  { href: '/progreso', label: 'Progreso', hint: 'Racha y puntos', icon: TrendingUp },
+]
+
 /**
- * Pantalla "Perfil": datos del usuario + tienda de recompensas.
- * Esqueleto en Fase 1 — la tienda se construye en la Fase 6.
+ * Pantalla "Perfil": accesos y (Fase 6) tienda de recompensas.
  */
 export default function PerfilPage() {
   return (
@@ -18,13 +25,27 @@ export default function PerfilPage() {
         </h1>
       </header>
 
-      <div className="forge-panel flex min-h-[220px] flex-col items-center justify-center gap-2 p-8 text-center">
+      {/* Accesos */}
+      <div className="flex flex-col gap-2">
+        {LINKS.map(({ href, label, hint, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className="flex items-center gap-4 rounded-forge border border-forge-line bg-forge-surface p-4 transition-colors hover:border-forge-ink-faint"
+          >
+            <Icon size={20} className="text-ember" />
+            <div className="min-w-0 flex-1">
+              <p className="font-forge text-[15px] font-semibold text-forge-ink">{label}</p>
+              <p className="truncate text-[13px] text-forge-ink-faint">{hint}</p>
+            </div>
+            <ChevronRight size={18} className="text-forge-ink-faint" />
+          </Link>
+        ))}
+      </div>
+
+      <div className="forge-panel flex min-h-[120px] flex-col items-center justify-center gap-2 p-8 text-center">
         <p className="max-w-xs text-sm text-forge-ink-dim">
-          Tu cuenta y la tienda de recompensas.
-          <br />
-          <span className="text-forge-ink-faint">
-            La tienda se construye en la Fase 6.
-          </span>
+          La tienda de recompensas se construye en la Fase 6.
         </p>
       </div>
     </section>

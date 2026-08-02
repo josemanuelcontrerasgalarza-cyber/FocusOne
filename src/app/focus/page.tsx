@@ -336,6 +336,23 @@ function FocusMode() {
                 ))}
               </div>
 
+              {/* Duración personalizada: el usuario fija los minutos que necesite */}
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-glass-border bg-black/20 px-4 py-2.5">
+                <span className="text-sm text-ink-dim">Personalizado</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={180}
+                  value={minutes}
+                  onChange={(e) =>
+                    setMinutes(Math.max(1, Math.min(180, Number(e.target.value) || 1)))
+                  }
+                  aria-label="Minutos personalizados"
+                  className="ml-auto w-20 rounded-lg border border-glass-border bg-black/30 px-2 py-1.5 text-center font-data text-ink outline-none focus:border-core/50"
+                />
+                <span className="text-sm text-ink-dim">min</span>
+              </div>
+
               <Button onClick={start} fullWidth size="lg" className="mt-5">
                 <Zap size={16} /> Entrar en foco
               </Button>
