@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.0'
+export const APP_VERSION = '5.1'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.1',
+    title: 'Mantenimiento semanal — más seguro y con datos reales',
+    date: '2 ago 2026',
+    tag: 'Actual',
+    items: [
+      '«Enfoque hoy» y «Promedio semanal» ya muestran tus minutos reales de Deep Work.',
+      'Borrar una misión ahora pide confirmación: ya no se pierde una por un toque accidental.',
+      'Exportar datos incluye ahora misiones, puntos, Focus Pet y recompensas (antes solo el sistema anterior).',
+      'Dependencias actualizadas y funciones internas endurecidas.',
+    ],
+  },
+  {
     version: '5.0',
     title: 'La Fragua — enfoque gamificado',
     date: '2 ago 2026',
-    tag: 'Actual',
     items: [
       'Rediseño completo «La Fragua»: una sola misión protagonista por pantalla, con calor de forja y racha.',
       'Quiz de cierre para sellar cada misión y ganar puntos.',

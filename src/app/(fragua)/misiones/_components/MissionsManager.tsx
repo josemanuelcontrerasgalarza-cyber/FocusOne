@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Flame, Plus, Check, Trash2, Loader2, ArrowRight } from 'lucide-react'
@@ -33,6 +33,14 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
   const [minutes, setMinutes] = useState(25)
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Borrar es destructivo y sin deshacer: exige un segundo clic (se olvida a
+  // los 3s) para no perder una misión por un toque accidental.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => {
+    if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current)
+  }, [])
 
   // Sin sesión real no se puede gestionar (las mutaciones necesitan user_id).
   if (isDemo || !uid) {
@@ -107,6 +115,19 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
     } finally {
       setBusyId(null)
     }
+  }
+
+  // Primer clic: arma la confirmación (se olvida sola a los 3s). Segundo clic
+  // sobre la misma misión: borra de verdad.
+  function handleDeleteClick(id: string) {
+    if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current)
+    if (confirmDeleteId === id) {
+      setConfirmDeleteId(null)
+      void deleteMission(id)
+      return
+    }
+    setConfirmDeleteId(id)
+    confirmTimeoutRef.current = setTimeout(() => setConfirmDeleteId(null), 3000)
   }
 
   return (
@@ -210,12 +231,16 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
                     Encender
                   </button>
                   <button
-                    onClick={() => deleteMission(m.id)}
+                    onClick={() => handleDeleteClick(m.id)}
                     disabled={busy}
-                    aria-label="Borrar misión"
-                    className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                    aria-label={confirmDeleteId === m.id ? 'Confirmar borrado de la misión' : 'Borrar misión'}
+                    className={`flex-shrink-0 rounded-full p-2 text-xs font-semibold transition-colors disabled:opacity-40 ${
+                      confirmDeleteId === m.id
+                        ? 'bg-nova/15 px-3 text-nova hover:bg-nova/25'
+                        : 'text-forge-ink-faint hover:text-forge-ink'
+                    }`}
                   >
-                    <Trash2 size={16} />
+                    {confirmDeleteId === m.id ? '¿Borrar?' : <Trash2 size={16} />}
                   </button>
                 </div>
               )

@@ -1,6 +1,7 @@
 import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
+import { formatFocusMinutes } from '@/lib/utils'
 import type { Mission, TodayStat } from '@/types'
 
 /**
@@ -220,7 +221,11 @@ export async function getDashboardData(): Promise<DashboardData> {
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
 
-  const [{ data: profile }, { count: completedToday }, { count: totalToday }] =
+  // Ventana de 7 días (hoy + 6 anteriores) para el promedio semanal de enfoque.
+  const sevenDaysAgo = new Date(startOfToday)
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+
+  const [{ data: profile }, { count: completedToday }, { count: totalToday }, { data: sessions }] =
     await Promise.all([
       supabase.from('profiles').select('streak_current').eq('id', user.id).maybeSingle(),
       supabase
@@ -234,15 +239,32 @@ export async function getDashboardData(): Promise<DashboardData> {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
         .gte('created_at', startOfToday.toISOString()),
+      supabase
+        .from('focus_sessions')
+        .select('started_at, ended_at')
+        .eq('user_id', user.id)
+        .gte('started_at', sevenDaysAgo.toISOString())
+        .not('ended_at', 'is', null),
     ])
+
+  // Minutos reales de foco (duración efectiva, no la planeada): hoy y últimos 7 días.
+  let todayFocusMinutes = 0
+  let weekFocusMinutes = 0
+  for (const s of sessions ?? []) {
+    const start = new Date(s.started_at as string).getTime()
+    const end = new Date(s.ended_at as string).getTime()
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) continue
+    const minutes = (end - start) / 60000
+    weekFocusMinutes += minutes
+    if (start >= startOfToday.getTime()) todayFocusMinutes += minutes
+  }
 
   const streak = profile?.streak_current ?? 0
   const stats: TodayStat[] = [
-    // TODO (Fase 4/5): "Enfoque hoy" y "Promedio semanal" salen de focus_sessions.
-    { label: 'Enfoque hoy', value: '—' },
+    { label: 'Enfoque hoy', value: formatFocusMinutes(todayFocusMinutes) },
     { label: 'Misiones', value: `${completedToday ?? 0}/${totalToday ?? 0}` },
     { label: 'Racha', value: `${streak} ${streak === 1 ? 'día' : 'días'}` },
-    { label: 'Promedio semanal', value: '—' },
+    { label: 'Promedio semanal', value: formatFocusMinutes(weekFocusMinutes / 7) },
   ]
 
   return {

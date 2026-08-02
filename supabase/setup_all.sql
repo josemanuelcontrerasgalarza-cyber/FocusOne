@@ -690,3 +690,20 @@ create policy "esp32_select_own" on public.notificaciones_esp32
 drop policy if exists "esp32_insert_own" on public.notificaciones_esp32;
 create policy "esp32_insert_own" on public.notificaciones_esp32
   for insert with check (auth.uid() = usuario_id);
+
+-- ==================================================================
+-- 12_security_hardening.sql  (endurecimiento de funciones SECURITY DEFINER)
+-- ==================================================================
+-- Fija SET search_path explícito en cada función SECURITY DEFINER: defensa en
+-- profundidad estándar de Postgres/Supabase (advertencia del Security Advisor
+-- "function_search_path_mutable"). Las funciones ya califican sus tablas
+-- (public.tabla, auth.uid()), así que esto no cambia ningún comportamiento.
+
+alter function public.handle_new_user() set search_path = public, pg_temp;
+alter function public.activate_mission(uuid) set search_path = public, pg_temp;
+alter function public.apply_quiz_points() set search_path = public, pg_temp;
+alter function public.handle_mission_streak() set search_path = public, pg_temp;
+alter function public.unlock_reward(text) set search_path = public, pg_temp;
+alter function public.buy_pet_item(text) set search_path = public, pg_temp;
+alter function public.claim_daily(date) set search_path = public, pg_temp;
+alter function public.daily_claim_state(date) set search_path = public, pg_temp;
