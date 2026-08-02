@@ -46,7 +46,7 @@ begin
   on conflict (id) do nothing;
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -105,7 +105,7 @@ begin
   new.updated_at := now();
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public;
 
 drop trigger if exists on_missions_touch on public.missions;
 create trigger on_missions_touch
@@ -121,7 +121,7 @@ begin
   end if;
   return NEW;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public;
 
 drop trigger if exists on_mission_completed on public.missions;
 create trigger on_mission_completed
@@ -177,7 +177,7 @@ begin
     set status = 'active'
     where id = p_mission and user_id = auth.uid() and status <> 'completed';
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- ==================================================================
 -- 06_quiz_points.sql
@@ -231,7 +231,7 @@ begin
   new.points_earned := 10 + (new.score / 10);
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public;
 
 drop trigger if exists on_quiz_compute_points on public.quiz_results;
 create trigger on_quiz_compute_points
@@ -250,7 +250,7 @@ begin
                 updated_at = now();
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists on_quiz_apply_points on public.quiz_results;
 create trigger on_quiz_apply_points
@@ -329,7 +329,7 @@ begin
   end if;
   return NEW;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists on_mission_streak on public.missions;
 create trigger on_mission_streak
@@ -410,7 +410,7 @@ begin
   insert into public.reward_unlocks (user_id, reward_id) values (auth.uid(), p_reward);
   return v_total - v_cost;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- ==================================================================
 -- 09_focus_pet.sql
@@ -515,7 +515,7 @@ begin
   insert into public.pet_owned (user_id, item_id) values (auth.uid(), p_item);
   return v_total - v_cost;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- ==================================================================
 -- 10_daily_reward.sql
@@ -581,7 +581,7 @@ begin
 
   return v_amount;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- Estado del reclamo del día LOCAL del cliente (evita el bug de zona horaria de
 -- comparar fechas en el cliente): ¿ya reclamó hoy? y ¿cuánto vale?
@@ -600,7 +600,7 @@ begin
     ),
     20 + least(coalesce(v_streak, 0), 15);
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- ==================================================================
 -- 05_reviews.sql
