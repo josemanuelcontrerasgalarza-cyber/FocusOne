@@ -55,6 +55,7 @@ export interface MissionsBoard {
   active: Mission | null
   pending: Mission[]
   completedToday: Mission[]
+  history: Mission[] // todas las forjadas (historial completo, recientes primero)
   isDemo: boolean
 }
 
@@ -68,6 +69,7 @@ export async function getMissionsBoard(): Promise<MissionsBoard> {
     active: null,
     pending: [],
     completedToday: [],
+    history: [],
     isDemo: true,
   }
   if (!supabaseConfigured) return empty
@@ -81,7 +83,7 @@ export async function getMissionsBoard(): Promise<MissionsBoard> {
   const startOfToday = new Date()
   startOfToday.setHours(0, 0, 0, 0)
 
-  const [{ data: active }, { data: pending }, { data: completed }] =
+  const [{ data: active }, { data: pending }, { data: history }] =
     await Promise.all([
       supabase
         .from('missions')
@@ -97,19 +99,25 @@ export async function getMissionsBoard(): Promise<MissionsBoard> {
         .eq('user_id', user.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: true }),
+      // Historial completo de forjadas (todos los días), recientes primero.
       supabase
         .from('missions')
         .select('*')
         .eq('user_id', user.id)
         .eq('status', 'completed')
-        .gte('completed_at', startOfToday.toISOString())
-        .order('completed_at', { ascending: false }),
+        .order('completed_at', { ascending: false })
+        .limit(50),
     ])
+
+  const historyList = (history as Mission[]) ?? []
+  const todayIso = startOfToday.toISOString()
+  const completedToday = historyList.filter((m) => (m.completed_at ?? '') >= todayIso)
 
   return {
     active: (active as Mission | null) ?? null,
     pending: (pending as Mission[]) ?? [],
-    completedToday: (completed as Mission[]) ?? [],
+    completedToday,
+    history: historyList,
     isDemo: false,
   }
 }

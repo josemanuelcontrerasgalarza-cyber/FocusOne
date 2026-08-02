@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
  * pasa al manager interactivo.
  */
 export default async function MisionesPage() {
-  const { active, pending, completedToday, isDemo } = await getMissionsBoard()
+  const { active, pending, history, isDemo } = await getMissionsBoard()
 
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-10 sm:px-12">
@@ -29,7 +29,7 @@ export default async function MisionesPage() {
       <MissionsManager
         active={active}
         pending={pending}
-        completedToday={completedToday}
+        history={history}
         isDemo={isDemo}
       />
     </section>
