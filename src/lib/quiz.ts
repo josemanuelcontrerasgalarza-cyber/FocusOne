@@ -15,14 +15,8 @@ export interface QuizQuestion {
 }
 
 /**
- * Preguntas MOCK del quiz de cierre (Fase 4).
- *
- * TODO (IA — Fase posterior): reemplazar estas preguntas fijas por preguntas
- * generadas con la API de Anthropic a partir del contenido de la misión.
- * Punto de integración sugerido: un endpoint/Edge Function `POST /api/quiz`
- * que reciba la misión, llame a Claude y devuelva `QuizQuestion[]`. El scoring
- * y el cálculo de puntos deberían validarse en el servidor para que no sean
- * falsificables (hoy el score se calcula en el cliente porque es mock).
+ * Preguntas de reflexión del quiz de cierre. Son fijas por diseño (no hay
+ * generación por IA): un ritual breve para verificar y sellar la misión.
  */
 export const MOCK_QUESTIONS: QuizQuestion[] = [
   {

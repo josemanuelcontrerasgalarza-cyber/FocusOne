@@ -83,21 +83,15 @@ export function RewardsStore({ rewards, unlockedIds, points, isDemo }: Props) {
                   : 'border-forge-line bg-forge-surface'
               }`}
             >
-              <span className="text-2xl">{reward.icon ?? '✦'}</span>
+              <span className="shrink-0 text-2xl">{reward.icon ?? '✦'}</span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="truncate font-forge text-[15px] font-semibold text-forge-ink">
-                    {reward.name}
-                  </p>
-                  <span className="rounded-full border border-forge-line px-1.5 py-0.5 font-num text-[10px] uppercase tracking-wide text-forge-ink-faint">
-                    {TYPE_LABEL[reward.type]}
-                  </span>
-                </div>
-                {reward.description && (
-                  <p className="truncate text-[13px] text-forge-ink-faint">
-                    {reward.description}
-                  </p>
-                )}
+                <p className="font-forge text-[15px] font-semibold leading-tight text-forge-ink">
+                  {reward.name}
+                </p>
+                <p className="mt-0.5 truncate text-[12px] text-forge-ink-faint">
+                  {TYPE_LABEL[reward.type]}
+                  {reward.description ? ` · ${reward.description}` : ''}
+                </p>
               </div>
 
               {owned ? (

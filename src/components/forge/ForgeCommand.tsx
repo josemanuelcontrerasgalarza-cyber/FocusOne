@@ -32,7 +32,7 @@ const COMMANDS: Cmd[] = [
   { id: 'progreso', label: 'Ir a Progreso', icon: TrendingUp, group: 'Navegar', href: '/progreso', keywords: 'racha puntos' },
   { id: 'perfil', label: 'Ir a Perfil', icon: User, group: 'Navegar', href: '/perfil', keywords: 'cuenta ajustes' },
   { id: 'nueva', label: 'Nueva misión', hint: 'Crear', icon: Plus, group: 'Acciones', href: '/misiones', keywords: 'crear add' },
-  { id: 'deep', label: 'Deep Work', hint: 'Temporizador de enfoque', icon: Zap, group: 'Acciones', href: '/focus', keywords: 'foco timer pomodoro concentracion' },
+  { id: 'deep', label: 'Deep Work', hint: 'Temporizador de enfoque', icon: Zap, group: 'Acciones', href: '/deep-work', keywords: 'foco timer pomodoro concentracion' },
   { id: 'musica', label: 'Música', hint: 'Frecuencias de foco', icon: Music, group: 'Acciones', href: '/musica', keywords: 'spotify playlist sonido' },
   { id: 'tienda', label: 'Recompensas', hint: 'Tienda', icon: Gift, group: 'Acciones', href: '/perfil', keywords: 'tienda puntos desbloquear premios' },
 ]

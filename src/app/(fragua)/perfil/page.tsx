@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 const LINKS = [
   { href: '/musica', label: 'Música', hint: 'Frecuencias de foco', icon: Music },
-  { href: '/focus', label: 'Deep Work', hint: 'Temporizador de enfoque (duración a tu medida)', icon: Zap },
+  { href: '/deep-work', label: 'Deep Work', hint: 'Temporizador de enfoque (duración a tu medida)', icon: Zap },
   { href: '/progreso', label: 'Progreso', hint: 'Racha y puntos', icon: TrendingUp },
 ]
 
