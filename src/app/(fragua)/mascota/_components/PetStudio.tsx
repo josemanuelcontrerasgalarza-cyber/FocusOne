@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Lock, Gem, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -55,6 +55,21 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDem
   })
   const [tab, setTab] = useState<PetItemKind>('pet')
   const [busyId, setBusyId] = useState<string | null>(null)
+
+  // Reconcilia con el servidor cuando llegan props frescas (tras router.refresh()
+  // o al volver a la pantalla): la verdad de puntos/posesión es la del servidor,
+  // no el estado optimista local. Solo corre cuando cambian las props.
+  useEffect(() => {
+    setOwned(new Set(ownedIds))
+    setPoints(initialPoints)
+    setName(pet?.name ?? 'Ascua')
+    setSlots({
+      pet_id: pet?.pet_id ?? null,
+      hat_id: pet?.hat_id ?? null,
+      outfit_id: pet?.outfit_id ?? null,
+      accessory_id: pet?.accessory_id ?? null,
+    })
+  }, [ownedIds, initialPoints, pet])
 
   const petItem = slots.pet_id ? byId.get(slots.pet_id) : null
   const hat = slots.hat_id ? byId.get(slots.hat_id) : null

@@ -68,7 +68,7 @@ export default function MusicaPage() {
             src={`https://open.spotify.com/embed/playlist/${active.id}?theme=0`}
             width="100%"
             height="420"
-            frameBorder="0"
+            style={{ border: 0 }}
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"
             className="rounded-xl"

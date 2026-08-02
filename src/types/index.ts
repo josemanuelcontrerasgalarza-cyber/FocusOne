@@ -6,8 +6,9 @@ export interface Profile {
   streak_current: number
   streak_best: number
   streak_last_date?: string
-  tasks_completed_total: number
-  projects_completed_total: number
+  // Solo existen en el esquema legado (schema.sql), no en setup_all.sql: opcionales.
+  tasks_completed_total?: number
+  projects_completed_total?: number
   created_at: string
 }
 

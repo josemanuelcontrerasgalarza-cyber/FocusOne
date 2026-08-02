@@ -1,3 +1,10 @@
+-- ⚠️  LEGADO — NO EJECUTAR EN PRODUCCIÓN ⚠️
+-- Este archivo es el esquema v1 (diseño antiguo). La fuente de verdad actual es
+-- `supabase/setup_all.sql`. Correr este archivo reintroduce una policy
+-- `profiles ... for all` que permite FALSIFICAR la racha (streak) y rompe el
+-- alta de usuarios anónimos (handle_new_user sin coalesce). Se conserva solo
+-- como referencia histórica. Para montar la base de datos, usa setup_all.sql.
+
 -- Habilitar UUID
 create extension if not exists "uuid-ossp";
 

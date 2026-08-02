@@ -21,7 +21,7 @@ begin
   on conflict (id) do nothing;
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- ============================================================================
 -- 2. PROGRESO DEL PROYECTO — calculado por el servidor
@@ -42,7 +42,7 @@ begin
                         else round(v_done::numeric * 100 / v_total) end
     where id = p_project;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 create or replace function public.handle_task_progress()
 returns trigger as $$
@@ -58,7 +58,7 @@ begin
   end if;
   return NEW;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists on_task_progress on public.tasks;
 create trigger on_task_progress
@@ -109,7 +109,7 @@ begin
   end if;
   return NEW;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists on_task_completed on public.tasks;
 create trigger on_task_completed

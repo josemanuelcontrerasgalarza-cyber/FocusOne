@@ -94,7 +94,7 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
     // focus_sessions puede no existir aún (setup sin correr): el error se ignora.
     supabase
       .from('focus_sessions')
-      .select('planned_minutes, started_at, completed')
+      .select('planned_minutes, started_at, ended_at, completed')
       .eq('user_id', user.id)
       .gte('started_at', windowStart.toISOString())
       .order('started_at', { ascending: false }),
@@ -104,8 +104,20 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
   const focus = (focusRes.data ?? []) as {
     planned_minutes: number
     started_at: string
+    ended_at: string | null
     completed: boolean
   }[]
+
+  // Minutos REALES de una sesión: si se completó, los planeados; si se abandonó,
+  // el tiempo transcurrido (acotado a los planeados). Evita inflar el "tiempo
+  // enfocado" cuando alguien inicia y corta una sesión larga enseguida.
+  const sessionMinutes = (f: (typeof focus)[number]): number => {
+    const planned = f.planned_minutes ?? 0
+    if (f.completed) return planned
+    if (!f.ended_at) return 0
+    const elapsedMin = Math.round((new Date(f.ended_at).getTime() - new Date(f.started_at).getTime()) / 60000)
+    return Math.max(0, Math.min(elapsedMin, planned))
+  }
 
   // --- Productividad de la semana (últimos 7 días) --------------------------
   const week: DaySlot[] = []
@@ -122,13 +134,15 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
   }
   for (const f of focus) {
     const idx = weekIndex.get(dayKey(f.started_at))
-    if (idx != null) week[idx].minutes += f.planned_minutes ?? 0
+    if (idx != null) week[idx].minutes += sessionMinutes(f)
   }
 
   const forgedWeek = week.reduce((a, s) => a + s.forged, 0)
   const focusMinutesWeek = week.reduce((a, s) => a + s.minutes, 0)
   const weekKeys = new Set(week.map((s) => s.key))
-  const focusSessionsWeek = focus.filter((f) => weekKeys.has(dayKey(f.started_at))).length
+  const focusSessionsWeek = focus.filter(
+    (f) => weekKeys.has(dayKey(f.started_at)) && sessionMinutes(f) > 0,
+  ).length
 
   // --- Calendario del mes ----------------------------------------------------
   const activeDays = new Set<string>()
@@ -161,7 +175,7 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
       kind: 'focus',
       title: 'Sesión de Deep Work',
       at: f.started_at,
-      meta: `${f.planned_minutes} min${f.completed ? '' : ' · incompleta'}`,
+      meta: `${sessionMinutes(f)} min${f.completed ? '' : ' · incompleta'}`,
     })),
   ]
     .filter((a) => a.at)

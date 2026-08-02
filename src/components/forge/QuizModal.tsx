@@ -37,6 +37,9 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState<QuizOutcome | null>(null)
 
+  // Defensa: sin preguntas no hay quiz que mostrar (evita leer question undefined).
+  if (total === 0) return null
+
   async function choose(optionIndex: number) {
     if (saving) return
     const nextAnswers = [...answers]

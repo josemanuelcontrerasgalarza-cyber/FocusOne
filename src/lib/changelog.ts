@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.0'
+export const APP_VERSION = '5.1'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: '5.0',
-    title: 'La Fragua — enfoque gamificado',
+    version: '5.1',
+    title: 'Fragua sólida — seguridad y precisión',
     date: '2 ago 2026',
     tag: 'Actual',
+    items: [
+      'Todas tus misiones en un solo lugar: historial completo de forjadas, con su fecha.',
+      'Seguridad reforzada de tu cuenta, tus puntos y la tienda (economía a prueba de trampas).',
+      'Estadísticas de enfoque reales en «Hoy»: tiempo enfocado y promedio semanal a partir de tus sesiones.',
+      'Tiempo enfocado más honesto: las sesiones que abandonas ya no cuentan como completas.',
+      'Tienda y mascota al instante: sin dobles cobros y reflejando tu progreso al momento.',
+      'Recompensa diaria más robusta ante zonas horarias, y decenas de correcciones y pulido.',
+    ],
+  },
+  {
+    version: '5.0',
+    title: 'La Fragua — enfoque gamificado',
     items: [
       'Rediseño completo «La Fragua»: una sola misión protagonista por pantalla, con calor de forja y racha.',
       'Quiz de cierre para sellar cada misión y ganar puntos.',

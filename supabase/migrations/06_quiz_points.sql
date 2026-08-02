@@ -47,7 +47,7 @@ begin
   new.points_earned := 10 + (new.score / 10);
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = public;
 
 drop trigger if exists on_quiz_compute_points on public.quiz_results;
 create trigger on_quiz_compute_points
@@ -66,7 +66,7 @@ begin
                 updated_at = now();
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists on_quiz_apply_points on public.quiz_results;
 create trigger on_quiz_apply_points

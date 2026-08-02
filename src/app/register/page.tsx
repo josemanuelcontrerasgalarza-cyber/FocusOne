@@ -16,8 +16,10 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
 
   const pwdLength = password.length
+  // El mínimo para registrarse es 8: por debajo de 8 la marcamos "Débil" para no
+  // mostrar "Aceptable" en una contraseña que el submit va a rechazar.
   const pwdStrength =
-    pwdLength === 0 ? 'empty' : pwdLength < 6 ? 'weak' : pwdLength < 10 ? 'ok' : 'strong'
+    pwdLength === 0 ? 'empty' : pwdLength < 8 ? 'weak' : pwdLength < 12 ? 'ok' : 'strong'
 
   const strengthConfig = {
     empty: { label: '', bars: 0, color: '', text: '' },

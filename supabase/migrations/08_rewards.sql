@@ -67,4 +67,4 @@ begin
   insert into public.reward_unlocks (user_id, reward_id) values (auth.uid(), p_reward);
   return v_total - v_cost;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
