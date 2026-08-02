@@ -101,6 +101,7 @@ export async function saveQuizResult(
   }))
 
   // points_earned lo calcula el trigger en el servidor; lo leemos de vuelta.
+  let pointsEarned: number | null = null
   const { data, error } = await supabase
     .from('quiz_results')
     .insert({
@@ -111,9 +112,27 @@ export async function saveQuizResult(
     })
     .select('points_earned')
     .single()
-  if (error) throw error
 
-  // Verificada por quiz → marcar la misión como forjada.
+  if (error) {
+    // 23505 = unique_violation: el cierre YA se guardó antes (reintento tras un
+    // fallo posterior). No se re-inserta → no se otorgan puntos dos veces.
+    // Recuperamos los puntos ya otorgados y seguimos marcando la misión.
+    if ((error as { code?: string }).code === '23505') {
+      const { data: prev } = await supabase
+        .from('quiz_results')
+        .select('points_earned')
+        .eq('mission_id', mission.id)
+        .maybeSingle()
+      pointsEarned = prev?.points_earned ?? null
+    } else {
+      throw error
+    }
+  } else {
+    pointsEarned = data?.points_earned ?? null
+  }
+
+  // Verificada por quiz → marcar la misión como forjada (idempotente: el trigger
+  // de racha solo cuenta la transición a 'completed', reejecutar no la infla).
   const { error: missionErr } = await supabase
     .from('missions')
     .update({ status: 'completed', completed_at: new Date().toISOString() })
@@ -123,5 +142,5 @@ export async function saveQuizResult(
   // Notificación física: misión verificada por quiz (fire-and-forget).
   void notificarESP32(uid, 'mision_completada')
 
-  return { score, pointsEarned: data?.points_earned ?? previewPoints(score) }
+  return { score, pointsEarned: pointsEarned ?? previewPoints(score) }
 }

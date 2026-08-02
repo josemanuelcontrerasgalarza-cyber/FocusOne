@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import { notificarESP32 } from '@/lib/notificarESP32'
+import { isDbSetupError } from '@/lib/dbError'
 
 const PRESETS = [
   { label: 'Express', minutes: 15 },
@@ -45,17 +46,19 @@ export default function DeepWorkPage() {
 
   async function recordSession(completed: boolean) {
     if (!uid || !startRef.current) return
-    await supabase
-      .from('focus_sessions')
-      .insert({
-        user_id: uid,
-        task_id: null,
-        started_at: startRef.current.toISOString(),
-        ended_at: new Date().toISOString(),
-        planned_minutes: minutes,
-        completed,
-      })
-      .then(() => undefined, () => undefined)
+    const { error } = await supabase.from('focus_sessions').insert({
+      user_id: uid,
+      task_id: null,
+      started_at: startRef.current.toISOString(),
+      ended_at: new Date().toISOString(),
+      planned_minutes: minutes,
+      completed,
+    })
+    // Si falta la tabla (setup no corrido) no molestamos con un toast en cada
+    // sesión; solo avisamos ante un error real e inesperado.
+    if (error && !isDbSetupError(error)) {
+      toast.error('No se pudo guardar la sesión.')
+    }
     // Deep Work completado → notificación física ESP32 (fire-and-forget).
     if (completed) void notificarESP32(uid, 'deep_work_completado')
   }

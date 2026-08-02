@@ -23,6 +23,11 @@ create table if not exists public.quiz_results (
 create index if not exists quiz_results_user_idx
   on public.quiz_results (user_id, completed_at desc);
 
+-- Un solo cierre por misión: evita otorgar puntos dos veces si el cliente
+-- reintenta el guardado tras un fallo posterior.
+create unique index if not exists quiz_results_mission_unique
+  on public.quiz_results (mission_id);
+
 -- ============================================================================
 -- 2. points (total agregado por usuario)
 -- ============================================================================

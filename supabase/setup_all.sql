@@ -1,7 +1,64 @@
 -- FocusOne · La Fragua — Setup de base de datos (robusto)
 -- Pega TODO esto en Supabase -> SQL Editor -> New query -> Run. Es idempotente.
--- Solo incluye lo de La Fragua (autocontenido): misiones, puntos+quiz, racha,
--- recompensas, Focus Pet, recompensa diaria y opiniones. No depende de tablas viejas.
+-- Solo incluye lo de La Fragua (autocontenido): perfiles, misiones, puntos+quiz,
+-- racha, recompensas, Focus Pet, recompensa diaria, ESP32 y opiniones.
+-- No depende de tablas viejas (tasks/projects).
+
+-- ==================================================================
+-- 00_profiles.sql  (BASE — imprescindible: racha y recompensa diaria la usan)
+-- ==================================================================
+-- La Fragua guarda la racha en columnas de `profiles`. Esta tabla solo depende
+-- de auth.users, así que es autocontenida. SIN esta tabla, forjar una misión y
+-- reclamar diamantes fallan (el trigger de racha y claim_daily leen profiles).
+
+create table if not exists public.profiles (
+  id                 uuid primary key references auth.users (id) on delete cascade,
+  email              text unique not null,
+  name               text,
+  avatar_url         text,
+  streak_current     integer default 0,
+  streak_best        integer default 0,
+  streak_last_date   date,
+  created_at         timestamptz default now()
+);
+
+-- Por si la tabla ya existía de una versión vieja sin las columnas de racha.
+alter table public.profiles add column if not exists streak_current   integer default 0;
+alter table public.profiles add column if not exists streak_best      integer default 0;
+alter table public.profiles add column if not exists streak_last_date date;
+
+alter table public.profiles enable row level security;
+drop policy if exists "profiles_select_own" on public.profiles;
+create policy "profiles_select_own" on public.profiles
+  for select using (auth.uid() = id);
+-- La racha la escribe un trigger SECURITY DEFINER, no el cliente.
+
+-- Alta automática del perfil al registrarse un usuario nuevo.
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, name)
+  values (
+    new.id,
+    coalesce(new.email, new.id::text || '@focusone.local'),
+    coalesce(new.raw_user_meta_data->>'name', split_part(coalesce(new.email, ''), '@', 1))
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- Backfill: crea el perfil de los usuarios que YA existían antes de este setup
+-- (si no, su racha nunca se guardaría porque el UPDATE no encontraría fila).
+insert into public.profiles (id, email)
+select id, coalesce(email, id::text || '@focusone.local')
+from auth.users
+on conflict (id) do nothing;
 
 -- ==================================================================
 -- 04_missions.sql
@@ -149,6 +206,11 @@ create table if not exists public.quiz_results (
 
 create index if not exists quiz_results_user_idx
   on public.quiz_results (user_id, completed_at desc);
+
+-- Un solo cierre por misión: si el cliente reintenta el guardado, el segundo
+-- insert falla y NO se otorgan puntos dos veces por la misma misión.
+create unique index if not exists quiz_results_mission_unique
+  on public.quiz_results (mission_id);
 
 -- ============================================================================
 -- 2. points (total agregado por usuario)
@@ -333,7 +395,9 @@ begin
     raise exception 'Recompensa ya desbloqueada';
   end if;
 
-  select total_points into v_total from public.points where user_id = auth.uid();
+  -- FOR UPDATE bloquea la fila de puntos: dos compras simultáneas no pueden
+  -- pasar ambas la validación de saldo y dejar el total en negativo.
+  select total_points into v_total from public.points where user_id = auth.uid() for update;
   v_total := coalesce(v_total, 0);
   if v_total < v_cost then
     raise exception 'Puntos insuficientes';
@@ -435,7 +499,8 @@ begin
     raise exception 'Ya tienes este ítem';
   end if;
 
-  select total_points into v_total from public.points where user_id = auth.uid();
+  -- FOR UPDATE bloquea la fila: evita doble-gasto en compras concurrentes.
+  select total_points into v_total from public.points where user_id = auth.uid() for update;
   v_total := coalesce(v_total, 0);
   if v_total < v_cost then
     raise exception 'Puntos insuficientes';
@@ -476,16 +541,25 @@ create policy "daily_claims_read" on public.daily_claims
   for select using (auth.uid() = user_id);
 revoke insert, update, delete on public.daily_claims from authenticated, anon;
 
--- Reclamar la recompensa del día. Devuelve el monto reclamado.
-create or replace function public.claim_daily()
+-- Reclamar la recompensa del día. `p_local_date` es la fecha LOCAL del cliente
+-- (YYYY-MM-DD): así el día resetea a las 12:00 am de SU zona horaria y se puede
+-- reclamar hasta las 11:59 pm de ese día. Sin argumento usa la fecha del server.
+drop function if exists public.claim_daily();
+create or replace function public.claim_daily(p_local_date date default current_date)
 returns integer as $$
 declare
   v_streak integer;
   v_amount integer;
 begin
+  -- Acota a ±1 día del servidor: cubre cualquier zona horaria pero impide
+  -- reclamar fechas arbitrarias (anti-farm).
+  if p_local_date < current_date - 1 or p_local_date > current_date + 1 then
+    raise exception 'Fecha fuera de rango';
+  end if;
+
   if exists (
     select 1 from public.daily_claims
-    where user_id = auth.uid() and claim_date = current_date
+    where user_id = auth.uid() and claim_date = p_local_date
   ) then
     raise exception 'Ya reclamaste tu recompensa de hoy';
   end if;
@@ -497,7 +571,7 @@ begin
   v_amount := 20 + least(coalesce(v_streak, 0), 15);
 
   insert into public.daily_claims (user_id, claim_date, amount)
-    values (auth.uid(), current_date, v_amount);
+    values (auth.uid(), p_local_date, v_amount);
 
   insert into public.points (user_id, total_points)
     values (auth.uid(), v_amount)
@@ -506,6 +580,25 @@ begin
                   updated_at = now();
 
   return v_amount;
+end;
+$$ language plpgsql security definer;
+
+-- Estado del reclamo del día LOCAL del cliente (evita el bug de zona horaria de
+-- comparar fechas en el cliente): ¿ya reclamó hoy? y ¿cuánto vale?
+drop function if exists public.daily_claim_state();
+create or replace function public.daily_claim_state(p_local_date date default current_date)
+returns table(claimed boolean, amount integer) as $$
+declare
+  v_streak integer;
+begin
+  select coalesce(streak_current, 0) into v_streak
+    from public.profiles where id = auth.uid();
+  return query select
+    exists(
+      select 1 from public.daily_claims
+      where user_id = auth.uid() and claim_date = p_local_date
+    ),
+    20 + least(coalesce(v_streak, 0), 15);
 end;
 $$ language plpgsql security definer;
 
@@ -544,3 +637,56 @@ create policy "Anyone can post a review" on public.reviews
 
 -- El rol anónimo (clave anon) necesita el privilegio a nivel de tabla
 grant select, insert on public.reviews to anon, authenticated;
+
+-- ==================================================================
+-- 02b_focus_sessions.sql  (sesiones de Deep Work — versión autocontenida)
+-- ==================================================================
+-- Sin FK a tasks (la app inserta task_id = null): solo depende de auth.users.
+
+create table if not exists public.focus_sessions (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid not null references auth.users (id) on delete cascade,
+  task_id         uuid,
+  started_at      timestamptz not null,
+  ended_at        timestamptz,
+  planned_minutes integer not null default 25,
+  completed       boolean not null default false,
+  created_at      timestamptz default now()
+);
+
+create index if not exists focus_sessions_user_idx
+  on public.focus_sessions (user_id, started_at desc);
+
+alter table public.focus_sessions enable row level security;
+drop policy if exists "Users manage own focus sessions" on public.focus_sessions;
+create policy "Users manage own focus sessions" on public.focus_sessions
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ==================================================================
+-- 11_esp32.sql  (notificaciones físicas — cola que consume el ESP32)
+-- ==================================================================
+-- Cada evento de enfoque completado inserta una fila. El ESP32 hace polling y
+-- consume las filas con consumida=false para mover el servo. Sin esta tabla, la
+-- notificación física simplemente nunca dispara (el insert es best-effort).
+
+create table if not exists public.notificaciones_esp32 (
+  id         uuid primary key default gen_random_uuid(),
+  usuario_id uuid not null references auth.users (id) on delete cascade,
+  tipo       text not null,
+  consumida  boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists notificaciones_esp32_pendientes_idx
+  on public.notificaciones_esp32 (usuario_id, consumida, created_at);
+
+alter table public.notificaciones_esp32 enable row level security;
+
+drop policy if exists "esp32_select_own" on public.notificaciones_esp32;
+create policy "esp32_select_own" on public.notificaciones_esp32
+  for select using (auth.uid() = usuario_id);
+
+-- El usuario solo encola notificaciones propias.
+drop policy if exists "esp32_insert_own" on public.notificaciones_esp32;
+create policy "esp32_insert_own" on public.notificaciones_esp32
+  for insert with check (auth.uid() = usuario_id);

@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '4.1'
+export const APP_VERSION = '5.0'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.0',
+    title: 'La Fragua — enfoque gamificado',
+    date: '2 ago 2026',
+    tag: 'Actual',
+    items: [
+      'Rediseño completo «La Fragua»: una sola misión protagonista por pantalla, con calor de forja y racha.',
+      'Quiz de cierre para sellar cada misión y ganar puntos.',
+      'Focus Pet: adopta tu mascota y vístela con lo que ganas forjando misiones.',
+      'Tienda de recompensas con ropa nueva cada semana.',
+      'Diamantes diarios: reclama tu recompensa cada día según tu hora local.',
+      'Deep Work con duración personalizable y música integrada.',
+      'Centro de comandos ⌘K más rápido y navegación renovada.',
+    ],
+  },
+  {
     version: '4.1',
     title: 'Dashboard Pro y comunidad',
     date: '1 jul 2026',
-    tag: 'Actual',
     items: [
       'Dashboard renovado: productividad semanal, tiempo enfocado, calendario del mes y actividad reciente.',
       'Nuevo apartado «Descúbrela» con opiniones anónimas de la comunidad.',

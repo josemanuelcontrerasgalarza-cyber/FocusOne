@@ -26,30 +26,21 @@ export async function getDailyClaim(): Promise<DailyClaimState> {
   } = await supabase.auth.getUser()
   if (!user) return { claimedToday: false, amount: 25, isDemo: true }
 
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const todayStr = today.toISOString().slice(0, 10)
+  // El estado (¿ya reclamó hoy? + monto) lo decide el servidor con current_date,
+  // así no hay desajuste de zona horaria al comparar fechas en el cliente.
+  const { data, error } = await supabase.rpc('daily_claim_state').single()
 
-  const [claim, profile] = await Promise.all([
-    supabase
-      .from('daily_claims')
-      .select('claim_date')
-      .eq('user_id', user.id)
-      .eq('claim_date', todayStr)
-      .maybeSingle()
-      .then((r) => r.data),
-    supabase
+  if (error || !data) {
+    // Sin la función/tablas aún (setup no corrido): degradar a "sin reclamar".
+    const streak = await supabase
       .from('profiles')
       .select('streak_current')
       .eq('id', user.id)
       .maybeSingle()
-      .then((r) => r.data),
-  ])
-
-  const streak = (profile as { streak_current: number } | null)?.streak_current ?? 0
-  return {
-    claimedToday: Boolean(claim),
-    amount: dailyAmount(streak),
-    isDemo: false,
+      .then((r) => (r.data as { streak_current: number } | null)?.streak_current ?? 0)
+    return { claimedToday: false, amount: dailyAmount(streak), isDemo: false }
   }
+
+  const state = data as { claimed: boolean; amount: number }
+  return { claimedToday: state.claimed, amount: state.amount, isDemo: false }
 }
