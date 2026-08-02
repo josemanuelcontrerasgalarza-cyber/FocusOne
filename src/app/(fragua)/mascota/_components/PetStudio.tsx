@@ -28,6 +28,12 @@ const SLOT: Record<Exclude<PetItemKind, 'pet'>, 'hat_id' | 'outfit_id' | 'access
   accessory: 'accessory_id',
 }
 
+// El gato es naranja (tono ember de La Fragua). Los emojis no son naranjas de
+// fábrica, así que lo teñimos con un filtro CSS.
+const CAT_FILTER = 'sepia(1) saturate(9) hue-rotate(-38deg) brightness(0.82) contrast(1.2)'
+const emojiStyle = (emoji: string): React.CSSProperties | undefined =>
+  emoji === '🐱' ? { filter: CAT_FILTER } : undefined
+
 export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDemo }: Props) {
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
   const canUse = !isDemo && Boolean(uid)
@@ -137,7 +143,12 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDem
             style={{ background: 'radial-gradient(circle, rgba(255,106,43,0.12), transparent 70%)' }}
           />
           {hat && <span className="absolute -top-3 text-4xl">{hat.emoji}</span>}
-          <span className="text-[72px] leading-none">{petItem ? petItem.emoji : '🥚'}</span>
+          <span
+            className="text-[72px] leading-none"
+            style={petItem ? emojiStyle(petItem.emoji) : undefined}
+          >
+            {petItem ? petItem.emoji : '🥚'}
+          </span>
           {outfit && <span className="absolute bottom-1 left-3 text-3xl">{outfit.emoji}</span>}
           {accessory && <span className="absolute bottom-1 right-3 text-3xl">{accessory.emoji}</span>}
         </div>
@@ -232,7 +243,7 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDem
                   active ? 'border-ember/40 bg-ember/[0.06]' : 'border-forge-line bg-forge-surface'
                 }`}
               >
-                <span className="text-4xl">{item.emoji}</span>
+                <span className="text-4xl" style={emojiStyle(item.emoji)}>{item.emoji}</span>
                 <p className="font-forge text-sm font-semibold text-forge-ink">{item.name}</p>
                 <button
                   onClick={() => (isPet ? onPetCard(item) : onGearCard(item))}

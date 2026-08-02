@@ -1,6 +1,7 @@
 import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
+import { PET_CATALOG } from '@/lib/petCatalog'
 import type { PetItem, UserPet } from '@/types'
 
 export interface PetData {
@@ -11,25 +12,16 @@ export interface PetData {
   isDemo: boolean
 }
 
-// Espeja el seed de 09_focus_pet.sql para el modo demo.
-const DEMO_CATALOG: PetItem[] = [
-  { id: 'p-gato', name: 'Gato', kind: 'pet', cost_points: 0, emoji: '🐱', created_at: '' },
-  { id: 'p-perro', name: 'Perro', kind: 'pet', cost_points: 0, emoji: '🐶', created_at: '' },
-  { id: 'p-zorro', name: 'Zorro', kind: 'pet', cost_points: 80, emoji: '🦊', created_at: '' },
-  { id: 'p-buho', name: 'Búho', kind: 'pet', cost_points: 120, emoji: '🦉', created_at: '' },
-  { id: 'p-dragon', name: 'Dragón', kind: 'pet', cost_points: 300, emoji: '🐉', created_at: '' },
-  { id: 'h-gorro', name: 'Gorro', kind: 'hat', cost_points: 30, emoji: '🎩', created_at: '' },
-  { id: 'h-corona', name: 'Corona', kind: 'hat', cost_points: 150, emoji: '👑', created_at: '' },
-  { id: 'o-bufanda', name: 'Bufanda', kind: 'outfit', cost_points: 40, emoji: '🧣', created_at: '' },
-  { id: 'o-capa', name: 'Capa', kind: 'outfit', cost_points: 120, emoji: '🦸', created_at: '' },
-  { id: 'a-gafas', name: 'Gafas', kind: 'accessory', cost_points: 25, emoji: '🕶️', created_at: '' },
-  { id: 'a-medalla', name: 'Medalla', kind: 'accessory', cost_points: 60, emoji: '🏅', created_at: '' },
-]
-
-/** Datos de la pantalla Focus Pet: catálogo + posesión + mascota + puntos. */
+/**
+ * Datos de Focus Pet. El catálogo SIEMPRE viene del código (PET_CATALOG), así
+ * que las mascotas y la ropa se ven sin necesidad de un seed en la BD. La base
+ * de datos solo aporta: qué posees (pet_owned), tu mascota activa (user_pet) y
+ * tus puntos. Si esas tablas aún no existen (migración 09 sin correr), degrada
+ * con elegancia: se ve el catálogo, pero comprar/guardar requiere la migración.
+ */
 export async function getPetData(): Promise<PetData> {
   if (!supabaseConfigured) {
-    return { catalog: DEMO_CATALOG, ownedIds: [], pet: null, points: 240, isDemo: true }
+    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 240, isDemo: true }
   }
 
   const supabase = await createSupabaseServerClient()
@@ -37,22 +29,20 @@ export async function getPetData(): Promise<PetData> {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return { catalog: DEMO_CATALOG, ownedIds: [], pet: null, points: 240, isDemo: true }
+    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 240, isDemo: true }
   }
 
-  const [{ data: catalog }, { data: owned }, { data: pet }, { data: pts }] =
-    await Promise.all([
-      supabase.from('pet_items').select('*').order('cost_points', { ascending: true }),
-      supabase.from('pet_owned').select('item_id').eq('user_id', user.id),
-      supabase.from('user_pet').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
-    ])
+  const [owned, pet, pts] = await Promise.all([
+    supabase.from('pet_owned').select('item_id').eq('user_id', user.id).then((r) => r.data),
+    supabase.from('user_pet').select('*').eq('user_id', user.id).maybeSingle().then((r) => r.data),
+    supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle().then((r) => r.data),
+  ])
 
   return {
-    catalog: (catalog as PetItem[]) ?? [],
+    catalog: PET_CATALOG,
     ownedIds: (owned ?? []).map((o) => o.item_id as string),
     pet: (pet as UserPet | null) ?? null,
-    points: pts?.total_points ?? 0,
+    points: (pts as { total_points: number } | null)?.total_points ?? 0,
     isDemo: false,
   }
 }
