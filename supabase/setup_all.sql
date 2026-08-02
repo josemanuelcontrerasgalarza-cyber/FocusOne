@@ -30,6 +30,32 @@ alter table public.profiles add column if not exists streak_last_date date;
 -- Rol de desarrollador: diamantes ilimitados y todo desbloqueado (ver más abajo).
 alter table public.profiles add column if not exists is_developer boolean not null default false;
 
+-- Purga de policies heredadas de schema.sql (diseño v1, LEGADO). Esa policy
+-- era "for all using (auth.uid() = id)": si una base de datos llegó a
+-- ejecutar schema.sql alguna vez antes de migrar a este script, la policy
+-- puede seguir viva y permitir a cualquier usuario hacer UPDATE de su propia
+-- fila (incluida is_developer y la racha) con la anon key, anulando por
+-- completo el modelo de seguridad de esta sección. `to_regclass` evita error
+-- si la tabla legacy nunca existió (instalación nueva).
+do $$
+begin
+  if to_regclass('public.profiles') is not null then
+    execute 'drop policy if exists "Users see own profile" on public.profiles';
+  end if;
+  if to_regclass('public.projects') is not null then
+    execute 'drop policy if exists "Users manage own projects" on public.projects';
+  end if;
+  if to_regclass('public.tasks') is not null then
+    execute 'drop policy if exists "Users manage own tasks" on public.tasks';
+  end if;
+  if to_regclass('public.ideas') is not null then
+    execute 'drop policy if exists "Users manage own ideas" on public.ideas';
+  end if;
+  if to_regclass('public.daily_stats') is not null then
+    execute 'drop policy if exists "Users see own stats" on public.daily_stats';
+  end if;
+end $$;
+
 alter table public.profiles enable row level security;
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles

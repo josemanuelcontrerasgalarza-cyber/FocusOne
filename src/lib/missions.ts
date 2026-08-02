@@ -1,6 +1,7 @@
 import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
+import { effectiveStreak } from '@/lib/streak'
 import type { Mission, TodayStat } from '@/types'
 
 /**
@@ -149,7 +150,11 @@ export async function getProgressData(): Promise<ProgressData> {
   if (!user) return demo
 
   const [{ data: profile }, { data: pts }, { count: forged }] = await Promise.all([
-    supabase.from('profiles').select('streak_current, streak_best, is_developer').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('streak_current, streak_last_date, streak_best, is_developer')
+      .eq('id', user.id)
+      .maybeSingle(),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('missions')
@@ -159,7 +164,7 @@ export async function getProgressData(): Promise<ProgressData> {
   ])
 
   return {
-    streak: profile?.streak_current ?? 0,
+    streak: effectiveStreak(profile?.streak_current, profile?.streak_last_date),
     best: profile?.streak_best ?? 0,
     points: pts?.total_points ?? 0,
     forged: forged ?? 0,
@@ -184,12 +189,16 @@ export async function getHeaderStats(): Promise<HeaderStats> {
   if (!user) return demo
 
   const [{ data: profile }, { data: pts }] = await Promise.all([
-    supabase.from('profiles').select('streak_current, is_developer').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('streak_current, streak_last_date, is_developer')
+      .eq('id', user.id)
+      .maybeSingle(),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
   ])
 
   return {
-    streak: profile?.streak_current ?? 0,
+    streak: effectiveStreak(profile?.streak_current, profile?.streak_last_date),
     points: pts?.total_points ?? 0,
     isDeveloper: Boolean(profile?.is_developer),
   }
@@ -236,7 +245,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const [{ data: profile }, { count: completedToday }, { count: openCount }, { data: focusWeek }] =
     await Promise.all([
-      supabase.from('profiles').select('streak_current').eq('id', user.id).maybeSingle(),
+      supabase.from('profiles').select('streak_current, streak_last_date').eq('id', user.id).maybeSingle(),
       supabase
         .from('missions')
         .select('id', { count: 'exact', head: true })
@@ -257,7 +266,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         .gte('started_at', weekStart.toISOString()),
     ])
 
-  const streak = profile?.streak_current ?? 0
+  const streak = effectiveStreak(profile?.streak_current, profile?.streak_last_date)
   const done = completedToday ?? 0
   const totalToday = done + (openCount ?? 0)
 

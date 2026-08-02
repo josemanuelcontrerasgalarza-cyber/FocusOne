@@ -1,6 +1,7 @@
 import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
+import { effectiveStreak } from '@/lib/streak'
 
 export interface DailyClaimState {
   claimedToday: boolean
@@ -29,12 +30,14 @@ export async function getDailyClaim(): Promise<DailyClaimState> {
   } = await supabase.auth.getUser()
   if (!user) return { claimedToday: false, amount: 25, isDemo: true }
 
-  const streak = await supabase
+  const profile = await supabase
     .from('profiles')
-    .select('streak_current')
+    .select('streak_current, streak_last_date')
     .eq('id', user.id)
     .maybeSingle()
-    .then((r) => (r.data as { streak_current: number } | null)?.streak_current ?? 0)
+    .then((r) => r.data as { streak_current: number; streak_last_date: string | null } | null)
+
+  const streak = effectiveStreak(profile?.streak_current, profile?.streak_last_date)
 
   return { claimedToday: false, amount: dailyAmount(streak), isDemo: false }
 }

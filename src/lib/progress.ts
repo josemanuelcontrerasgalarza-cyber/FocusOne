@@ -1,6 +1,7 @@
 import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
+import { effectiveStreak } from '@/lib/streak'
 
 /** Un día de la semana con lo forjado y los minutos de enfoque de ese día. */
 export interface DaySlot {
@@ -78,7 +79,11 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
   const windowStart = weekStart < monthStart ? weekStart : monthStart
 
   const [profileRes, pointsRes, forgedCountRes, missionsRes, focusRes] = await Promise.all([
-    supabase.from('profiles').select('streak_current, streak_best, is_developer').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('profiles')
+      .select('streak_current, streak_last_date, streak_best, is_developer')
+      .eq('id', user.id)
+      .maybeSingle(),
     supabase.from('points').select('total_points').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('missions')
@@ -184,7 +189,7 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
     .slice(0, 8)
 
   return {
-    streak: profileRes.data?.streak_current ?? 0,
+    streak: effectiveStreak(profileRes.data?.streak_current, profileRes.data?.streak_last_date),
     best: profileRes.data?.streak_best ?? 0,
     points: pointsRes.data?.total_points ?? 0,
     forgedTotal: forgedCountRes.count ?? 0,
