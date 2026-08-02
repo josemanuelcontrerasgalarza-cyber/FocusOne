@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Flame, Plus, Check, Trash2, Loader2, ArrowRight } from 'lucide-react'
@@ -8,6 +8,10 @@ import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import type { Mission } from '@/types'
+
+// Ventana de gracia antes de borrar de verdad en el servidor: da tiempo a
+// pulsar "Deshacer" tras un clic accidental (borrado sin confirmación previa).
+const DELETE_UNDO_MS = 6000
 
 interface Props {
   active: Mission | null
@@ -32,6 +36,9 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
   const [minutes, setMinutes] = useState(25)
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Misiones ocultas de forma optimista mientras corre la ventana de deshacer.
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
+  const deleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   // Sin sesión real no se puede gestionar (las mutaciones necesitan user_id).
   if (isDemo || !uid) {
@@ -95,18 +102,44 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
   // Nota: completar una misión (con quiz de cierre) ocurre en /hoy, no aquí.
   // Esta pantalla solo crea/enciende/borra; "Ir a forjar" lleva al dashboard.
 
-  async function deleteMission(id: string) {
-    setBusyId(id)
-    try {
+  // Borrado optimista con ventana de deshacer: no hay diálogo de confirmación
+  // (fricción extra) pero tampoco es irreversible al instante. La misión
+  // desaparece de la vista ya mismo; el DELETE real se dispara pasados
+  // DELETE_UNDO_MS, salvo que se pulse "Deshacer" antes.
+  function deleteMission(id: string) {
+    setHiddenIds((prev) => new Set(prev).add(id))
+
+    const timer = setTimeout(async () => {
+      deleteTimers.current.delete(id)
       const { error } = await supabase.from('missions').delete().eq('id', id)
-      if (error) throw error
+      if (error) {
+        toast.error('No se pudo borrar la misión.')
+        setHiddenIds((prev) => {
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+        return
+      }
       router.refresh()
-    } catch {
-      toast.error('No se pudo borrar la misión.')
-    } finally {
-      setBusyId(null)
-    }
+    }, DELETE_UNDO_MS)
+    deleteTimers.current.set(id, timer)
+
+    toast.undo('Misión borrada', () => {
+      const pendingTimer = deleteTimers.current.get(id)
+      if (pendingTimer) {
+        clearTimeout(pendingTimer)
+        deleteTimers.current.delete(id)
+      }
+      setHiddenIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    })
   }
+
+  const visiblePending = pending.filter((m) => !hiddenIds.has(m.id))
 
   return (
     <div className="flex flex-col gap-8">
@@ -180,13 +213,13 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
       {/* Apagadas (pendientes) */}
       <section>
         <SectionLabel>Apagadas</SectionLabel>
-        {pending.length === 0 ? (
+        {visiblePending.length === 0 ? (
           <p className="text-sm text-forge-ink-faint">
             No hay misiones pendientes. Crea una arriba.
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {pending.map((m) => {
+            {visiblePending.map((m) => {
               const busy = busyId === m.id
               return (
                 <div
@@ -210,9 +243,8 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
                   </button>
                   <button
                     onClick={() => deleteMission(m.id)}
-                    disabled={busy}
                     aria-label="Borrar misión"
-                    className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                    className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink"
                   >
                     <Trash2 size={16} />
                   </button>
