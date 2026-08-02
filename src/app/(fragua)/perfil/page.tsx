@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Music, Zap, TrendingUp, ChevronRight } from 'lucide-react'
+import { Music, Zap, TrendingUp, PawPrint, ChevronRight } from 'lucide-react'
 import { getRewardsData } from '@/lib/rewards'
 import { RewardsStore } from './_components/RewardsStore'
 import { LogoutButton } from '@/components/forge/LogoutButton'
@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: 'Perfil' }
 export const dynamic = 'force-dynamic'
 
 const LINKS = [
+  { href: '/mascota', label: 'Focus Pet', hint: 'Adopta y viste tu mascota de enfoque', icon: PawPrint },
   { href: '/musica', label: 'Música', hint: 'Frecuencias de foco', icon: Music },
   { href: '/deep-work', label: 'Deep Work', hint: 'Temporizador de enfoque (duración a tu medida)', icon: Zap },
   { href: '/progreso', label: 'Progreso', hint: 'Racha y puntos', icon: TrendingUp },
