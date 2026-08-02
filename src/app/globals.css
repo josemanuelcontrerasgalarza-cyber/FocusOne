@@ -6,7 +6,7 @@
   html { color-scheme: dark; }
 
   body {
-    @apply bg-void text-ink font-sans antialiased;
+    @apply bg-forge-canvas text-forge-ink font-forge antialiased;
     margin: 0;
     overflow-x: hidden;
   }
