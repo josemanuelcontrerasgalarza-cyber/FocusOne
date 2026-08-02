@@ -38,22 +38,36 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <input
-              type="email"
-              required
-              placeholder="correo@ejemplo.com"
-              className={inputCls}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-              type="password"
-              required
-              placeholder="Contraseña"
-              className={inputCls}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="email" className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
+                Correo
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="correo@ejemplo.com"
+                className={inputCls}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="password" className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
+                Contraseña
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                placeholder="Contraseña"
+                className={inputCls}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
             <button
               type="submit"
               disabled={loading}

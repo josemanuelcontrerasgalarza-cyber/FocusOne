@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Flame, Plus, Check, Trash2, Loader2, ArrowRight } from 'lucide-react'
@@ -32,6 +32,14 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
   const [minutes, setMinutes] = useState(25)
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Borrar es irreversible: exige un segundo clic ("¿Seguro?") antes de
+  // ejecutar. Evita perder una misión por un toque accidental.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => {
+    if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current)
+  }, [])
 
   // Sin sesión real no se puede gestionar (las mutaciones necesitan user_id).
   if (isDemo || !uid) {
@@ -94,6 +102,18 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
 
   // Nota: completar una misión (con quiz de cierre) ocurre en /hoy, no aquí.
   // Esta pantalla solo crea/enciende/borra; "Ir a forjar" lleva al dashboard.
+
+  function requestDelete(id: string) {
+    if (confirmDeleteId === id) {
+      if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current)
+      setConfirmDeleteId(null)
+      void deleteMission(id)
+      return
+    }
+    setConfirmDeleteId(id)
+    if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current)
+    confirmTimeoutRef.current = setTimeout(() => setConfirmDeleteId(null), 4000)
+  }
 
   async function deleteMission(id: string) {
     setBusyId(id)
@@ -209,12 +229,16 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
                     Encender
                   </button>
                   <button
-                    onClick={() => deleteMission(m.id)}
+                    onClick={() => requestDelete(m.id)}
                     disabled={busy}
-                    aria-label="Borrar misión"
-                    className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                    aria-label={confirmDeleteId === m.id ? 'Confirmar borrado de la misión' : 'Borrar misión'}
+                    className={`flex-shrink-0 rounded-full transition-colors disabled:opacity-40 ${
+                      confirmDeleteId === m.id
+                        ? 'px-3 py-2 font-forge text-xs font-bold text-nova'
+                        : 'p-2 text-forge-ink-faint hover:text-forge-ink'
+                    }`}
                   >
-                    <Trash2 size={16} />
+                    {confirmDeleteId === m.id ? '¿Seguro?' : <Trash2 size={16} />}
                   </button>
                 </div>
               )

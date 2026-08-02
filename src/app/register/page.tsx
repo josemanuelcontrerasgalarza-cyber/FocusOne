@@ -62,10 +62,12 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
-                <label className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
+                <label htmlFor="name" className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
                   Nombre
                 </label>
                 <input
+                  id="name"
+                  autoComplete="name"
                   required
                   placeholder="Tu nombre"
                   className={inputCls}
@@ -75,11 +77,13 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
+                <label htmlFor="email" className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
                   Correo
                 </label>
                 <input
+                  id="email"
                   type="email"
+                  autoComplete="email"
                   required
                   placeholder="correo@ejemplo.com"
                   className={inputCls}
@@ -90,7 +94,7 @@ export default function RegisterPage() {
 
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <label className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
+                  <label htmlFor="password" className="font-num text-[10px] uppercase tracking-wider text-forge-ink-faint">
                     Contraseña
                   </label>
                   {pwdStrength !== 'empty' && (
@@ -100,7 +104,9 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <input
+                  id="password"
                   type="password"
+                  autoComplete="new-password"
                   required
                   placeholder="Mínimo 8 caracteres"
                   className={inputCls}

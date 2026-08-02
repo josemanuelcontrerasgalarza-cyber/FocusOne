@@ -141,18 +141,78 @@ function MissionTimer({
   // Distingue "el timer llegó a 0 solo" (pomodoro) de "Terminar misión" (forzado).
   const forcedRef = useRef(false)
 
-  // Tick de 1s: sube el calor mientras corre. Al llegar al tope se detiene.
+  // Segundos acumulados antes del tramo "corriendo" actual, y el instante
+  // (Date.now()) en que ese tramo empezó. El elapsed se recalcula siempre a
+  // partir del reloj real, no acumulando +1 por tick — así no se desincroniza
+  // cuando el navegador limita los timers de una pestaña en segundo plano
+  // (el caso típico de alguien que se distrae y cambia de pestaña).
+  const baseElapsedRef = useRef(0)
+  const runStartRef = useRef<number | null>(null)
+
+  // Recupera el progreso si la pestaña se cerró/recargó a medias. Sin esto,
+  // un refresco accidental (o un tab-crash) borra el enfoque acumulado sin
+  // aviso — justo el tipo de contratiempo que hace abandonar a alguien que ya
+  // le costó ponerse a forjar. Guardado en localStorage, por misión.
+  const storageKey = `focusone.missionTimer.${mission.id}`
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey)
+      if (!raw) return
+      const saved = JSON.parse(raw) as { elapsed: number; running: boolean; savedAt: number }
+      const catchUp = saved.running ? Math.floor((Date.now() - saved.savedAt) / 1000) : 0
+      const restored = Math.min(Math.max(0, saved.elapsed + catchUp), total)
+      baseElapsedRef.current = restored
+      setElapsed(restored)
+      if (saved.running && restored < total) setIsRunning(true)
+    } catch {
+      // Estado corrupto o localStorage no disponible: arranca en 0 sin más.
+    }
+    // Solo al montar (cada misión ya remonta este componente vía `key`).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (forged) {
+      try {
+        localStorage.removeItem(storageKey)
+      } catch {
+        // no-op
+      }
+      return
+    }
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ elapsed, running: isRunning, savedAt: Date.now() }))
+    } catch {
+      // Cuota llena / modo privado: el timer sigue funcionando, solo no persiste.
+    }
+  }, [elapsed, isRunning, forged, storageKey])
+
   useEffect(() => {
     if (!isRunning || forged) return
+    runStartRef.current = Date.now()
     const id = setInterval(() => {
-      setElapsed((prev) => {
-        const next = Math.min(prev + 1, total)
-        if (next >= total) setIsRunning(false)
-        return next
-      })
-    }, 1000)
+      const startedAt = runStartRef.current
+      if (startedAt == null) return
+      const next = Math.min(
+        baseElapsedRef.current + Math.floor((Date.now() - startedAt) / 1000),
+        total,
+      )
+      setElapsed(next)
+      if (next >= total) setIsRunning(false)
+    }, 250)
     return () => clearInterval(id)
   }, [isRunning, forged, total])
+
+  // Al pausar (o forjar), congela lo acumulado como nueva base del próximo tramo.
+  function toggleRunning() {
+    setIsRunning((running) => {
+      if (running) {
+        baseElapsedRef.current = elapsed
+        runStartRef.current = null
+      }
+      return !running
+    })
+  }
 
   // Pomodoro completado: el bloque de enfoque de la misión llegó a 00:00 por sí
   // solo. NO cuenta cuando el usuario pulsa "Terminar misión" (forcedRef).
@@ -267,7 +327,7 @@ function MissionTimer({
       ) : (
         <div className="flex items-center gap-3.5">
           <button
-            onClick={() => setIsRunning((r) => !r)}
+            onClick={toggleRunning}
             className="flex items-center gap-2.5 rounded-full bg-ember px-7 py-4 font-forge text-[15px] font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px"
           >
             {isRunning ? 'Pausar' : 'Comenzar enfoque'}

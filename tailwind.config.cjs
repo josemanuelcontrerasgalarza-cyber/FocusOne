@@ -43,13 +43,14 @@ module.exports = {
         },
       },
       fontFamily: {
+        // Cargadas con next/font/google (autoalojadas, ver src/app/layout.tsx)
         // Sistema anterior
-        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        data: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        display: ['var(--font-space-grotesk)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        data: ['var(--font-jetbrains-mono)', 'ui-monospace', 'monospace'],
         // La Fragua: Sora para display/UI, IBM Plex Mono para NÚMEROS.
-        forge: ['Sora', 'system-ui', 'sans-serif'],
-        num: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+        forge: ['var(--font-sora)', 'system-ui', 'sans-serif'],
+        num: ['var(--font-ibm-plex-mono)', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
         forge: '16px', // radio estándar de las tarjetas de La Fragua
