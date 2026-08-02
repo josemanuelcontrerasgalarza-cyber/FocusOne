@@ -125,3 +125,16 @@ export async function saveQuizResult(
 
   return { score, pointsEarned: data?.points_earned ?? previewPoints(score) }
 }
+
+/**
+ * Completa la misión sin pasar por el quiz (botón "Saltar"). No otorga
+ * puntos — el quiz es la única vía para ganarlos — pero deja que un usuario
+ * que no quiere hacer el ritual de cierre termine la tarea de todas formas.
+ */
+export async function completeMissionWithoutQuiz(mission: Mission): Promise<void> {
+  const { error } = await supabase
+    .from('missions')
+    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .eq('id', mission.id)
+  if (error) throw error
+}

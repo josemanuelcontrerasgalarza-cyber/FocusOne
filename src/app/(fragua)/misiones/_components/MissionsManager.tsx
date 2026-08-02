@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Flame, Plus, Check, Trash2, Loader2, ArrowRight } from 'lucide-react'
@@ -32,6 +32,15 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
   const [minutes, setMinutes] = useState(25)
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+
+  // El botón de borrar pide una segunda confirmación por 3s y luego se
+  // resetea solo, para que un misclick no destruya una misión sin aviso.
+  useEffect(() => {
+    if (!confirmingId) return
+    const t = setTimeout(() => setConfirmingId(null), 3000)
+    return () => clearTimeout(t)
+  }, [confirmingId])
 
   // Sin sesión real no se puede gestionar (las mutaciones necesitan user_id).
   if (isDemo || !uid) {
@@ -94,6 +103,15 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
 
   // Nota: completar una misión (con quiz de cierre) ocurre en /hoy, no aquí.
   // Esta pantalla solo crea/enciende/borra; "Ir a forjar" lleva al dashboard.
+
+  function onDeleteClick(id: string) {
+    if (confirmingId !== id) {
+      setConfirmingId(id)
+      return
+    }
+    setConfirmingId(null)
+    void deleteMission(id)
+  }
 
   async function deleteMission(id: string) {
     setBusyId(id)
@@ -209,12 +227,16 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
                     Encender
                   </button>
                   <button
-                    onClick={() => deleteMission(m.id)}
+                    onClick={() => onDeleteClick(m.id)}
                     disabled={busy}
-                    aria-label="Borrar misión"
-                    className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                    aria-label={confirmingId === m.id ? 'Confirmar borrado' : 'Borrar misión'}
+                    className={
+                      confirmingId === m.id
+                        ? 'flex-shrink-0 rounded-full border border-red-500/40 bg-red-500/10 px-3 py-2 font-forge text-xs font-semibold text-red-400 transition-colors disabled:opacity-40'
+                        : 'flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40'
+                    }
                   >
-                    <Trash2 size={16} />
+                    {confirmingId === m.id ? '¿Borrar?' : <Trash2 size={16} />}
                   </button>
                 </div>
               )

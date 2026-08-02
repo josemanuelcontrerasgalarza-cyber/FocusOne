@@ -45,12 +45,16 @@ npm run dev
 
 ## Rutas
 
+La Fragua es el diseño vigente. Las rutas del diseño anterior (`/focus`, `/projects`,
+`/ideas`, `/stats`, `/music`, `/settings`, `/app`, `/achievements`) siguen existiendo
+solo como redirects a su equivalente actual — no construyas nada nuevo sobre ellas.
+
 | Ruta | Descripción |
 |---|---|
-| `/` | Centro de mando — misión principal, telemetría, objetivos |
-| `/focus` | **Modo Deep Work** — sesiones de foco de 25/50/90 min |
-| `/projects` | Misiones (proyectos) |
-| `/ideas` | Bóveda de ideas |
-| `/stats` | Telemetría de rendimiento |
-| `/music` | Frecuencias de foco (Spotify) |
-| `/settings` | Configuración |
+| `/hoy` | Centro de mando — misión activa del día, timer, próximas misiones |
+| `/deep-work` | **Modo Deep Work** — sesiones de foco de 15/25/50/90 min |
+| `/misiones` | Misiones (proyectos): crear, encender, borrar |
+| `/mascota` | Focus Pet — mascota de enfoque y tienda de cosméticos |
+| `/progreso` | Telemetría de rendimiento y racha |
+| `/musica` | Frecuencias de foco (Spotify) |
+| `/perfil` | Configuración, cuenta y tienda de recompensas |

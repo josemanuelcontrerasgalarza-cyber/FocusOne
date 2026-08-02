@@ -6,6 +6,7 @@ import { X, Check, Loader2, Flame } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import {
   MOCK_QUESTIONS,
+  completeMissionWithoutQuiz,
   computeScore,
   previewPoints,
   saveQuizResult,
@@ -70,6 +71,21 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
 
   const showingResult = step >= total
   const question = MOCK_QUESTIONS[Math.min(step, total - 1)]
+
+  // "Saltar": completa la misión sin el quiz (sin puntos) para quien no
+  // quiera hacer el ritual de cierre ahora. Un solo click, sin resultado.
+  async function skip() {
+    if (saving) return
+    setSaving(true)
+    try {
+      if (canSave) await completeMissionWithoutQuiz(mission)
+      onCompleted({ score: 0, pointsEarned: 0 })
+    } catch {
+      toast.error('No se pudo completar la misión. Inténtalo de nuevo.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -155,6 +171,14 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
                     </button>
                   ))}
                 </div>
+
+                <button
+                  onClick={skip}
+                  disabled={saving}
+                  className="mt-5 w-full text-center font-forge text-[13px] text-forge-ink-faint underline-offset-2 transition-colors hover:text-forge-ink hover:underline disabled:opacity-50"
+                >
+                  Saltar el cierre y completar sin puntos
+                </button>
               </motion.div>
             </AnimatePresence>
           </>

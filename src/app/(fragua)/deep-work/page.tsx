@@ -45,17 +45,19 @@ export default function DeepWorkPage() {
 
   async function recordSession(completed: boolean) {
     if (!uid || !startRef.current) return
-    await supabase
-      .from('focus_sessions')
-      .insert({
-        user_id: uid,
-        task_id: null,
-        started_at: startRef.current.toISOString(),
-        ended_at: new Date().toISOString(),
-        planned_minutes: minutes,
-        completed,
-      })
-      .then(() => undefined, () => undefined)
+    const { error } = await supabase.from('focus_sessions').insert({
+      user_id: uid,
+      task_id: null,
+      started_at: startRef.current.toISOString(),
+      ended_at: new Date().toISOString(),
+      planned_minutes: minutes,
+      completed,
+    })
+    if (error) {
+      console.error('No se pudo guardar la sesión de Deep Work', error)
+      if (completed) toast.error('La sesión se completó pero no se pudo guardar en tu historial.')
+      return
+    }
     // Deep Work completado → notificación física ESP32 (fire-and-forget).
     if (completed) void notificarESP32(uid, 'deep_work_completado')
   }

@@ -204,7 +204,11 @@ function MissionTimer({
 
   function handleQuizCompleted(outcome: QuizOutcome) {
     setQuizOpen(false)
-    toast.success(`Misión forjada 🔥 +${outcome.pointsEarned} puntos`)
+    toast.success(
+      outcome.pointsEarned > 0
+        ? `Misión forjada 🔥 +${outcome.pointsEarned} puntos`
+        : 'Misión forjada 🔥',
+    )
     runForge()
   }
 
