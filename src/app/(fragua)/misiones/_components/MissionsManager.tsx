@@ -7,6 +7,7 @@ import { Flame, Plus, Check, Trash2, Loader2, ArrowRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
+import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
 import type { Mission } from '@/types'
 
 interface Props {
@@ -70,8 +71,8 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
       setMinutes(25)
       toast.success('Misión añadida')
       router.refresh()
-    } catch {
-      toast.error('No se pudo crear la misión. Inténtalo de nuevo.')
+    } catch (err) {
+      toast.error(isDbSetupError(err) ? DB_SETUP_MSG : 'No se pudo crear la misión. Inténtalo de nuevo.')
     } finally {
       setCreating(false)
     }
@@ -85,8 +86,8 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
       if (error) throw error
       toast.success('Misión encendida 🔥')
       router.refresh()
-    } catch {
-      toast.error('No se pudo encender la misión.')
+    } catch (err) {
+      toast.error(isDbSetupError(err) ? DB_SETUP_MSG : 'No se pudo encender la misión.')
     } finally {
       setBusyId(null)
     }
@@ -101,8 +102,8 @@ export function MissionsManager({ active, pending, completedToday, isDemo }: Pro
       const { error } = await supabase.from('missions').delete().eq('id', id)
       if (error) throw error
       router.refresh()
-    } catch {
-      toast.error('No se pudo borrar la misión.')
+    } catch (err) {
+      toast.error(isDbSetupError(err) ? DB_SETUP_MSG : 'No se pudo borrar la misión.')
     } finally {
       setBusyId(null)
     }
