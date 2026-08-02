@@ -28,6 +28,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Focus Pet: adopta tu mascota y vístela con lo que ganas forjando misiones.',
       'Tienda de recompensas con ropa nueva cada semana.',
       'Diamantes diarios: reclama tu recompensa cada día según tu hora local.',
+      'Progreso renovado: productividad semanal, tiempo enfocado, calendario del mes y actividad reciente.',
       'Deep Work con duración personalizable y música integrada.',
       'Centro de comandos ⌘K más rápido y navegación renovada.',
     ],
