@@ -7,6 +7,7 @@ import { Check, Gem, Lock, Loader2, ArrowRight, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
+import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
 import type { PetItem } from '@/types'
 
 interface Props {
@@ -46,7 +47,9 @@ export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
       router.refresh()
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''
-      toast.error(msg.includes('insuficientes') ? 'Puntos insuficientes.' : 'No se pudo comprar.')
+      if (msg.includes('insuficientes')) toast.error('Puntos insuficientes.')
+      else if (isDbSetupError(err)) toast.error(DB_SETUP_MSG)
+      else toast.error('No se pudo comprar.')
     } finally {
       setBusyId(null)
     }
