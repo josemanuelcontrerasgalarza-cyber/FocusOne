@@ -14,6 +14,7 @@ interface Props {
   featured: PetItem[]
   ownedIds: string[]
   points: number
+  isDeveloper: boolean
   isDemo: boolean
 }
 
@@ -22,7 +23,7 @@ interface Props {
  * El servidor rota los ítems destacados cada semana. Se compran con puntos
  * (RPC buy_pet_item) y se equipan luego en Focus Pet.
  */
-export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
+export function WeeklyDrops({ featured, ownedIds, points, isDeveloper, isDemo }: Props) {
   const router = useRouter()
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
   const canUse = !isDemo && Boolean(uid)
@@ -45,7 +46,7 @@ export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
       toast.info('Inicia sesión para comprar con puntos.')
       return
     }
-    if (displayPoints < item.cost_points) {
+    if (!isDeveloper && displayPoints < item.cost_points) {
       toast.error('Puntos insuficientes.')
       return
     }
@@ -54,7 +55,7 @@ export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
       const { error } = await supabase.rpc('buy_pet_item', { p_item: item.id })
       if (error) throw error
       setExtraOwned((s) => new Set(s).add(item.id))
-      setSpent((s) => s + item.cost_points)
+      if (!isDeveloper) setSpent((s) => s + item.cost_points) // dev: diamantes ∞
       toast.success(`Compraste: ${item.name}. ¡Vístela en Focus Pet!`)
       router.refresh()
     } catch (err) {
@@ -86,7 +87,7 @@ export function WeeklyDrops({ featured, ownedIds, points, isDemo }: Props) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {featured.map((item) => {
           const isOwned = owned.has(item.id)
-          const affordable = displayPoints >= item.cost_points
+          const affordable = isDeveloper || displayPoints >= item.cost_points
           const busy = busyId === item.id
           const locked = !isOwned && canUse && !affordable
           return (

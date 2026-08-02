@@ -24,7 +24,7 @@ export default async function ProgresoPage() {
   const stats = [
     { label: 'Racha actual', value: `${d.streak}`, unit: d.streak === 1 ? 'día' : 'días', icon: Flame, tone: 'text-metal' },
     { label: 'Récord', value: `${d.best}`, unit: d.best === 1 ? 'día' : 'días', icon: Trophy, tone: 'text-metal' },
-    { label: 'Puntos', value: `${d.points}`, unit: 'pts', icon: Gem, tone: 'text-forge-ink' },
+    { label: 'Puntos', value: d.isDeveloper ? '∞' : `${d.points}`, unit: 'pts', icon: Gem, tone: d.isDeveloper ? 'text-ember' : 'text-forge-ink' },
     { label: 'Forjadas', value: `${d.forgedTotal}`, unit: 'misiones', icon: Hammer, tone: 'text-ember' },
   ]
 
