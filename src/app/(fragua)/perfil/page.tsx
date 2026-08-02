@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Music, Zap, TrendingUp, PawPrint, ChevronRight } from 'lucide-react'
 import { getRewardsData } from '@/lib/rewards'
+import { getPetData } from '@/lib/pet'
 import { RewardsStore } from './_components/RewardsStore'
+import { WeeklyDrops } from './_components/WeeklyDrops'
 import { LogoutButton } from '@/components/forge/LogoutButton'
 
 export const metadata: Metadata = { title: 'Perfil' }
@@ -15,11 +17,21 @@ const LINKS = [
   { href: '/progreso', label: 'Progreso', hint: 'Racha y puntos', icon: TrendingUp },
 ]
 
-/**
- * Pantalla "Perfil": accesos y (Fase 6) tienda de recompensas.
- */
 export default async function PerfilPage() {
-  const { rewards, unlockedIds, points, isDemo } = await getRewardsData()
+  const [{ rewards, unlockedIds, points, isDemo }, pet] = await Promise.all([
+    getRewardsData(),
+    getPetData(),
+  ])
+
+  // Rotación semanal de ropa de Focus Pet — determinista por número de semana.
+  const clothing = pet.catalog.filter((i) => i.kind !== 'pet')
+  const week = Math.floor(Date.now() / (7 * 86400000))
+  const featured =
+    clothing.length === 0
+      ? []
+      : Array.from({ length: Math.min(3, clothing.length) }, (_, k) =>
+          clothing[(week + k) % clothing.length],
+        )
 
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-10 sm:px-12">
@@ -27,9 +39,7 @@ export default async function PerfilPage() {
         <p className="font-num text-xs uppercase tracking-[0.2em] text-forge-ink-faint">
           El herrero
         </p>
-        <h1 className="mt-1 font-forge text-3xl font-extrabold tracking-tight">
-          Perfil
-        </h1>
+        <h1 className="mt-1 font-forge text-3xl font-extrabold tracking-tight">Perfil</h1>
       </header>
 
       {/* Accesos */}
@@ -50,6 +60,15 @@ export default async function PerfilPage() {
         ))}
       </div>
 
+      {/* Ropa de la semana (Focus Pet) */}
+      <WeeklyDrops
+        featured={featured}
+        ownedIds={pet.ownedIds}
+        points={pet.points}
+        isDemo={pet.isDemo}
+      />
+
+      {/* Tienda de recompensas */}
       <RewardsStore
         rewards={rewards}
         unlockedIds={unlockedIds}

@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import { CosmosRoot } from '@/cosmos/CosmosRoot'
 import { Toaster } from '@/glass/Toaster'
 import { AuthProvider } from '@/components/AuthProvider'
 
@@ -10,13 +9,13 @@ export const metadata: Metadata = {
     default: 'FocusOne — Termina lo que empiezas',
     template: '%s · FocusOne',
   },
-  description: 'Plataforma de productividad AI-First. Tus misiones, en órbita.',
+  description: 'Tu fragua de enfoque: una misión a la vez, timer con calor, racha y recompensas.',
   applicationName: 'FocusOne',
   robots: { index: true, follow: true },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#030308',
+  themeColor: '#0B0C0E',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -31,7 +30,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <CosmosRoot />
         <Toaster />
         <AuthProvider>{children}</AuthProvider>
       </body>
