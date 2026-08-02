@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Music, Zap, TrendingUp, ChevronRight } from 'lucide-react'
 import { getRewardsData } from '@/lib/rewards'
 import { RewardsStore } from './_components/RewardsStore'
+import { LogoutButton } from '@/components/forge/LogoutButton'
 
 export const metadata: Metadata = { title: 'Perfil' }
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,8 @@ export default async function PerfilPage() {
         points={points}
         isDemo={isDemo}
       />
+
+      <LogoutButton />
     </section>
   )
 }
