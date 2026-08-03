@@ -81,7 +81,7 @@ export async function getMissionsBoard(): Promise<MissionsBoard> {
   if (!user) return empty
 
   const startOfToday = new Date()
-  startOfToday.setHours(0, 0, 0, 0)
+  startOfToday.setUTCHours(0, 0, 0, 0) // día UTC (coincide con progress.ts)
 
   const [{ data: active }, { data: pending }, { data: history }] =
     await Promise.all([
@@ -230,7 +230,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   // Estadísticas reales: racha (profiles), misiones de hoy y enfoque (focus_sessions).
   const startOfToday = new Date()
-  startOfToday.setHours(0, 0, 0, 0)
+  startOfToday.setUTCHours(0, 0, 0, 0) // día UTC (coincide con progress.ts)
   const weekStart = new Date(startOfToday)
   weekStart.setDate(weekStart.getDate() - 6)
 

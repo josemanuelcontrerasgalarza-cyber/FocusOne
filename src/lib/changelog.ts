@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.1'
+export const APP_VERSION = '5.2'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.2',
+    title: 'Entra con Google, más seguro y más rápido',
+    date: '3 ago 2026',
+    tag: 'Actual',
+    items: [
+      'Inicia sesión con Google en un toque, sin contraseña — tu progreso se guarda igual.',
+      'Más seguridad: la puntuación de cada misión se verifica en el servidor y las opiniones tienen protección anti-spam.',
+      'Carga más rápida y privada: tipografías propias, sin depender de Google Fonts.',
+      'Herramientas de desarrollador para la cuenta dev (diamantes, racha, reseteo de pruebas).',
+      'Mejor presencia en buscadores y una tarjeta con marca al compartir el enlace.',
+    ],
+  },
+  {
     version: '5.1',
     title: 'Fragua sólida — seguridad y precisión',
-    date: '2 ago 2026',
-    tag: 'Actual',
     items: [
       'Todas tus misiones en un solo lugar: historial completo de forjadas, con su fecha.',
       'Seguridad reforzada de tu cuenta, tus puntos y la tienda (economía a prueba de trampas).',

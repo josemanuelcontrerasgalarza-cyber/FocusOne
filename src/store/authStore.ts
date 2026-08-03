@@ -11,6 +11,7 @@ interface AuthState {
   loading: boolean
   initialized: boolean
   signIn: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   signUp: (email: string, password: string, name: string) => Promise<void>
   signOut: () => Promise<void>
   startDemo: () => Promise<void>
@@ -73,6 +74,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } finally {
       set({ loading: false })
+    }
+  },
+
+  // Inicio con Google (OAuth, sin contraseña). Redirige a Google y vuelve a
+  // /auth/callback, que intercambia el código por la sesión. El perfil se crea
+  // solo (trigger handle_new_user) y el progreso se guarda como en cualquier cuenta.
+  signInWithGoogle: async () => {
+    set({ loading: true })
+    try {
+      const redirectTo = `${window.location.origin}/auth/callback`
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo },
+      })
+      if (error) throw new Error('No se pudo iniciar con Google. Intenta de nuevo.')
+      // En éxito el navegador se redirige a Google; no reseteamos loading.
+    } catch (err) {
+      set({ loading: false })
+      throw err
     }
   },
 

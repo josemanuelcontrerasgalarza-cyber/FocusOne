@@ -44,15 +44,27 @@ export const useReviewStore = create<ReviewState>((set) => ({
       return false
     }
     set({ submitting: true })
-    const payload = { name: name.trim() || null, rating, comment: clean.slice(0, 500) }
-    const { data, error } = await supabase.from('reviews').insert(payload).select().single()
-    set({ submitting: false })
-    if (error || !data) {
+    // Publicar pasa por /api/reviews (rate-limit por IP en el servidor), no por
+    // un insert directo con la clave anon.
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() || null, rating, comment: clean.slice(0, 500) }),
+      })
+      const json = (await res.json().catch(() => ({}))) as { review?: Review; error?: string }
+      set({ submitting: false })
+      if (!res.ok || !json.review) {
+        toast.error(json.error || 'No se pudo enviar tu opinión')
+        return false
+      }
+      set((s) => ({ reviews: [json.review as Review, ...s.reviews] }))
+      toast.success('¡Gracias por tu opinión!')
+      return true
+    } catch {
+      set({ submitting: false })
       toast.error('No se pudo enviar tu opinión')
       return false
     }
-    set((s) => ({ reviews: [data, ...s.reviews] }))
-    toast.success('¡Gracias por tu opinión!')
-    return true
   },
 }))

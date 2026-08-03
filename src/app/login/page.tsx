@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { GuestGuard, ConfigNotice } from '@/components/AuthGuard'
 import { ForgeDemoButton } from '@/components/forge/ForgeDemoButton'
+import { GoogleButton } from '@/components/forge/GoogleButton'
 import { toast } from '@/lib/toast'
 
 const inputCls =
@@ -69,7 +70,10 @@ export default function LoginPage() {
             <span className="h-px flex-1 bg-forge-line" />
           </div>
 
-          <ForgeDemoButton className="w-full" />
+          <div className="flex flex-col gap-2.5">
+            <GoogleButton className="w-full" />
+            <ForgeDemoButton className="w-full" />
+          </div>
 
           <p className="mt-6 text-center text-sm text-forge-ink-dim">
             ¿Sin cuenta?{' '}
