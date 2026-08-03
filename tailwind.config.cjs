@@ -29,7 +29,9 @@ module.exports = {
           line: 'rgba(255,255,255,0.08)', // bordes sutiles
           ink: '#F4F1EA', // texto principal (blanco cálido)
           'ink-dim': 'rgba(244,241,234,0.60)', // texto secundario
-          'ink-faint': 'rgba(244,241,234,0.30)', // texto deshabilitado / hints
+          // 0.48 en vez de 0.30: la anterior daba ~2.5:1 de contraste sobre el
+          // canvas, por debajo del mínimo WCAG AA (4.5:1) para texto normal.
+          'ink-faint': 'rgba(244,241,234,0.48)', // texto deshabilitado / hints
         },
         // Ember: acento ÚNICO reservado a la misión activa y el timer.
         ember: {

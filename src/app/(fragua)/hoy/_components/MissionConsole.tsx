@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Check } from 'lucide-react'
+import { Check, Loader2, Zap } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import { notificarESP32 } from '@/lib/notificarESP32'
@@ -25,6 +26,43 @@ function formatTime(totalSeconds: number): string {
   const mm = String(Math.floor(s / 60)).padStart(2, '0')
   const ss = String(s % 60).padStart(2, '0')
   return `${mm}:${ss}`
+}
+
+// Persiste el timer de la misión activa por reload/navegación: sin esto, una
+// pestaña recargada a mitad de foco volvía a 00:00 aunque la misión seguía
+// activa en el servidor — el tiempo ya invertido se perdía en la pantalla.
+const TIMER_PREFIX = 'focusone:mission-timer:'
+
+interface TimerState {
+  isRunning: boolean
+  elapsed: number
+}
+
+function loadTimerState(missionId: string): TimerState | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = sessionStorage.getItem(TIMER_PREFIX + missionId)
+    return raw ? (JSON.parse(raw) as TimerState) : null
+  } catch {
+    return null
+  }
+}
+
+function saveTimerState(missionId: string, state: TimerState): void {
+  try {
+    sessionStorage.setItem(TIMER_PREFIX + missionId, JSON.stringify(state))
+  } catch {
+    // Almacenamiento no disponible (privado/lleno): el timer sigue funcionando
+    // en memoria, solo no sobrevive a un reload.
+  }
+}
+
+function clearTimerState(missionId: string): void {
+  try {
+    sessionStorage.removeItem(TIMER_PREFIX + missionId)
+  } catch {
+    // ignorar
+  }
 }
 
 export function MissionConsole({ mission, stats, upcoming, isDemo }: Props) {
@@ -53,7 +91,7 @@ export function MissionConsole({ mission, stats, upcoming, isDemo }: Props) {
             onForged={() => router.refresh()}
           />
         ) : (
-          <EmptyMission />
+          <EmptyMission oldest={upcoming[0] ?? null} isDemo={isDemo} onLit={() => router.refresh()} />
         )}
       </section>
 
@@ -128,8 +166,10 @@ function MissionTimer({
   // Id real del usuario (para la notificación ESP32). En demo no hay sesión.
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
 
-  const [isRunning, setIsRunning] = useState(false)
-  const [elapsed, setElapsed] = useState(0)
+  const [isRunning, setIsRunning] = useState(() => loadTimerState(mission.id)?.isRunning ?? false)
+  const [elapsed, setElapsed] = useState(() =>
+    Math.min(loadTimerState(mission.id)?.elapsed ?? 0, total),
+  )
   const [forged, setForged] = useState(false)
   const [quizOpen, setQuizOpen] = useState(false)
   // Chispa de calor que "drena" hacia la racha al forjar (coords fixed).
@@ -150,12 +190,14 @@ function MissionTimer({
     const id = setInterval(() => {
       const next = Math.min(Math.floor((Date.now() - start) / 1000), total)
       setElapsed(next)
-      if (next >= total) setIsRunning(false)
+      const stillRunning = next < total
+      saveTimerState(mission.id, { isRunning: stillRunning, elapsed: next })
+      if (!stillRunning) setIsRunning(false)
     }, 250)
     return () => clearInterval(id)
     // `elapsed` se lee solo al anclar el inicio; incluirlo reiniciaría el ancla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRunning, forged, total])
+  }, [isRunning, forged, total, mission.id])
 
   // Pomodoro completado: el bloque de enfoque de la misión llegó a 00:00 por sí
   // solo. NO cuenta cuando el usuario pulsa "Terminar misión" (forcedRef).
@@ -189,6 +231,7 @@ function MissionTimer({
     forcedRef.current = true
     pomodoroFiredRef.current = true
     setElapsed(total) // llena el calor al máximo antes de drenar
+    clearTimerState(mission.id)
 
     if (reduceMotion) {
       setForged(true)
@@ -271,7 +314,11 @@ function MissionTimer({
       ) : (
         <div className="flex items-center gap-3.5">
           <button
-            onClick={() => setIsRunning((r) => !r)}
+            onClick={() => {
+              const next = !isRunning
+              setIsRunning(next)
+              saveTimerState(mission.id, { isRunning: next, elapsed })
+            }}
             className="flex items-center gap-2.5 rounded-full bg-ember px-7 py-4 font-forge text-[15px] font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px"
           >
             {isRunning ? 'Pausar' : 'Comenzar enfoque'}
@@ -346,7 +393,35 @@ function NextMissionButton({ isDemo }: { isDemo: boolean }) {
 /*  Estado vacío: usuario real sin misión activa                              */
 /* -------------------------------------------------------------------------- */
 
-function EmptyMission() {
+function EmptyMission({
+  oldest,
+  isDemo,
+  onLit,
+}: {
+  oldest: { id: string; title: string } | null
+  isDemo: boolean
+  onLit: () => void
+}) {
+  const [busy, setBusy] = useState(false)
+
+  // Enciende la misión pendiente más antigua sin pasar por /misiones: cada
+  // navegación/decisión extra es fricción donde el impulso de empezar se
+  // pierde. Reutiliza la misma RPC atómica que MissionsManager.
+  async function lightOldest() {
+    if (!oldest) return
+    setBusy(true)
+    try {
+      const { error } = await supabase.rpc('activate_mission', { p_mission: oldest.id })
+      if (error) throw error
+      toast.success('Misión encendida 🔥')
+      onLit()
+    } catch {
+      toast.error('No se pudo encender la misión.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="relative max-w-md">
       <div className="mb-5 font-num text-xs font-semibold uppercase tracking-[0.14em] text-forge-ink-faint">
@@ -359,12 +434,28 @@ function EmptyMission() {
         Enciende una misión para empezar a forjar. Solo puede haber una activa a
         la vez.
       </p>
-      <Link
-        href="/misiones"
-        className="inline-flex items-center rounded-full bg-ember px-7 py-4 font-forge text-[15px] font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px"
-      >
-        Ir a Misiones
-      </Link>
+      <div className="flex flex-wrap items-center gap-3">
+        {oldest && !isDemo && (
+          <button
+            onClick={lightOldest}
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-full bg-ember px-7 py-4 font-forge text-[15px] font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px disabled:opacity-50"
+          >
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+            Encender &ldquo;{oldest.title}&rdquo;
+          </button>
+        )}
+        <Link
+          href="/misiones"
+          className={
+            oldest && !isDemo
+              ? 'inline-flex items-center rounded-full border border-white/[0.12] px-6 py-4 font-forge text-[15px] font-semibold text-forge-ink-dim transition-colors hover:border-white/30 hover:text-forge-ink'
+              : 'inline-flex items-center rounded-full bg-ember px-7 py-4 font-forge text-[15px] font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px'
+          }
+        >
+          Ir a Misiones
+        </Link>
+      </div>
     </div>
   )
 }

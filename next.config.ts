@@ -17,7 +17,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline'",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-  "frame-src https://open.spotify.com",
+  "frame-src 'none'",
   "worker-src 'self' blob:",
 ].join('; ')
 

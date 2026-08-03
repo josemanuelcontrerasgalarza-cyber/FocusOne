@@ -1,14 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createHash } from 'crypto'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
 /**
  * Publicar una opinión anónima con rate-limit. El cliente ya NO inserta directo
- * en `reviews` (revocado): pasa por aquí. Tomamos la IP del request, la
- * HASHEAMOS (nunca se guarda en claro) y llamamos a la RPC post_review, que
- * limita a 3 opiniones por IP cada hora.
+ * en `reviews` (revocado): pasa por aquí, que llama a la RPC post_review.
+ * La RPC hashea la IP ELLA MISMA a partir de los headers del request de
+ * Postgres (no de un parámetro que el cliente pudiera falsificar llamando a
+ * la RPC directo por REST con un hash aleatorio en cada intento).
  */
 export async function POST(req: NextRequest) {
   let body: { name?: unknown; rating?: unknown; comment?: unknown }
@@ -26,17 +26,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Datos de la opinión inválidos' }, { status: 400 })
   }
 
-  const fwd = req.headers.get('x-forwarded-for') || ''
-  const ip = fwd.split(',')[0]?.trim() || 'unknown'
-  const ipHash = createHash('sha256').update(`${ip}|focusone-reviews`).digest('hex')
-
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .rpc('post_review', {
       p_name: name,
       p_rating: rating,
       p_comment: comment.slice(0, 500),
-      p_ip_hash: ipHash,
     })
     .single()
 

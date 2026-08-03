@@ -144,7 +144,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('No se pudo guardar la cuenta. Intenta de nuevo.')
       }
       const uid = get().session?.user.id
-      if (uid) await supabase.from('profiles').update({ email, name }).eq('id', uid)
+      // `profiles` no tiene policy de UPDATE (a propósito: protege racha/rol de
+      // dev), así que el nombre/correo se sincronizan vía RPC, no con un UPDATE
+      // directo a la tabla (que RLS bloquearía en silencio).
+      if (uid) await supabase.rpc('update_profile_display', { p_email: email, p_name: name })
       set({ isDemo: false })
       await get().refreshProfile()
       toast.success('Cuenta guardada. Revisa tu correo para confirmar el acceso.')

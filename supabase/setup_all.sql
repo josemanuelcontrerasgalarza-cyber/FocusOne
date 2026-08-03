@@ -44,6 +44,22 @@ returns boolean as $$
   select coalesce((select is_developer from public.profiles where id = auth.uid()), false);
 $$ language sql security definer set search_path = public stable;
 
+-- `profiles` no tiene policy de UPDATE (a propósito: así nadie escribe su
+-- propia racha/is_developer con la anon key). Esta RPC es la única vía para
+-- que el cliente actualice nombre/correo, siempre acotada a auth.uid() y sin
+-- tocar ninguna columna de servidor.
+create or replace function public.update_profile_display(p_email text, p_name text)
+returns void as $$
+begin
+  update public.profiles
+    set email = coalesce(nullif(trim(p_email), ''), email),
+        name  = coalesce(nullif(trim(p_name), ''), name)
+    where id = auth.uid();
+end;
+$$ language plpgsql security definer set search_path = public;
+
+grant execute on function public.update_profile_display(text, text) to authenticated;
+
 -- Alta automática del perfil al registrarse un usuario nuevo.
 create or replace function public.handle_new_user()
 returns trigger as $$
@@ -803,17 +819,28 @@ create index if not exists review_throttle_idx on public.review_throttle (ip_has
 alter table public.review_throttle enable row level security;
 revoke all on public.review_throttle from anon, authenticated;
 
--- Publicar una reseña con límite: máx. 3 por IP cada hora. `p_ip_hash` lo
--- calcula el route handler del servidor (hash de la IP, nunca la IP en claro).
+-- pgcrypto: para hashear la IP dentro de la propia función (ver post_review).
+create extension if not exists pgcrypto with schema extensions;
+
+-- Publicar una reseña con límite: máx. 3 por IP cada hora. La IP NUNCA la
+-- manda el cliente (antes se recibía como `p_ip_hash`, lo que permitía
+-- llamar a esta RPC directamente por REST con un hash aleatorio en cada
+-- intento y saltarse el límite por completo). Ahora se lee del propio
+-- request en el servidor de Postgres (`request.headers`, que rellena
+-- PostgREST/Supabase y el cliente no puede falsificar) y se hashea aquí.
+drop function if exists public.post_review(text, int, text, text);
+
 create or replace function public.post_review(
   p_name text,
   p_rating int,
-  p_comment text,
-  p_ip_hash text
+  p_comment text
 )
 returns public.reviews as $$
 declare
   v_row public.reviews;
+  v_headers json;
+  v_ip text;
+  v_ip_hash text;
 begin
   if p_rating is null or p_rating < 1 or p_rating > 5 then
     raise exception 'Valoración inválida';
@@ -825,10 +852,18 @@ begin
     raise exception 'Nombre demasiado largo';
   end if;
 
+  begin
+    v_headers := nullif(current_setting('request.headers', true), '')::json;
+  exception when others then
+    v_headers := null;
+  end;
+  v_ip := nullif(trim(split_part(coalesce(v_headers->>'x-forwarded-for', ''), ',', 1)), '');
+  v_ip_hash := encode(extensions.digest(coalesce(v_ip, 'unknown') || '|focusone-reviews', 'sha256'), 'hex');
+
   -- Rate-limit: no más de 3 publicaciones por IP en la última hora.
   if (
     select count(*) from public.review_throttle
-    where ip_hash = coalesce(p_ip_hash, 'unknown')
+    where ip_hash = v_ip_hash
       and created_at > now() - interval '1 hour'
   ) >= 3 then
     raise exception 'Demasiadas opiniones desde tu conexión. Inténtalo más tarde.';
@@ -838,12 +873,12 @@ begin
     values (nullif(trim(coalesce(p_name, '')), ''), p_rating, trim(p_comment))
     returning * into v_row;
 
-  insert into public.review_throttle (ip_hash) values (coalesce(p_ip_hash, 'unknown'));
+  insert into public.review_throttle (ip_hash) values (v_ip_hash);
   return v_row;
 end;
 $$ language plpgsql security definer set search_path = public;
 
-grant execute on function public.post_review(text, int, text, text) to anon, authenticated;
+grant execute on function public.post_review(text, int, text) to anon, authenticated;
 
 -- ==================================================================
 -- 02b_focus_sessions.sql  (sesiones de Deep Work — versión autocontenida)
