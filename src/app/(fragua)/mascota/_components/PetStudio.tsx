@@ -78,12 +78,20 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDev
   const outfit = slots.outfit_id ? byId.get(slots.outfit_id) : null
   const accessory = slots.accessory_id ? byId.get(slots.accessory_id) : null
 
-  async function persistPet(next: typeof slots, nextName = name) {
+  // Revierte al estado anterior si el guardado falla: sin esto, un equip/
+  // unequip optimista (o un renombrado) que falla en el servidor se quedaba
+  // "puesto" en pantalla hasta el próximo reload completo, aunque el
+  // servidor nunca lo guardó.
+  async function persistPet(next: typeof slots, prev: typeof slots, nextName = name, prevName = name) {
     if (!canUse || !uid) return
     const { error } = await supabase
       .from('user_pet')
       .upsert({ user_id: uid, name: nextName, ...next }, { onConflict: 'user_id' })
-    if (error) toast.error('No se pudo guardar tu mascota.')
+    if (error) {
+      toast.error('No se pudo guardar tu mascota.')
+      setSlots(prev)
+      setName(prevName)
+    }
   }
 
   async function buy(item: PetItem): Promise<boolean> {
@@ -125,33 +133,36 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDev
   async function onPetCard(item: PetItem) {
     const has = owned.has(item.id) || (await buy(item))
     if (!has) return
+    const prev = slots
     const next = { ...slots, pet_id: item.id }
     setSlots(next)
-    void persistPet(next)
+    void persistPet(next, prev)
     toast.success(`${name} está listo`)
   }
 
   async function onGearCard(item: PetItem) {
     const slotKey = SLOT[item.kind as Exclude<PetItemKind, 'pet'>]
+    const prev = slots
     // Ya equipado → desequipar
     if (slots[slotKey] === item.id) {
       const next = { ...slots, [slotKey]: null }
       setSlots(next)
-      void persistPet(next)
+      void persistPet(next, prev)
       return
     }
     const has = owned.has(item.id) || (await buy(item))
     if (!has) return
     const next = { ...slots, [slotKey]: item.id }
     setSlots(next)
-    void persistPet(next)
+    void persistPet(next, prev)
   }
 
   function saveName() {
     setEditingName(false)
+    const prevName = name
     const clean = name.trim() || 'Ascua'
     setName(clean)
-    void persistPet(slots, clean)
+    void persistPet(slots, slots, clean, prevName)
   }
 
   const visible = catalog.filter((i) => i.kind === tab)

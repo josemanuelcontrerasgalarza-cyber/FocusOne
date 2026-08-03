@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.3'
+export const APP_VERSION = '5.4'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.4',
+    title: 'Auditoría semanal — más seguro y sin resets a mitad de foco',
+    date: '3 ago 2026',
+    tag: 'Actual',
+    items: [
+      'Corregido: recargar la página a mitad de una sesión de Deep Work o del timer de tu misión activa ya no la reinicia a cero — retoma justo donde ibas.',
+      'Corregido: las misiones forjadas por la tarde/noche ya cuentan siempre en tu día correcto, sin importar tu zona horaria.',
+      'Nuevo: sin misión activa, enciende tu pendiente más antigua con un toque desde «Hoy», sin pasar por Misiones.',
+      'Más seguro: cerrado un hueco que permitía saltarse el límite de opiniones, y el enlace de vuelta del login con Google ya no acepta redirecciones fuera de FocusOne.',
+      'Accesibilidad: mejor contraste de texto, notificaciones anunciadas a lectores de pantalla y controles del reproductor de música con nombre accesible.',
+    ],
+  },
+  {
     version: '5.3',
     title: 'Música ilimitada y mascota con estilo',
     date: '3 ago 2026',
-    tag: 'Actual',
     items: [
       'Música ilimitada, gratis y sin anuncios: reproductor propio con tendencias y buscador (vía Audius).',
       'Tu mascota ahora luce de verdad lo que le pones: gorros en la cabeza, gafas en la cara, bufanda y capa en el cuerpo.',

@@ -4,6 +4,7 @@ import { StreakBadge } from '@/components/forge/StreakBadge'
 import { PointsBadge } from '@/components/forge/PointsBadge'
 import { ForgeCommand } from '@/components/forge/ForgeCommand'
 import { CommandButton } from '@/components/forge/CommandButton'
+import { TimezoneSync } from '@/components/forge/TimezoneSync'
 import { getHeaderStats } from '@/lib/missions'
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default async function FraguaLayout({
 
   return (
     <div className="relative z-10 flex min-h-screen flex-col bg-forge-canvas font-forge text-forge-ink">
+      <TimezoneSync />
       {/* Header */}
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-forge-line bg-forge-canvas/90 px-6 py-5 backdrop-blur-md sm:px-12 sm:py-7">
         <div className="flex items-center gap-9">

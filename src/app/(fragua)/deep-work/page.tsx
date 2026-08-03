@@ -24,6 +24,25 @@ function format(seconds: number) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+const STORAGE_KEY = 'focusone:deep-work'
+
+interface StoredSession {
+  startedAt: number
+  endAt: number
+  minutes: number
+  intention: string
+}
+
+function readStoredSession(): StoredSession | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as StoredSession) : null
+  } catch {
+    return null
+  }
+}
+
 /**
  * Deep Work nativo de La Fragua (reemplaza la entrada al /focus glass).
  * Timer de enfoque con presets + duración personalizada. Registra la sesión en
@@ -44,14 +63,14 @@ export default function DeepWorkPage() {
 
   useEffect(() => () => { if (tick.current) clearInterval(tick.current) }, [])
 
-  async function recordSession(completed: boolean) {
+  async function recordSession(completed: boolean, plannedMinutes = minutes) {
     if (!uid || !startRef.current) return
     const { error } = await supabase.from('focus_sessions').insert({
       user_id: uid,
       task_id: null,
       started_at: startRef.current.toISOString(),
       ended_at: new Date().toISOString(),
-      planned_minutes: minutes,
+      planned_minutes: plannedMinutes,
       completed,
     })
     // Si falta la tabla (setup no corrido) no molestamos con un toast en cada
@@ -63,12 +82,8 @@ export default function DeepWorkPage() {
     if (completed) void notificarESP32(uid, 'deep_work_completado')
   }
 
-  function start() {
-    const total = minutes * 60
-    startRef.current = new Date()
-    endRef.current = Date.now() + total * 1000
-    setSecondsLeft(total)
-    setPhase('running')
+  function beginTicking(endAt: number) {
+    endRef.current = endAt
     if (tick.current) clearInterval(tick.current)
     tick.current = setInterval(() => {
       if (endRef.current == null) return
@@ -82,9 +97,49 @@ export default function DeepWorkPage() {
     }, 250)
   }
 
+  // Al montar: si había una sesión en curso guardada (reload, o volver de
+  // navegar a otra pantalla), la retoma en vez de perderla en silencio. Si ya
+  // venció mientras la pestaña estaba cerrada, se registra como completada
+  // (el tiempo transcurrió igual, estuviéramos mirando o no).
+  useEffect(() => {
+    const stored = readStoredSession()
+    if (!stored) return
+    startRef.current = new Date(stored.startedAt)
+    setMinutes(stored.minutes)
+    setIntention(stored.intention)
+    const left = Math.round((stored.endAt - Date.now()) / 1000)
+    if (left <= 0) {
+      sessionStorage.removeItem(STORAGE_KEY)
+      setSecondsLeft(0)
+      setPhase('done')
+      void recordSession(true, stored.minutes)
+    } else {
+      setSecondsLeft(left)
+      setPhase('running')
+      beginTicking(stored.endAt)
+    }
+    // Solo al montar: es una reconciliación única contra lo que había en disco.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function start() {
+    const total = minutes * 60
+    const startedAt = new Date()
+    const endAt = Date.now() + total * 1000
+    startRef.current = startedAt
+    setSecondsLeft(total)
+    setPhase('running')
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ startedAt: startedAt.getTime(), endAt, minutes, intention }),
+    )
+    beginTicking(endAt)
+  }
+
   function finish(natural: boolean) {
     if (tick.current) clearInterval(tick.current)
     endRef.current = null
+    sessionStorage.removeItem(STORAGE_KEY)
     if (natural) {
       setPhase('done')
       void recordSession(true)

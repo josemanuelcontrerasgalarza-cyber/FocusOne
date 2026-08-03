@@ -158,8 +158,8 @@ export default function MusicaPage() {
                   active ? 'border-ember/50 bg-ember/[0.06]' : 'border-forge-line bg-forge-surface hover:border-forge-ink-faint'
                 }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 {t.artwork ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={t.artwork} alt="" className="h-11 w-11 rounded-md object-cover" loading="lazy" />
                 ) : (
                   <div className="flex h-11 w-11 items-center justify-center rounded-md bg-forge-raised">
@@ -192,8 +192,8 @@ export default function MusicaPage() {
       {current && (
         <div className="fixed inset-x-0 bottom-0 z-30 border-t border-forge-line bg-forge-canvas/95 backdrop-blur-md">
           <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             {current.artwork ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={current.artwork} alt="" className="h-12 w-12 rounded-md object-cover" />
             ) : (
               <div className="flex h-12 w-12 items-center justify-center rounded-md bg-forge-raised">
@@ -223,16 +223,17 @@ export default function MusicaPage() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button onClick={() => go(-1)} className="p-2 text-forge-ink-dim hover:text-forge-ink">
+              <button onClick={() => go(-1)} aria-label="Pista anterior" className="p-2 text-forge-ink-dim hover:text-forge-ink">
                 <SkipBack size={18} />
               </button>
               <button
                 onClick={toggle}
+                aria-label={playing ? 'Pausar' : 'Reproducir'}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-ember text-forge-canvas shadow-ember"
               >
                 {playing ? <Pause size={18} /> : <Play size={18} />}
               </button>
-              <button onClick={() => go(1)} className="p-2 text-forge-ink-dim hover:text-forge-ink">
+              <button onClick={() => go(1)} aria-label="Siguiente pista" className="p-2 text-forge-ink-dim hover:text-forge-ink">
                 <SkipForward size={18} />
               </button>
             </div>
