@@ -26,7 +26,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Datos de la opinión inválidos' }, { status: 400 })
   }
 
-  const fwd = req.headers.get('x-forwarded-for') || ''
+  // `x-forwarded-for` es un header que el propio cliente puede enviar y falsificar
+  // (basta con anteponer una IP falsa a la lista). En Vercel, `x-vercel-forwarded-for`
+  // lo sobrescribe siempre la plataforma con la IP real de conexión y no puede ser
+  // manipulado por el cliente, así que es la única fuente fiable para el rate-limit.
+  const trustedFwd = req.headers.get('x-vercel-forwarded-for')
+  const fwd = trustedFwd || req.headers.get('x-forwarded-for') || ''
   const ip = fwd.split(',')[0]?.trim() || 'unknown'
   const ipHash = createHash('sha256').update(`${ip}|focusone-reviews`).digest('hex')
 

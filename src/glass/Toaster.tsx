@@ -13,7 +13,11 @@ const icons = {
 export function Toaster() {
   const { toasts, dismiss } = useToastStore()
   return (
-    <div className="pointer-events-none fixed right-4 top-4 z-[120] flex flex-col gap-2">
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed right-4 top-4 z-[120] flex flex-col gap-2"
+    >
       <AnimatePresence>
         {toasts.map((t) => (
           <motion.div

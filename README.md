@@ -29,7 +29,9 @@ cp .env.example .env.local
 # Editar .env.local con tus credenciales de Supabase
 
 # 3. Base de datos
-# Ejecutar supabase/schema.sql y supabase/migrations/*.sql en el SQL Editor de Supabase
+# Pegar TODO el contenido de supabase/setup_all.sql en el SQL Editor de Supabase
+# y ejecutarlo (es idempotente y autocontenido). NO uses supabase/schema.sql.legacy-do-not-run:
+# es el esquema v1 obsoleto, se conserva solo como referencia histórica.
 
 # 4. Iniciar
 npm run dev

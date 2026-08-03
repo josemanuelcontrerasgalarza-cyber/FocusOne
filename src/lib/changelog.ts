@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.2'
+export const APP_VERSION = '5.3'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: '5.2',
-    title: 'Entra con Google, más seguro y más rápido',
+    version: '5.3',
+    title: 'Menos fricción para cerrar tus misiones',
     date: '3 ago 2026',
     tag: 'Actual',
+    items: [
+      'Quiz de cierre más flexible: puedes volver a la pregunta anterior o saltar el resto y forjar ya con el puntaje mínimo.',
+      'Borrar una misión ahora pide confirmación: un clic accidental ya no la destruye.',
+      'Avisos de error más claros y visibles durante más tiempo en la tienda y Focus Pet.',
+      'Reforzada la seguridad: dependencias parcheadas, rate-limit de opiniones más fiable y la cola del ESP32 protegida contra datos inválidos.',
+      'Limpieza interna: se retiró código de una versión anterior que ya no se usaba, para una app más ligera y fácil de mantener.',
+    ],
+  },
+  {
+    version: '5.2',
+    title: 'Entra con Google, más seguro y más rápido',
     items: [
       'Inicia sesión con Google en un toque, sin contraseña — tu progreso se guarda igual.',
       'Más seguridad: la puntuación de cada misión se verifica en el servidor y las opiniones tienen protección anti-spam.',

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Check, Loader2, Flame } from 'lucide-react'
+import { X, Check, Loader2, Flame, ChevronLeft } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import {
   MOCK_QUESTIONS,
@@ -40,6 +40,29 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
   // Defensa: sin preguntas no hay quiz que mostrar (evita leer question undefined).
   if (total === 0) return null
 
+  /** Cierra el quiz con las respuestas dadas. Las preguntas sin responder (p.ej.
+   *  al saltar) cuentan como la peor opción — el servidor ya hace lo mismo. */
+  async function finish(finalAnswers: number[]) {
+    if (canSave && uid) {
+      setSaving(true)
+      try {
+        const outcome = await saveQuizResult(uid, mission, finalAnswers)
+        setResult(outcome)
+        setStep(total)
+      } catch {
+        toast.error('No se pudo guardar el cierre. Inténtalo de nuevo.')
+      } finally {
+        setSaving(false)
+      }
+    } else {
+      // Demo: solo previsualiza. Espejo del servidor: hueco → peor opción.
+      const normalized = MOCK_QUESTIONS.map((q, i) => finalAnswers[i] ?? q.options.length - 1)
+      const score = computeScore(normalized)
+      setResult({ score, pointsEarned: previewPoints(score) })
+      setStep(total)
+    }
+  }
+
   async function choose(optionIndex: number) {
     if (saving) return
     const nextAnswers = [...answers]
@@ -50,25 +73,19 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
       setStep(step + 1)
       return
     }
+    await finish(nextAnswers)
+  }
 
-    // Última pregunta respondida → cerrar.
-    if (canSave && uid) {
-      setSaving(true)
-      try {
-        const outcome = await saveQuizResult(uid, mission, nextAnswers)
-        setResult(outcome)
-        setStep(total)
-      } catch {
-        toast.error('No se pudo guardar el cierre. Inténtalo de nuevo.')
-      } finally {
-        setSaving(false)
-      }
-    } else {
-      // Demo: solo previsualiza.
-      const score = computeScore(nextAnswers)
-      setResult({ score, pointsEarned: previewPoints(score) })
-      setStep(total)
-    }
+  /** Salta las preguntas restantes y cierra ya, con el mínimo garantizado —
+   *  para cuando el foco se agota y responder el quiz entero es fricción. */
+  function skip() {
+    if (saving) return
+    void finish(answers)
+  }
+
+  function back() {
+    if (saving || step === 0) return
+    setStep(step - 1)
   }
 
   const showingResult = step >= total
@@ -136,8 +153,20 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="mb-1 font-num text-xs text-forge-ink-faint">
-                  Pregunta {step + 1} de {total}
+                <div className="mb-1 flex items-center gap-2">
+                  {step > 0 && (
+                    <button
+                      onClick={back}
+                      disabled={saving}
+                      aria-label="Pregunta anterior"
+                      className="-ml-1.5 rounded-full p-1 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                    >
+                      <ChevronLeft size={15} />
+                    </button>
+                  )}
+                  <span className="font-num text-xs text-forge-ink-faint">
+                    Pregunta {step + 1} de {total}
+                  </span>
                 </div>
                 <h3 className="mb-5 font-forge text-xl font-bold text-forge-ink">
                   {question.prompt}
@@ -158,6 +187,14 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
                     </button>
                   ))}
                 </div>
+
+                <button
+                  onClick={skip}
+                  disabled={saving}
+                  className="mt-4 w-full text-center text-xs text-forge-ink-faint underline-offset-2 transition-colors hover:text-forge-ink hover:underline disabled:opacity-40"
+                >
+                  Saltar y forjar ya (puntaje mínimo)
+                </button>
               </motion.div>
             </AnimatePresence>
           </>

@@ -6,7 +6,7 @@ import { Check, Lock, Loader2, Gem } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
-import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
+import { isDbSetupError, DB_SETUP_MSG, errText } from '@/lib/dbError'
 import { INFINITE } from '@/lib/developer'
 import type { Reward } from '@/types'
 
@@ -62,10 +62,13 @@ export function RewardsStore({ rewards, unlockedIds, points, isDeveloper, isDemo
       toast.success(`Desbloqueada: ${reward.name} 🔥`)
       router.refresh()
     } catch (err) {
-      const msg = err instanceof Error ? err.message : ''
+      // El RPC de Supabase devuelve un objeto plano (PostgrestError), no una
+      // instancia de Error: `instanceof Error` nunca daba `true` aquí, así que
+      // el mensaje de "puntos insuficientes" jamás se mostraba de verdad.
+      const msg = errText(err)
       if (msg.includes('insuficientes')) toast.error('No tienes puntos suficientes.')
       else if (isDbSetupError(err)) toast.error(DB_SETUP_MSG)
-      else toast.error('No se pudo desbloquear. Inténtalo de nuevo.')
+      else toast.error(msg || 'No se pudo desbloquear. Inténtalo de nuevo.')
     } finally {
       setBusyId(null)
     }

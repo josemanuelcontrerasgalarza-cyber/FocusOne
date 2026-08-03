@@ -6,7 +6,7 @@ import { Check, Lock, Gem, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
-import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
+import { isDbSetupError, DB_SETUP_MSG, errText } from '@/lib/dbError'
 import { INFINITE } from '@/lib/developer'
 import type { PetItem, PetItemKind, UserPet } from '@/types'
 
@@ -112,10 +112,13 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDev
       router.refresh()
       return true
     } catch (err) {
-      const msg = err instanceof Error ? err.message : ''
+      // El RPC de Supabase devuelve un objeto plano (PostgrestError), no una
+      // instancia de Error: `instanceof Error` nunca daba `true` aquí, así que
+      // el mensaje de "puntos insuficientes" jamás se mostraba de verdad.
+      const msg = errText(err)
       if (msg.includes('insuficientes')) toast.error('Puntos insuficientes.')
       else if (isDbSetupError(err)) toast.error(DB_SETUP_MSG)
-      else toast.error('No se pudo comprar.')
+      else toast.error(msg || 'No se pudo comprar.')
       return false
     } finally {
       setBusyId(null)
@@ -259,10 +262,12 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDev
         </div>
 
         {/* Tabs */}
-        <div className="mb-3 flex gap-2 overflow-x-auto">
+        <div role="tablist" className="mb-3 flex gap-2 overflow-x-auto">
           {TABS.map((t) => (
             <button
               key={t.key}
+              role="tab"
+              aria-selected={tab === t.key}
               onClick={() => setTab(t.key)}
               className={`flex-shrink-0 rounded-full px-3.5 py-1.5 font-forge text-sm font-semibold transition-colors ${
                 tab === t.key
@@ -307,6 +312,7 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDev
                 <button
                   onClick={() => (isPet ? onPetCard(item) : onGearCard(item))}
                   disabled={busy || (active && isPet) || locked}
+                  aria-pressed={active}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 font-forge text-xs font-bold transition-transform disabled:cursor-default ${
                     active
                       ? 'border border-ember/40 bg-ember/10 text-ember'

@@ -7,7 +7,7 @@ import { Check, Gem, Lock, Loader2, ArrowRight, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
-import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
+import { isDbSetupError, DB_SETUP_MSG, errText } from '@/lib/dbError'
 import type { PetItem } from '@/types'
 
 interface Props {
@@ -59,10 +59,13 @@ export function WeeklyDrops({ featured, ownedIds, points, isDeveloper, isDemo }:
       toast.success(`Compraste: ${item.name}. ¡Vístela en Focus Pet!`)
       router.refresh()
     } catch (err) {
-      const msg = err instanceof Error ? err.message : ''
+      // El RPC de Supabase devuelve un objeto plano (PostgrestError), no una
+      // instancia de Error: `instanceof Error` nunca daba `true` aquí, así que
+      // el mensaje de "puntos insuficientes" jamás se mostraba de verdad.
+      const msg = errText(err)
       if (msg.includes('insuficientes')) toast.error('Puntos insuficientes.')
       else if (isDbSetupError(err)) toast.error(DB_SETUP_MSG)
-      else toast.error('No se pudo comprar.')
+      else toast.error(msg || 'No se pudo comprar.')
     } finally {
       setBusyId(null)
     }

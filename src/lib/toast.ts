@@ -21,9 +21,11 @@ export const useToastStore = create<ToastState>((set) => ({
   push: (kind, message) => {
     const id = nextId++
     set((s) => ({ toasts: [...s.toasts, { id, kind, message }] }))
+    // Los errores se quedan más tiempo: un usuario con dificultad para mantener
+    // la atención necesita más margen para leerlos antes de que desaparezcan solos.
     setTimeout(() => {
       set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }))
-    }, 3500)
+    }, kind === 'error' ? 7000 : 3500)
   },
   dismiss: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
 }))

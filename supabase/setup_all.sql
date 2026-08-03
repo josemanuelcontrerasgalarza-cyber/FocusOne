@@ -898,6 +898,14 @@ drop policy if exists "esp32_insert_own" on public.notificaciones_esp32;
 create policy "esp32_insert_own" on public.notificaciones_esp32
   for insert with check (auth.uid() = usuario_id);
 
+-- La policy anterior solo valida el dueño, no el contenido: sin este CHECK,
+-- cualquier cuenta podría insertar un `tipo` arbitrario vía REST con la anon key.
+alter table public.notificaciones_esp32
+  drop constraint if exists notificaciones_esp32_tipo_check;
+alter table public.notificaciones_esp32
+  add constraint notificaciones_esp32_tipo_check
+  check (tipo in ('pomodoro_completado', 'deep_work_completado', 'tarea_completada', 'mision_completada'));
+
 -- ==================================================================
 -- HERRAMIENTAS DE DEVELOPER (panel in-app)
 -- ==================================================================

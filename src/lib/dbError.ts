@@ -32,3 +32,11 @@ export function isDbSetupError(err: unknown): boolean {
 
 export const DB_SETUP_MSG =
   'Falta activar la base de datos: ejecuta setup_all.sql en Supabase.'
+
+/** Extrae el texto de error real de un PostgrestError (objeto plano) o Error. */
+export function errText(err: unknown): string {
+  if (err && typeof err === 'object' && 'message' in err) {
+    return String((err as { message: unknown }).message ?? '')
+  }
+  return typeof err === 'string' ? err : ''
+}

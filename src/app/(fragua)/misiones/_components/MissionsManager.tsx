@@ -7,7 +7,7 @@ import { Flame, Plus, Check, Trash2, Loader2, ArrowRight, AlertTriangle } from '
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
-import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
+import { isDbSetupError, DB_SETUP_MSG, errText } from '@/lib/dbError'
 import type { Mission } from '@/types'
 
 interface Props {
@@ -50,6 +50,9 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   const [minutes, setMinutes] = useState(25)
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  // Borrar una misión es irreversible: se arma en dos pasos (icono → confirmar)
+  // para que un clic accidental no destruya una misión sin querer.
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   // Error visible y PERSISTENTE (no un toast que se desvanece): así, si algo
   // falla al agregar, se ve el motivo real hasta el próximo intento.
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -82,14 +85,6 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
         </Link>
       </div>
     )
-  }
-
-  /** Extrae el texto de error real de un PostgrestError (objeto plano) o Error. */
-  function errText(err: unknown): string {
-    if (err && typeof err === 'object' && 'message' in err) {
-      return String((err as { message: unknown }).message ?? '')
-    }
-    return typeof err === 'string' ? err : ''
   }
 
   async function createMission(e: React.FormEvent) {
@@ -170,6 +165,7 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
       toast.error(msg)
     } finally {
       setBusyId(null)
+      setConfirmDeleteId(null)
     }
   }
 
@@ -295,22 +291,45 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
                     </p>
                     <MissionMeta mission={m} />
                   </div>
-                  <button
-                    onClick={() => activateMission(m.id)}
-                    disabled={busy}
-                    className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-ember px-4 py-2 font-forge text-sm font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px disabled:opacity-40"
-                  >
-                    {busy ? <Loader2 size={14} className="animate-spin" /> : <Flame size={14} />}
-                    Encender
-                  </button>
-                  <button
-                    onClick={() => deleteMission(m.id)}
-                    disabled={busy}
-                    aria-label="Borrar misión"
-                    className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {confirmDeleteId === m.id ? (
+                    <div className="flex flex-shrink-0 items-center gap-1.5">
+                      <span className="hidden text-xs text-forge-ink-dim sm:inline">¿Seguro?</span>
+                      <button
+                        onClick={() => deleteMission(m.id)}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1 rounded-full bg-red-500/90 px-3 py-1.5 font-forge text-xs font-bold text-white transition-colors hover:bg-red-500 disabled:opacity-40"
+                      >
+                        {busy ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        Sí, borrar
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        disabled={busy}
+                        className="rounded-full px-3 py-1.5 font-forge text-xs font-semibold text-forge-ink-dim transition-colors hover:text-forge-ink disabled:opacity-40"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => activateMission(m.id)}
+                        disabled={busy}
+                        className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-ember px-4 py-2 font-forge text-sm font-bold text-forge-canvas shadow-ember transition-transform hover:-translate-y-px disabled:opacity-40"
+                      >
+                        {busy ? <Loader2 size={14} className="animate-spin" /> : <Flame size={14} />}
+                        Encender
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(m.id)}
+                        disabled={busy}
+                        aria-label="Borrar misión"
+                        className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </div>
               )
             })}
