@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.3'
+export const APP_VERSION = '5.4'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: '5.3',
-    title: 'Música ilimitada y mascota con estilo',
+    version: '5.4',
+    title: 'Tienda enorme y música que no se detiene',
     date: '3 ago 2026',
     tag: 'Actual',
+    items: [
+      'Nueva Tienda con más de 550 ítems para desbloquear con tus puntos: mascotas, gorros, atuendos, accesorios, auras, fondos y mucho más.',
+      'Los ítems equipables que compras se lucen en tu Focus Pet.',
+      'La música ahora sigue sonando aunque cambies de pantalla, con un mini-reproductor flotante — hasta que tú decidas pararla.',
+    ],
+  },
+  {
+    version: '5.3',
+    title: 'Música ilimitada y mascota con estilo',
     items: [
       'Música ilimitada, gratis y sin anuncios: reproductor propio con tendencias y buscador (vía Audius).',
       'Tu mascota ahora luce de verdad lo que le pones: gorros en la cabeza, gafas en la cara, bufanda y capa en el cuerpo.',

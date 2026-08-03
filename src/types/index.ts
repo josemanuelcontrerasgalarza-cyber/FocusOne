@@ -154,6 +154,15 @@ export interface Reward {
 // === Focus Pet (mascota de enfoque) ===
 export type PetItemKind = 'pet' | 'hat' | 'outfit' | 'accessory'
 
+/** Ítem de la tienda (catálogo amplio). Los equipables van a Focus Pet. */
+export interface StoreItem {
+  id: string
+  name: string
+  kind: string
+  emoji: string
+  cost: number
+}
+
 export interface PetItem {
   id: string
   name: string

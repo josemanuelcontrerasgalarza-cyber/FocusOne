@@ -103,7 +103,7 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDev
     }
     setBusyId(item.id)
     try {
-      const { error } = await supabase.rpc('buy_pet_item', { p_item: item.id })
+      const { error } = await supabase.rpc('buy_store_item', { p_item: item.id })
       if (error) throw error
       setOwned((s) => new Set(s).add(item.id))
       if (!isDeveloper) setPoints((p) => p - item.cost_points) // dev: diamantes ∞
