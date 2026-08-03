@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.2'
+export const APP_VERSION = '5.3'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.3',
+    title: 'Pasos para arrancar y una paleta de comandos que funciona',
+    date: '3 ago 2026',
+    tag: 'Actual',
+    items: [
+      'Nuevo: divide una misión en pasos cortos (opcional) y márcalos según avanzas, sin que te bloqueen para terminar.',
+      'La paleta de comandos (⌘K) ya no lleva a páginas retiradas ni falla al crear una misión — y ya no muestra un error cada vez que la abres.',
+      'Confirmación antes de borrar una misión: ya no se pierde por un clic de más.',
+      'Cuenta demo → cuenta real: tu nombre y correo ahora se guardan de verdad al convertirla (antes fallaba en silencio).',
+      'Texto más legible en Progreso y Misiones para quienes ven la app con poco contraste.',
+      'Actualización de seguridad: parche de Next.js, y arreglos menores en el enlace de inicio con Google y la sesión.',
+      'Limpieza: se retiró código de la interfaz anterior que ya no se usaba.',
+    ],
+  },
+  {
     version: '5.2',
     title: 'Entra con Google, más seguro y más rápido',
     date: '3 ago 2026',
-    tag: 'Actual',
     items: [
       'Inicia sesión con Google en un toque, sin contraseña — tu progreso se guarda igual.',
       'Más seguridad: la puntuación de cada misión se verifica en el servidor y las opiniones tienen protección anti-spam.',

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { getMissionsBoard } from '@/lib/missions'
 import { MissionsManager } from './_components/MissionsManager'
 
@@ -26,12 +27,14 @@ export default async function MisionesPage() {
         </h1>
       </header>
 
-      <MissionsManager
-        active={active}
-        pending={pending}
-        history={history}
-        isDemo={isDemo}
-      />
+      <Suspense fallback={null}>
+        <MissionsManager
+          active={active}
+          pending={pending}
+          history={history}
+          isDemo={isDemo}
+        />
+      </Suspense>
     </section>
   )
 }

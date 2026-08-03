@@ -47,10 +47,14 @@ npm run dev
 
 | Ruta | Descripción |
 |---|---|
-| `/` | Centro de mando — misión principal, telemetría, objetivos |
-| `/focus` | **Modo Deep Work** — sesiones de foco de 25/50/90 min |
-| `/projects` | Misiones (proyectos) |
-| `/ideas` | Bóveda de ideas |
-| `/stats` | Telemetría de rendimiento |
-| `/music` | Frecuencias de foco (Spotify) |
-| `/settings` | Configuración |
+| `/hoy` | La Fragua — misión activa, timer y estadísticas del día |
+| `/misiones` | Crear, encender, borrar y ver el historial de misiones |
+| `/deep-work` | Sesiones de foco de duración personalizable |
+| `/progreso` | Telemetría: racha, tiempo enfocado, calendario del mes |
+| `/mascota` | Focus Pet — viste tu mascota con lo que ganas forjando |
+| `/musica` | Frecuencias de foco (Spotify) |
+| `/perfil` | Cuenta, tienda de recompensas y ajustes |
+
+Las rutas del diseño anterior (`/app`, `/focus`, `/projects`, `/ideas`,
+`/stats`, `/music`, `/achievements`, `/settings`) siguen existiendo como
+redirects a su equivalente actual, por si hay enlaces viejos guardados.

@@ -101,7 +101,7 @@ function WeeklyProductivity({ week, forgedWeek }: { week: DaySlot[]; forgedWeek:
                 title={`${s.forged} forjada${s.forged === 1 ? '' : 's'}`}
                 aria-label={`Día ${i + 1}: ${s.forged} forjadas`}
               />
-              <span className="font-num text-[11px] text-forge-ink-faint">{s.label}</span>
+              <span className="font-num text-[11px] text-forge-ink-dim">{s.label}</span>
             </div>
           )
         })}
@@ -153,7 +153,7 @@ function MonthCalendar({ calendar, monthLabel }: { calendar: CalendarDay[]; mont
               className={`flex aspect-square items-center justify-center rounded-md text-[13px] font-num ${
                 c.active
                   ? 'bg-ember/15 font-semibold text-ember'
-                  : 'bg-forge-canvas text-forge-ink-faint'
+                  : 'bg-forge-canvas text-forge-ink-dim'
               } ${c.today ? 'ring-1 ring-inset ring-ember' : ''}`}
               title={c.active ? 'Con actividad' : ''}
             >
@@ -198,7 +198,7 @@ function RecentActivity({ activity }: { activity: ActivityItem[] }) {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-forge text-[15px] font-semibold text-forge-ink">{a.title}</p>
-                <p className="text-[12px] text-forge-ink-faint">{a.meta}</p>
+                <p className="text-[12px] text-forge-ink-dim">{a.meta}</p>
               </div>
             </li>
           ))}

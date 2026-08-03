@@ -3,13 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Zap, Target, Lightbulb, BarChart2, Music, Settings,
-  Plus, Search, CornerDownLeft, Trophy, type LucideIcon,
+  Flame, Zap, Target, TrendingUp, User, Music, Dog,
+  Plus, Search, CornerDownLeft, type LucideIcon,
 } from 'lucide-react'
 import { Modal } from '@/glass/Modal'
 import { useUIStore } from '@/store/uiStore'
-import { useAuthStore } from '@/store/authStore'
-import { useProjectStore } from '@/store/projectStore'
 import { cn } from '@/lib/utils'
 
 interface Command {
@@ -23,10 +21,8 @@ interface Command {
 }
 
 export function CommandPalette() {
-  const { commandOpen, setCommandOpen, toggleCommand, setIntent } = useUIStore()
+  const { commandOpen, setCommandOpen, toggleCommand } = useUIStore()
   const router = useRouter()
-  const user = useAuthStore((s) => s.user)
-  const { projects, fetchProjects } = useProjectStore()
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -44,48 +40,38 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', onKey)
   }, [toggleCommand])
 
-  // Al abrir: reset y carga de misiones para la búsqueda
+  // Al abrir: reset
   useEffect(() => {
     if (commandOpen) {
       setQuery('')
       setActive(0)
-      if (user?.id && projects.length === 0) fetchProjects(user.id)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
-  }, [commandOpen, user?.id, projects.length, fetchProjects])
+  }, [commandOpen])
 
   function go(href: string) {
     setCommandOpen(false)
     router.push(href)
   }
 
+  // Ir a" refleja EXACTAMENTE las rutas vivas de La Fragua (ver ForgeNav +
+  // enlaces reales de deep-work/mascota/música), no las del diseño anterior.
   const commands = useMemo<Command[]>(() => {
     const nav: Command[] = [
-      { id: 'go-app',      label: 'Centro de mando', icon: LayoutDashboard, group: 'Ir a', run: () => go('/app') },
-      { id: 'go-focus',    label: 'Deep Work',       icon: Zap,             group: 'Ir a', keywords: 'foco temporizador pomodoro', run: () => go('/focus') },
-      { id: 'go-projects', label: 'Misiones',        icon: Target,          group: 'Ir a', keywords: 'proyectos', run: () => go('/projects') },
-      { id: 'go-ideas',    label: 'Ideas',           icon: Lightbulb,       group: 'Ir a', keywords: 'bóveda', run: () => go('/ideas') },
-      { id: 'go-stats',    label: 'Telemetría',      icon: BarChart2,       group: 'Ir a', keywords: 'estadísticas rendimiento', run: () => go('/stats') },
-      { id: 'go-achv',     label: 'Logros',          icon: Trophy,          group: 'Ir a', keywords: 'achievements insignias medallas', run: () => go('/achievements') },
-      { id: 'go-music',    label: 'Música',          icon: Music,           group: 'Ir a', run: () => go('/music') },
-      { id: 'go-settings', label: 'Configuración',   icon: Settings,        group: 'Ir a', keywords: 'ajustes sistemas', run: () => go('/settings') },
+      { id: 'go-hoy',      label: 'Hoy',      icon: Flame,      group: 'Ir a', keywords: 'centro de mando taller', run: () => go('/hoy') },
+      { id: 'go-focus',    label: 'Deep Work', icon: Zap,        group: 'Ir a', keywords: 'foco temporizador pomodoro', run: () => go('/deep-work') },
+      { id: 'go-misiones', label: 'Misiones',  icon: Target,     group: 'Ir a', keywords: 'proyectos tareas', run: () => go('/misiones') },
+      { id: 'go-progreso', label: 'Progreso',  icon: TrendingUp, group: 'Ir a', keywords: 'estadísticas telemetría rendimiento', run: () => go('/progreso') },
+      { id: 'go-mascota',  label: 'Focus Pet', icon: Dog,        group: 'Ir a', keywords: 'mascota', run: () => go('/mascota') },
+      { id: 'go-music',    label: 'Música',    icon: Music,      group: 'Ir a', run: () => go('/musica') },
+      { id: 'go-perfil',   label: 'Perfil',    icon: User,       group: 'Ir a', keywords: 'ajustes configuración tienda', run: () => go('/perfil') },
     ]
     const actions: Command[] = [
-      { id: 'new-focus',   label: 'Iniciar sesión de Deep Work', icon: Zap,       group: 'Acciones', run: () => go('/focus') },
-      { id: 'new-project', label: 'Nueva misión',                 icon: Plus,      group: 'Acciones', keywords: 'crear proyecto', run: () => { setIntent('new-project'); go('/projects') } },
-      { id: 'new-idea',    label: 'Capturar una idea',            icon: Lightbulb, group: 'Acciones', keywords: 'nueva idea', run: () => go('/ideas') },
+      { id: 'new-focus',   label: 'Iniciar sesión de Deep Work', icon: Zap,  group: 'Acciones', run: () => go('/deep-work') },
+      { id: 'new-mission', label: 'Nueva misión',                icon: Plus, group: 'Acciones', keywords: 'crear', run: () => go('/misiones?new=1') },
     ]
-    const missions: Command[] = projects.slice(0, 8).map((p) => ({
-      id: `mission-${p.id}`,
-      label: p.name,
-      hint: `${p.progress}%`,
-      icon: Target,
-      group: 'Misiones',
-      keywords: p.goal,
-      run: () => go(`/projects/${p.id}`),
-    }))
-    return [...actions, ...nav, ...missions]
-  }, [projects]) // eslint-disable-line react-hooks/exhaustive-deps
+    return [...actions, ...nav]
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()

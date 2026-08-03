@@ -12,7 +12,7 @@ export const runtime = 'nodejs'
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/hoy'
+  const next = safeNext(searchParams.get('next'))
 
   if (code) {
     const supabase = await createSupabaseServerClient()
@@ -23,4 +23,15 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.redirect(`${origin}/login?error=oauth`)
+}
+
+/**
+ * Solo permite rutas relativas del propio sitio (ej. "/hoy"), nunca una URL
+ * absoluta ni un truco tipo "//evil.com" o "/@evil.com" (CWE-601 open redirect).
+ */
+function safeNext(value: string | null): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('@')) {
+    return '/hoy'
+  }
+  return value
 }

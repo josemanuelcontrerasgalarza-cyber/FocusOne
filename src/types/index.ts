@@ -102,6 +102,12 @@ export interface ActivityItem {
 export type MissionStatus = 'pending' | 'active' | 'completed'
 export type MissionSource = 'user' | 'ai'
 
+/** Sub-paso opcional dentro de una misión (bajar la barrera de arranque). */
+export interface MissionStep {
+  label: string
+  done: boolean
+}
+
 export interface Mission {
   id: string
   user_id: string
@@ -113,6 +119,7 @@ export interface Mission {
   created_at: string
   completed_at?: string | null
   updated_at: string
+  steps?: MissionStep[]
 }
 
 /** Una estadística del panel "Hoy" del dashboard. */

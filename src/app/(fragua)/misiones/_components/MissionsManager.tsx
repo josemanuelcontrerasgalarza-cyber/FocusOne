@@ -1,14 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Flame, Plus, Check, Trash2, Loader2, ArrowRight, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
-import type { Mission } from '@/types'
+import type { Mission, MissionStep } from '@/types'
 
 interface Props {
   active: Mission | null
@@ -43,11 +43,13 @@ const PRESETS = [
  */
 export function MissionsManager({ active, pending, history, isDemo }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const uid = useAuthStore((s) => s.session?.user?.id ?? s.user?.id)
 
   const [title, setTitle] = useState('')
   const [project, setProject] = useState('')
   const [minutes, setMinutes] = useState(25)
+  const [stepsText, setStepsText] = useState('')
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   // Error visible y PERSISTENTE (no un toast que se desvanece): así, si algo
@@ -56,6 +58,13 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   // Misiones recién creadas en esta sesión: se muestran al instante (optimista)
   // aunque el refresh del servidor tarde un momento.
   const [extra, setExtra] = useState<Mission[]>([])
+  const titleRef = useRef<HTMLInputElement>(null)
+
+  // Llegar desde "Nueva misión" de la paleta de comandos (⌘K) enfoca el campo
+  // de título al instante, listo para escribir.
+  useEffect(() => {
+    if (searchParams.get('new') === '1') titleRef.current?.focus()
+  }, [searchParams])
 
   // Pendientes = las del servidor + las creadas al vuelo (deduplicadas por id).
   const pendingAll = useMemo(() => {
@@ -103,6 +112,14 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
     setCreating(true)
     setErrorMsg(null)
     try {
+      // Pasos opcionales: una línea = un paso, vacíos descartados, máx. 8
+      // (mismo tope que la restricción de la base de datos).
+      const steps: MissionStep[] = stepsText
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .slice(0, 8)
+        .map((label) => ({ label, done: false }))
       const { data, error } = await supabase
         .from('missions')
         .insert({
@@ -112,6 +129,7 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
           estimated_minutes: minutes,
           status: 'pending',
           source: 'user',
+          steps,
         })
         .select('*')
         .single()
@@ -121,6 +139,7 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
       setTitle('')
       setProject('')
       setMinutes(25)
+      setStepsText('')
       toast.success('Misión añadida')
       router.refresh()
     } catch (err) {
@@ -156,7 +175,8 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   // Nota: completar una misión (con quiz de cierre) ocurre en /hoy, no aquí.
   // Esta pantalla solo crea/enciende/borra; "Ir a forjar" lleva al dashboard.
 
-  async function deleteMission(id: string) {
+  async function deleteMission(id: string, title: string) {
+    if (!confirm(`¿Borrar «${title}»? No se puede deshacer.`)) return
     setBusyId(id)
     setErrorMsg(null)
     try {
@@ -178,11 +198,21 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
       {/* Crear misión */}
       <form onSubmit={createMission} className="forge-panel flex flex-col gap-3 p-5">
         <input
+          ref={titleRef}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="¿Qué vas a forjar?"
           maxLength={200}
           className="w-full bg-transparent font-forge text-lg font-semibold text-forge-ink outline-none placeholder:text-forge-ink-faint"
+        />
+
+        <textarea
+          value={stepsText}
+          onChange={(e) => setStepsText(e.target.value)}
+          placeholder="Pasos (opcional) — uno por línea, para empezar sin pensarlo"
+          rows={2}
+          maxLength={800}
+          className="w-full resize-none rounded-lg border border-forge-line bg-forge-canvas px-3 py-2 text-sm text-forge-ink outline-none placeholder:text-forge-ink-faint focus:border-ember/50"
         />
 
         {/* Tiempos predefinidos (además del campo libre de minutos). */}
@@ -304,9 +334,9 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
                     Encender
                   </button>
                   <button
-                    onClick={() => deleteMission(m.id)}
+                    onClick={() => deleteMission(m.id, m.title)}
                     disabled={busy}
-                    aria-label="Borrar misión"
+                    aria-label={`Borrar misión «${m.title}»`}
                     className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
                   >
                     <Trash2 size={16} />
@@ -334,7 +364,7 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
                 <p className="min-w-0 flex-1 truncate font-forge text-[15px] font-medium text-forge-ink-dim">
                   {m.title}
                 </p>
-                <span className="flex-shrink-0 font-num text-[12px] text-forge-ink-faint">
+                <span className="flex-shrink-0 font-num text-[12px] text-forge-ink-dim">
                   {shortDate(m.completed_at)}
                 </span>
               </div>
@@ -354,10 +384,14 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-/** Meta bajo el título: proyecto · minutos estimados. */
+/** Meta bajo el título: proyecto · minutos estimados · pasos. */
 function MissionMeta({ mission }: { mission: Mission }) {
   const parts: string[] = []
   if (mission.project) parts.push(mission.project)
   parts.push(`${mission.estimated_minutes} min`)
-  return <p className="mt-0.5 truncate text-[13px] text-forge-ink-faint">{parts.join(' · ')}</p>
+  if (mission.steps && mission.steps.length > 0) {
+    const done = mission.steps.filter((s) => s.done).length
+    parts.push(`${done}/${mission.steps.length} pasos`)
+  }
+  return <p className="mt-0.5 truncate text-[13px] text-forge-ink-dim">{parts.join(' · ')}</p>
 }

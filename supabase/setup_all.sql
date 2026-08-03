@@ -34,8 +34,16 @@ alter table public.profiles enable row level security;
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles
   for select using (auth.uid() = id);
--- La racha y is_developer los escribe el servidor (trigger / SQL admin), NUNCA
--- el cliente: profiles no tiene policy de UPDATE, así nadie se auto-asigna dev.
+
+-- El cliente puede actualizar SOLO su propia fila, y SOLO email/name/avatar_url
+-- (columna concedida más abajo) — necesario para convertir cuenta demo en real
+-- (upgradeAccount). La racha y is_developer los escribe el servidor (trigger /
+-- SQL admin): esas columnas no están en el grant, así nadie se auto-asigna dev.
+drop policy if exists "profiles_update_own" on public.profiles;
+create policy "profiles_update_own" on public.profiles
+  for update using (auth.uid() = id) with check (auth.uid() = id);
+revoke update on public.profiles from authenticated, anon;
+grant update (email, name, avatar_url) on public.profiles to authenticated, anon;
 
 -- ¿La cuenta actual es de desarrollador? SECURITY DEFINER para poder leer el
 -- flag desde las RPC de economía sin depender de la RLS del que llama.
@@ -94,8 +102,16 @@ create table if not exists public.missions (
   source            text not null default 'user' check (source in ('user', 'ai')),
   created_at        timestamptz not null default now(),
   completed_at      timestamptz,
-  updated_at        timestamptz not null default now()
+  updated_at        timestamptz not null default now(),
+  -- Pasos opcionales (2-8 sub-tareas cortas) para bajar la barrera de arranque
+  -- en misiones grandes/vagas: [{ "label": string, "done": boolean }, ...]
+  steps             jsonb not null default '[]'::jsonb
 );
+
+-- Por si la tabla ya existía de una versión previa sin esta columna.
+alter table public.missions add column if not exists steps jsonb not null default '[]'::jsonb;
+alter table public.missions drop constraint if exists missions_steps_len_check;
+alter table public.missions add constraint missions_steps_len_check check (jsonb_array_length(steps) <= 8);
 
 create index if not exists missions_user_status_idx
   on public.missions (user_id, status, created_at desc);
@@ -961,8 +977,8 @@ grant execute on function public.dev_set_streak(int)  to authenticated;
 -- ==================================================================
 -- Marca una cuenta como developer: diamantes ilimitados, todo desbloqueado,
 -- equipar sin comprar y reclamo diario sin límite. Solo se puede activar aquí
--- (SQL admin): el cliente no tiene policy de UPDATE sobre profiles, así que
--- nadie puede auto-asignarse el rol. Cambia el email para mover el rol de cuenta.
+-- (SQL admin): is_developer no está en el grant de columnas del cliente, así
+-- que nadie puede auto-asignarse el rol. Cambia el email para mover el rol de cuenta.
 -- Si la cuenta aún no existe (sin registrar), no pasa nada: actualiza 0 filas;
 -- registra ese correo y vuelve a ejecutar esta línea (o todo el script).
 update public.profiles set is_developer = true  where email = 'kratos2704@outlook.es';

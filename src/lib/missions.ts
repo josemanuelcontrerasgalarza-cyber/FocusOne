@@ -31,6 +31,11 @@ export const DEMO_MISSION: Mission = {
   created_at: DEMO_ISO,
   updated_at: DEMO_ISO,
   completed_at: null,
+  steps: [
+    { label: 'Bocetar el flujo de pago', done: true },
+    { label: 'Revisar los estados de error', done: false },
+    { label: 'Probarlo en móvil', done: false },
+  ],
 }
 
 const DEMO_STATS: TodayStat[] = [

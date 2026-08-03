@@ -9,8 +9,9 @@ import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
 import { notificarESP32 } from '@/lib/notificarESP32'
 import { QuizModal } from '@/components/forge/QuizModal'
+import { supabase } from '@/lib/supabase'
 import type { QuizOutcome } from '@/lib/quiz'
-import type { Mission, TodayStat } from '@/types'
+import type { Mission, MissionStep, TodayStat } from '@/types'
 
 interface Props {
   mission: Mission | null
@@ -132,6 +133,9 @@ function MissionTimer({
   const [elapsed, setElapsed] = useState(0)
   const [forged, setForged] = useState(false)
   const [quizOpen, setQuizOpen] = useState(false)
+  // Pasos opcionales de la misión: se pueden marcar en cualquier momento, sin
+  // bloquear "Terminar misión" — son ayuda para arrancar, no otra puerta.
+  const [steps, setSteps] = useState<MissionStep[]>(mission.steps ?? [])
   // Chispa de calor que "drena" hacia la racha al forjar (coords fixed).
   const [spark, setSpark] = useState<{ x: number; y: number } | null>(null)
 
@@ -212,6 +216,19 @@ function MissionTimer({
     runForge()
   }
 
+  // Marcar/desmarcar un paso: optimista en el cliente, persiste el arreglo
+  // completo (es lo único que RLS necesita — el dueño puede editar su misión).
+  async function toggleStep(index: number) {
+    if (isDemo) return
+    const next = steps.map((s, i) => (i === index ? { ...s, done: !s.done } : s))
+    setSteps(next)
+    const { error } = await supabase.from('missions').update({ steps: next }).eq('id', mission.id)
+    if (error) {
+      setSteps(steps) // revierte si falló
+      toast.error('No se pudo guardar el paso')
+    }
+  }
+
   return (
     <div className="relative">
       <div className="mb-5 font-num text-xs font-semibold uppercase tracking-[0.14em] text-ember">
@@ -223,9 +240,38 @@ function MissionTimer({
       </h1>
 
       {mission.project && (
-        <p className="m-0 mb-12 text-[15px] text-forge-ink-dim">
+        <p className="m-0 mb-3 text-[15px] text-forge-ink-dim">
           {mission.project}
         </p>
+      )}
+
+      {/* Pasos: primer empujón para arrancar, opcional y no bloqueante. */}
+      {steps.length > 0 && (
+        <ul className="m-0 mb-12 flex max-w-md flex-col gap-1.5 p-0">
+          {steps.map((step, i) => (
+            <li key={i}>
+              <button
+                type="button"
+                onClick={() => toggleStep(i)}
+                disabled={forged}
+                className="flex w-full items-center gap-2.5 rounded-lg py-1 text-left transition-opacity hover:opacity-80 disabled:cursor-default"
+              >
+                <span
+                  className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-[4px] border-[1.5px] transition-colors ${
+                    step.done ? 'border-ember bg-ember' : 'border-forge-ink-faint'
+                  }`}
+                >
+                  {step.done && <Check size={11} className="text-forge-canvas" strokeWidth={3} />}
+                </span>
+                <span
+                  className={`text-sm ${step.done ? 'text-forge-ink-faint line-through' : 'text-forge-ink-dim'}`}
+                >
+                  {step.label}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
 
       {/* Timer */}

@@ -4,6 +4,14 @@ import type { NextConfig } from 'next'
 // es necesario para el bootstrap de Next y los estilos inline de framer-motion
 // (no usamos nonces). Se restringe todo lo demás: sin marcos externos que nos
 // embeban (frame-ancestors), conexiones solo a Supabase, y orígenes acotados.
+// 'unsafe-eval' en script-src SOLO en desarrollo: el runtime de Fast Refresh de
+// `next dev` usa eval() para el HMR y sin esto la app no hidrata (bloqueada en
+// silencio por el navegador) — `next build` en producción no lo usa, así que
+// production queda exactamente igual de estricto.
+const scriptSrc = process.env.NODE_ENV === 'production'
+  ? "script-src 'self' 'unsafe-inline'"
+  : "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -13,7 +21,7 @@ const csp = [
   "img-src 'self' data: https:",
   "font-src 'self'",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline'",
+  scriptSrc,
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
   "frame-src https://open.spotify.com",
   "worker-src 'self' blob:",

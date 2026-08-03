@@ -29,9 +29,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialized: false,
 
   initialize: () => {
+    // Sello de secuencia: si dos eventos de auth se disparan seguidos (ej.
+    // cerrar sesión e iniciar sesión como otro usuario de inmediato), la
+    // consulta de perfil diferida más vieja podría resolver DESPUÉS que la
+    // más nueva y pisar el perfil correcto con uno obsoleto. Cada evento sube
+    // el sello; al aplicar el resultado solo gana si sigue siendo el último.
+    let seq = 0
     // onAuthStateChange emite INITIAL_SESSION al suscribirse, así que cubre tanto
     // la carga inicial como los cambios posteriores con un solo listener.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const mySeq = ++seq
       if (session?.user) {
         set({ session, isDemo: session.user.is_anonymous === true })
         // La consulta se difiere para evitar el deadlock conocido de hacer
@@ -42,6 +49,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             .select('*')
             .eq('id', session.user.id)
             .single()
+          if (mySeq !== seq) return // superado por un evento de auth más nuevo
           set({ user: profile ?? null, initialized: true })
         }, 0)
       } else {
