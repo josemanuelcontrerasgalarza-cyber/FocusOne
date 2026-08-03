@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.2'
+export const APP_VERSION = '5.3'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: '5.2',
-    title: 'Entra con Google, más seguro y más rápido',
+    version: '5.3',
+    title: 'Música ilimitada y mascota con estilo',
     date: '3 ago 2026',
     tag: 'Actual',
+    items: [
+      'Música ilimitada, gratis y sin anuncios: reproductor propio con tendencias y buscador (vía Audius).',
+      'Tu mascota ahora luce de verdad lo que le pones: gorros en la cabeza, gafas en la cara, bufanda y capa en el cuerpo.',
+      'Consola de desarrollador real para la cuenta dev: logs en vivo, diagnóstico y acceso total.',
+    ],
+  },
+  {
+    version: '5.2',
+    title: 'Entra con Google, más seguro y más rápido',
     items: [
       'Inicia sesión con Google en un toque, sin contraseña — tu progreso se guarda igual.',
       'Más seguridad: la puntuación de cada misión se verifica en el servidor y las opiniones tienen protección anti-spam.',
