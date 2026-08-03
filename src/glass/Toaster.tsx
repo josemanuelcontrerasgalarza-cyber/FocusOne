@@ -33,10 +33,21 @@ export function Toaster() {
           >
             {icons[t.kind]}
             <span>{t.message}</span>
+            {t.action && (
+              <button
+                onClick={() => {
+                  t.action?.onClick()
+                  dismiss(t.id)
+                }}
+                className="ml-1 flex-shrink-0 font-semibold text-ember transition-colors hover:text-ember/80"
+              >
+                {t.action.label}
+              </button>
+            )}
             <button
               onClick={() => dismiss(t.id)}
               aria-label="Cerrar notificación"
-              className="ml-1 text-forge-ink-faint transition-colors hover:text-forge-ink"
+              className="ml-1 flex-shrink-0 text-forge-ink-faint transition-colors hover:text-forge-ink"
             >
               <X size={14} />
             </button>

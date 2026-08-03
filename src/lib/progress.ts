@@ -1,6 +1,7 @@
 import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
+import { getTzOffsetMinutes, localDayKey } from '@/lib/serverDate'
 
 /** Un día de la semana con lo forjado y los minutos de enfoque de ese día. */
 export interface DaySlot {
@@ -49,11 +50,6 @@ const MONTHS = [
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ]
 
-/** Clave de fecha UTC (YYYY-MM-DD) desde un Date o desde un ISO string. */
-function dayKey(value: Date | string): string {
-  return (typeof value === 'string' ? value : value.toISOString()).slice(0, 10)
-}
-
 /**
  * Dashboard de "Progreso": racha, tiempo enfocado, productividad de la semana,
  * calendario del mes y actividad reciente. Todo se deriva de datos reales
@@ -68,13 +64,23 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
   } = await supabase.auth.getUser()
   if (!user) return demoProgress()
 
-  const now = new Date()
-  const y = now.getUTCFullYear()
-  const m = now.getUTCMonth()
+  // Todo el reparto por día (semana, calendario, "hoy") usa el día LOCAL del
+  // usuario, no UTC — igual que /hoy y el reclamo diario (ver serverDate.ts).
+  // Sin esto, misiones forjadas por la tarde/noche caían en la celda del día
+  // siguiente (o anterior) para cualquiera fuera de UTC.
+  const offset = await getTzOffsetMinutes()
+  const dayKey = (value: Date | string) => localDayKey(value, offset)
+  // "Ahora" con los campos UTC representando la hora LOCAL — cómodo para
+  // derivar año/mes/día de calendario locales con Date.UTC().
+  const shiftedNow = new Date(Date.now() - offset * 60000)
+  const y = shiftedNow.getUTCFullYear()
+  const m = shiftedNow.getUTCMonth()
+  const localDate = shiftedNow.getUTCDate()
+
   // Ventana: desde el inicio del mes o hace 7 días, lo que sea más antiguo, para
   // cubrir a la vez la semana y el calendario del mes con pocas consultas.
-  const monthStart = new Date(Date.UTC(y, m, 1))
-  const weekStart = new Date(Date.UTC(y, m, now.getUTCDate() - 6))
+  const monthStart = new Date(Date.UTC(y, m, 1) + offset * 60000)
+  const weekStart = new Date(Date.UTC(y, m, localDate - 6) + offset * 60000)
   const windowStart = weekStart < monthStart ? weekStart : monthStart
 
   const [profileRes, pointsRes, forgedCountRes, missionsRes, focusRes] = await Promise.all([
@@ -121,10 +127,13 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
   }
 
   // --- Productividad de la semana (últimos 7 días) --------------------------
+  // `d` representa un día LOCAL de calendario con sus campos leídos como UTC
+  // (mismo truco que `shiftedNow`), así que su ISO date ya ES la clave local
+  // correcta — a diferencia de `dayKey()`, que espera un instante UTC real.
   const week: DaySlot[] = []
   for (let i = 6; i >= 0; i--) {
-    const d = new Date(Date.UTC(y, m, now.getUTCDate() - i))
-    week.push({ key: dayKey(d), label: DOW[d.getUTCDay()], forged: 0, minutes: 0 })
+    const d = new Date(Date.UTC(y, m, localDate - i))
+    week.push({ key: d.toISOString().slice(0, 10), label: DOW[d.getUTCDay()], forged: 0, minutes: 0 })
   }
   const weekIndex = new Map(week.map((s, i) => [s.key, i]))
 
@@ -150,7 +159,7 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
   for (const mi of missions) if (mi.completed_at) activeDays.add(dayKey(mi.completed_at))
   for (const f of focus) activeDays.add(dayKey(f.started_at))
 
-  const todayKey = dayKey(now)
+  const todayKey = shiftedNow.toISOString().slice(0, 10)
   const daysInMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
   const firstDow = new Date(Date.UTC(y, m, 1)).getUTCDay() // 0=domingo
   const leadingBlanks = (firstDow + 6) % 7 // rejilla con semana iniciando en lunes
@@ -160,7 +169,7 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
     calendar.push({ day: 0, key: `blank-${i}`, inMonth: false, active: false, today: false })
   }
   for (let day = 1; day <= daysInMonth; day++) {
-    const key = dayKey(new Date(Date.UTC(y, m, day)))
+    const key = new Date(Date.UTC(y, m, day)).toISOString().slice(0, 10)
     calendar.push({ day, key, inMonth: true, active: activeDays.has(key), today: key === todayKey })
   }
 
@@ -198,6 +207,11 @@ export async function getProgressDashboard(): Promise<ProgressDashboard> {
     isDeveloper: Boolean((profileRes.data as { is_developer?: boolean } | null)?.is_developer),
     isDemo: false,
   }
+}
+
+/** Clave YYYY-MM-DD (UTC) — solo para los datos de muestra, sin usuario real. */
+function dayKey(value: Date): string {
+  return value.toISOString().slice(0, 10)
 }
 
 /** Datos de muestra coherentes para demo / sin sesión. */

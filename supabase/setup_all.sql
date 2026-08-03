@@ -155,6 +155,29 @@ create trigger on_mission_completed
   before update on public.missions
   for each row execute procedure public.handle_mission_completed();
 
+-- Solo close_mission() puede pasar una misión a 'completed' (v5.5). La policy
+-- de UPDATE de abajo solo exige `auth.uid() = user_id`, sin restringir qué
+-- columnas cambian: sin esta guardia, `supabase.from('missions').update({status:
+-- 'completed'})` desde el navegador saltaba el quiz y farmeaba el contador de
+-- misiones forjadas. close_mission marca una bandera local a su propia
+-- transacción justo antes de escribir; el trigger la exige para aceptar el cambio.
+create or replace function public.guard_mission_completion()
+returns trigger as $$
+begin
+  if NEW.status = 'completed' and OLD.status is distinct from 'completed' then
+    if coalesce(current_setting('focusone.allow_complete', true), '') <> 'on' then
+      raise exception 'Una misión solo se completa cerrando su quiz';
+    end if;
+  end if;
+  return NEW;
+end;
+$$ language plpgsql set search_path = public;
+
+drop trigger if exists on_mission_completion_guard on public.missions;
+create trigger on_mission_completion_guard
+  before update on public.missions
+  for each row execute procedure public.guard_mission_completion();
+
 -- ============================================================================
 -- 3. RLS — cada usuario solo ve y edita sus propias misiones
 -- ============================================================================
@@ -373,7 +396,9 @@ begin
   select qr.points_earned into v_pts
     from public.quiz_results qr where qr.mission_id = p_mission;
 
-  -- Marca la misión como forjada (si no lo estaba ya).
+  -- Marca la misión como forjada (si no lo estaba ya). set_config local a la
+  -- transacción: el trigger on_mission_completion_guard exige esta bandera.
+  perform set_config('focusone.allow_complete', 'on', true);
   update public.missions set status = 'completed'
     where id = p_mission and user_id = auth.uid() and status <> 'completed';
 
@@ -903,6 +928,15 @@ alter table public.focus_sessions enable row level security;
 drop policy if exists "Users manage own focus sessions" on public.focus_sessions;
 create policy "Users manage own focus sessions" on public.focus_sessions
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- v5.5: acota planned_minutes al rango real de la UI (1-180). Sin límite, un
+-- insert/update directo del cliente podía inflar "Enfoque hoy" y el promedio
+-- semanal en /progreso. NOT VALID: no re-escanea filas antiguas que ya existan.
+alter table public.focus_sessions
+  drop constraint if exists focus_sessions_planned_minutes_check;
+alter table public.focus_sessions
+  add constraint focus_sessions_planned_minutes_check
+  check (planned_minutes between 1 and 180) not valid;
 
 -- ==================================================================
 -- 11_esp32.sql  (notificaciones físicas — cola que consume el ESP32)

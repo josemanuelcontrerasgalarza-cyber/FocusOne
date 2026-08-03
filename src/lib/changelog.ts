@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.4'
+export const APP_VERSION = '5.5'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.5',
+    title: 'Auditoría semanal — deshacer al borrar y menos fricción',
+    date: '3 ago 2026',
+    tag: 'Actual',
+    items: [
+      'Nuevo: al borrar una misión ahora tienes 5 segundos para «Deshacer» antes de que se borre de verdad — un toque accidental en la papelera ya no es irreversible.',
+      'Corregido: en «Progreso», las misiones forjadas o el enfoque de la tarde/noche ya caen siempre en el día correcto del calendario, sin importar tu zona horaria (antes solo estaba arreglado en «Hoy»).',
+      'Más seguro: cerrado un hueco que permitía marcar una misión como forjada saltándose el quiz, y una vulnerabilidad conocida en una dependencia (PostCSS).',
+      'Accesibilidad: el cierre de misión (quiz) ahora es un diálogo real — Escape para salir, el foco se queda dentro y no se pierde por la pantalla.',
+      'En móvil, el reproductor de música ya no tapa la barra de navegación inferior mientras suena una canción.',
+    ],
+  },
+  {
     version: '5.4',
     title: 'Auditoría semanal — más seguro y sin resets a mitad de foco',
     date: '3 ago 2026',
-    tag: 'Actual',
     items: [
       'Corregido: recargar la página a mitad de una sesión de Deep Work o del timer de tu misión activa ya no la reinicia a cero — retoma justo donde ibas.',
       'Corregido: las misiones forjadas por la tarde/noche ya cuentan siempre en tu día correcto, sin importar tu zona horaria.',

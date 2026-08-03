@@ -120,7 +120,7 @@ export function ForgeCommand() {
             }}
             onKeyDown={onKeyDown}
             placeholder="Buscar un comando…"
-            className="flex-1 bg-transparent font-forge text-[15px] text-forge-ink outline-none placeholder:text-forge-ink-faint"
+            className="flex-1 rounded-lg bg-transparent font-forge text-[15px] text-forge-ink outline-none placeholder:text-forge-ink-faint focus-visible:ring-2 focus-visible:ring-ember/50"
           />
           <kbd className="rounded border border-forge-line px-1.5 py-0.5 font-num text-[10px] text-forge-ink-faint">
             ESC

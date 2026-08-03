@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Loader2, Flame } from 'lucide-react'
 import { toast } from '@/lib/toast'
@@ -36,6 +36,52 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
   const [answers, setAnswers] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState<QuizOutcome | null>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  const showingResult = step >= total
+
+  // Accesibilidad de diálogo: foco inicial dentro del panel, Escape para
+  // cerrar (mientras se pueda cerrar) y ciclo de Tab contenido en el panel
+  // para que no se escape al fondo mientras el usuario está a mitad de cierre.
+  useEffect(() => {
+    const panel = panelRef.current
+    const focusable = panel?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    )
+    focusable?.[0]?.focus()
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !showingResult) {
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab' || !panel) return
+      const items = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      )
+      if (items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+    // Solo al montar/cuando cambia si se puede cerrar: no queremos robar el
+    // foco cada vez que cambia la pregunta (step) mientras el usuario navega.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showingResult])
 
   // Defensa: sin preguntas no hay quiz que mostrar (evita leer question undefined).
   if (total === 0) return null
@@ -71,7 +117,6 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
     }
   }
 
-  const showingResult = step >= total
   const question = MOCK_QUESTIONS[Math.min(step, total - 1)]
 
   return (
@@ -87,6 +132,10 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
 
       {/* Panel */}
       <motion.div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={showingResult ? 'Misión forjada' : `Cierre de misión: ${mission.title}`}
         className="relative w-full max-w-md rounded-forge border border-forge-line bg-forge-surface p-6 shadow-ember"
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

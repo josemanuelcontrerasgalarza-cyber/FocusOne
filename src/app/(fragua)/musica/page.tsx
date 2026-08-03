@@ -119,7 +119,7 @@ export default function MusicaPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Busca artistas, canciones, géneros…"
-            className="w-full bg-transparent py-2.5 text-sm text-forge-ink outline-none placeholder:text-forge-ink-faint"
+            className="w-full rounded-lg bg-transparent py-2.5 text-sm text-forge-ink outline-none placeholder:text-forge-ink-faint focus-visible:ring-2 focus-visible:ring-ember/50"
           />
         </div>
         <button
@@ -188,9 +188,12 @@ export default function MusicaPage() {
         Música vía Audius · libre y sin anuncios
       </p>
 
-      {/* Reproductor fijo */}
+      {/* Reproductor fijo. En móvil se ancla sobre la tab-bar inferior (que
+          mide 4rem, igual que el pb-16 del <main> del layout) para no
+          taparla — si no, con música sonando no hay forma de tocar "Hoy" o
+          "Deep Work" desde la barra inferior. En escritorio no hay tab-bar. */}
       {current && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-forge-line bg-forge-canvas/95 backdrop-blur-md">
+        <div className="fixed inset-x-0 bottom-16 z-30 border-t border-forge-line bg-forge-canvas/95 backdrop-blur-md sm:bottom-0">
           <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-3">
             {current.artwork ? (
               // eslint-disable-next-line @next/next/no-img-element

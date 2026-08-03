@@ -1,26 +1,12 @@
 import 'server-only'
-import { cookies } from 'next/headers'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { supabaseConfigured } from '@/lib/supabase'
+import { getTzOffsetMinutes, localStartOfDay } from '@/lib/serverDate'
 import type { Mission, TodayStat } from '@/types'
 
-/**
- * Medianoche del día LOCAL del usuario, expresada como instante UTC real.
- * Lee el offset (`Date.getTimezoneOffset()`) que `TimezoneSync` guarda en una
- * cookie. Sin esto, el dashboard usaba medianoche UTC mientras que el reclamo
- * diario (`DailyClaim`/`claim_daily`) usa medianoche local: dos definiciones
- * de "hoy" en la misma app, desincronizadas por el offset de zona horaria del
- * usuario. Si la cookie no llegó todavía (primera carga, demo, sin JS) cae
- * de vuelta a UTC, igual que antes.
- */
+/** Medianoche del día LOCAL del usuario, expresada como instante UTC real. */
 async function localStartOfToday(): Promise<Date> {
-  const jar = await cookies()
-  const raw = jar.get('tz-offset')?.value
-  const offsetMinutes = raw !== undefined ? parseInt(raw, 10) : 0
-  const offset = Number.isFinite(offsetMinutes) ? offsetMinutes : 0
-  const shifted = new Date(Date.now() - offset * 60000)
-  shifted.setUTCHours(0, 0, 0, 0)
-  return new Date(shifted.getTime() + offset * 60000)
+  return localStartOfDay(await getTzOffsetMinutes())
 }
 
 /**

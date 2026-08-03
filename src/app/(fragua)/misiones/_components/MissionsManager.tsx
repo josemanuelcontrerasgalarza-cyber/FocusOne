@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Flame, Plus, Check, Trash2, Loader2, ArrowRight, AlertTriangle } from 'lucide-react'
@@ -56,14 +56,21 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   // Misiones recién creadas en esta sesión: se muestran al instante (optimista)
   // aunque el refresh del servidor tarde un momento.
   const [extra, setExtra] = useState<Mission[]>([])
+  // Borradas con "Deshacer" pendiente: se ocultan ya (optimista) pero el
+  // DELETE real no se dispara hasta que expira la ventana, así un toque
+  // accidental en la papelera no es irreversible.
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(new Set())
+  const deleteTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
-  // Pendientes = las del servidor + las creadas al vuelo (deduplicadas por id).
+  // Pendientes = las del servidor + las creadas al vuelo (deduplicadas por id),
+  // menos las que están en la ventana de "Deshacer".
   const pendingAll = useMemo(() => {
     const map = new Map<string, Mission>()
     for (const m of pending) map.set(m.id, m)
     for (const m of extra) if (!map.has(m.id)) map.set(m.id, m)
+    for (const id of pendingDeleteIds) map.delete(id)
     return Array.from(map.values())
-  }, [pending, extra])
+  }, [pending, extra, pendingDeleteIds])
 
   // Gate por `isDemo` (autoritativo del servidor), NO por el uid del cliente:
   // el store de auth se hidrata en el navegador, así que gatear por uid mostraba
@@ -156,21 +163,53 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   // Nota: completar una misión (con quiz de cierre) ocurre en /hoy, no aquí.
   // Esta pantalla solo crea/enciende/borra; "Ir a forjar" lleva al dashboard.
 
-  async function deleteMission(id: string) {
-    setBusyId(id)
-    setErrorMsg(null)
+  /**
+   * Borra de verdad tras la ventana de "Deshacer". En éxito el id se queda en
+   * `pendingDeleteIds` (ya no importa: el próximo refresh del servidor tampoco
+   * lo traerá) para no arriesgar un parpadeo de vuelta antes de que
+   * `router.refresh()` complete. En error sí se restaura a la vista.
+   */
+  async function finalizeDelete(id: string) {
+    deleteTimers.current.delete(id)
     try {
       const { error } = await supabase.from('missions').delete().eq('id', id)
       if (error) throw error
       setExtra((x) => x.filter((m) => m.id !== id))
       router.refresh()
     } catch (err) {
+      setPendingDeleteIds((s) => {
+        const next = new Set(s)
+        next.delete(id)
+        return next
+      })
       const msg = isDbSetupError(err) ? DB_SETUP_MSG : errText(err) || 'No se pudo borrar la misión.'
       setErrorMsg(msg)
       toast.error(msg)
-    } finally {
-      setBusyId(null)
     }
+  }
+
+  /** Deshace un borrado dentro de la ventana: cancela el timer y la devuelve a la vista. */
+  function undoDelete(id: string) {
+    const timer = deleteTimers.current.get(id)
+    if (timer) clearTimeout(timer)
+    deleteTimers.current.delete(id)
+    setPendingDeleteIds((s) => {
+      const next = new Set(s)
+      next.delete(id)
+      return next
+    })
+  }
+
+  // Borrar no es instantáneo: se oculta la misión y se ofrecen 5s para
+  // deshacer antes de mandar el DELETE real. Antes un solo toque en la
+  // papelera era irreversible — friccioso para quien se distrae a media
+  // acción, justo el público que FocusOne quiere ayudar.
+  function deleteMission(id: string, title: string) {
+    setErrorMsg(null)
+    setPendingDeleteIds((s) => new Set(s).add(id))
+    const timer = setTimeout(() => finalizeDelete(id), 5000)
+    deleteTimers.current.set(id, timer)
+    toast.undo(`«${title}» borrada`, () => undoDelete(id))
   }
 
   return (
@@ -182,7 +221,7 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="¿Qué vas a forjar?"
           maxLength={200}
-          className="w-full bg-transparent font-forge text-lg font-semibold text-forge-ink outline-none placeholder:text-forge-ink-faint"
+          className="w-full rounded-lg bg-transparent font-forge text-lg font-semibold text-forge-ink outline-none placeholder:text-forge-ink-faint focus-visible:ring-2 focus-visible:ring-ember/50"
         />
 
         {/* Tiempos predefinidos (además del campo libre de minutos). */}
@@ -304,7 +343,7 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
                     Encender
                   </button>
                   <button
-                    onClick={() => deleteMission(m.id)}
+                    onClick={() => deleteMission(m.id, m.title)}
                     disabled={busy}
                     aria-label="Borrar misión"
                     className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
