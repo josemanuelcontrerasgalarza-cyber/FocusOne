@@ -11,6 +11,8 @@ const csp = [
   "frame-ancestors 'none'",
   "object-src 'none'",
   "img-src 'self' data: https:",
+  // Audio de streaming (Audius): el <audio> carga desde nodos/CDN https variados.
+  "media-src 'self' blob: https:",
   "font-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline'",
