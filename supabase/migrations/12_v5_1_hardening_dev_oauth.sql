@@ -126,9 +126,51 @@ begin
 end;
 $$ language plpgsql security definer set search_path = public;
 
+create or replace function public.dev_snapshot() returns jsonb as $$
+begin
+  if not public.is_dev() then raise exception 'Solo para cuentas developer'; end if;
+  return jsonb_build_object(
+    'missions_total',(select count(*) from public.missions where user_id=auth.uid()),
+    'missions_active',(select count(*) from public.missions where user_id=auth.uid() and status='active'),
+    'missions_pending',(select count(*) from public.missions where user_id=auth.uid() and status='pending'),
+    'missions_completed',(select count(*) from public.missions where user_id=auth.uid() and status='completed'),
+    'quiz_results',(select count(*) from public.quiz_results where user_id=auth.uid()),
+    'points',(select coalesce(total_points,0) from public.points where user_id=auth.uid()),
+    'streak',(select coalesce(streak_current,0) from public.profiles where id=auth.uid()),
+    'streak_best',(select coalesce(streak_best,0) from public.profiles where id=auth.uid()),
+    'pets_owned',(select count(*) from public.pet_owned where user_id=auth.uid()),
+    'rewards_unlocked',(select count(*) from public.reward_unlocks where user_id=auth.uid()),
+    'daily_claims',(select count(*) from public.daily_claims where user_id=auth.uid()),
+    'focus_sessions',(select count(*) from public.focus_sessions where user_id=auth.uid()),
+    'is_developer',true,'server_time',now());
+end;$$ language plpgsql security definer set search_path = public;
+
+create or replace function public.dev_grant_all() returns void as $$
+begin
+  if not public.is_dev() then raise exception 'Solo para cuentas developer'; end if;
+  insert into public.pet_owned (user_id, item_id)
+    select auth.uid(), x from unnest(array['gato','perro','zorro','buho','dragon','gorro','corona','bufanda','capa','gafas','medalla']) x
+    on conflict do nothing;
+  insert into public.reward_unlocks (user_id, reward_id)
+    select auth.uid(), x from unnest(array['pl-lluvia','pl-synthwave','th-medianoche','th-brasa','bd-herrero','bd-racha30']) x
+    on conflict do nothing;
+end;$$ language plpgsql security definer set search_path = public;
+
+create or replace function public.dev_set_points(p_value int) returns int as $$
+declare v int := greatest(coalesce(p_value,0),0);
+begin
+  if not public.is_dev() then raise exception 'Solo para cuentas developer'; end if;
+  insert into public.points (user_id, total_points) values (auth.uid(), v)
+    on conflict (user_id) do update set total_points = v, updated_at = now();
+  return v;
+end;$$ language plpgsql security definer set search_path = public;
+
 grant execute on function public.dev_reset()         to authenticated;
 grant execute on function public.dev_add_points(int) to authenticated;
 grant execute on function public.dev_set_streak(int) to authenticated;
+grant execute on function public.dev_snapshot()      to authenticated;
+grant execute on function public.dev_grant_all()     to authenticated;
+grant execute on function public.dev_set_points(int) to authenticated;
 
 -- ── Marcar la cuenta developer ──────────────────────────────────────────────
 update public.profiles set is_developer = true  where email = 'kratos2704@outlook.es';

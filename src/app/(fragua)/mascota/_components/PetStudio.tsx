@@ -160,21 +160,53 @@ export function PetStudio({ catalog, ownedIds, pet, points: initialPoints, isDev
     <div className="flex flex-col gap-8">
       {/* Escenario de la mascota */}
       <div className="forge-panel flex flex-col items-center gap-4 p-8">
-        <div className="relative flex h-40 w-40 items-center justify-center rounded-full border border-forge-line bg-forge-canvas">
+        <div className="relative flex h-40 w-40 items-center justify-center overflow-hidden rounded-full border border-forge-line bg-forge-canvas">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 rounded-full"
             style={{ background: 'radial-gradient(circle, rgba(255,106,43,0.12), transparent 70%)' }}
           />
-          {hat && <span className="absolute -top-3 text-4xl">{hat.emoji}</span>}
+
+          {/* Mascota base */}
           <span
-            className="text-[72px] leading-none"
+            className="relative z-10 text-[84px] leading-none"
             style={petItem ? emojiStyle(petItem.emoji) : undefined}
           >
             {petItem ? petItem.emoji : '🥚'}
           </span>
-          {outfit && <span className="absolute bottom-1 left-3 text-3xl">{outfit.emoji}</span>}
-          {accessory && <span className="absolute bottom-1 right-3 text-3xl">{accessory.emoji}</span>}
+
+          {/* Capa: DETRÁS de la mascota (como una capa real). */}
+          {outfit?.id === 'capa' && (
+            <span className="pointer-events-none absolute left-1/2 top-[46%] z-0 -translate-x-1/2 -translate-y-1/2 text-[92px] leading-none opacity-90">
+              {outfit.emoji}
+            </span>
+          )}
+
+          {/* Gorro / corona: encima de la cabeza. */}
+          {petItem && hat && (
+            <span className="pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 text-[44px] leading-none drop-shadow">
+              {hat.emoji}
+            </span>
+          )}
+
+          {/* Gafas: sobre la cara. Medalla: en el pecho. */}
+          {petItem && accessory?.id === 'gafas' && (
+            <span className="pointer-events-none absolute left-1/2 top-[38%] z-20 -translate-x-1/2 text-[34px] leading-none">
+              {accessory.emoji}
+            </span>
+          )}
+          {petItem && accessory?.id === 'medalla' && (
+            <span className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 text-[30px] leading-none">
+              {accessory.emoji}
+            </span>
+          )}
+
+          {/* Bufanda: al cuello (parte baja del cuerpo). */}
+          {petItem && outfit?.id === 'bufanda' && (
+            <span className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 text-[34px] leading-none">
+              {outfit.emoji}
+            </span>
+          )}
         </div>
 
         {petItem ? (
