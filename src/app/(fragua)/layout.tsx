@@ -4,6 +4,7 @@ import { StreakBadge } from '@/components/forge/StreakBadge'
 import { PointsBadge } from '@/components/forge/PointsBadge'
 import { ForgeCommand } from '@/components/forge/ForgeCommand'
 import { CommandButton } from '@/components/forge/CommandButton'
+import { GlobalPlayer } from '@/components/forge/GlobalPlayer'
 import { getHeaderStats } from '@/lib/missions'
 
 export const metadata: Metadata = {
@@ -66,6 +67,9 @@ export default async function FraguaLayout({
 
       {/* Paleta de comandos global (⌘K) */}
       <ForgeCommand />
+
+      {/* Reproductor global: la música sigue sonando al cambiar de pantalla */}
+      <GlobalPlayer />
     </div>
   )
 }

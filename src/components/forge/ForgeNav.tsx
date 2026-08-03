@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Flame, Target, TrendingUp, User } from 'lucide-react'
+import { Flame, Target, TrendingUp, User, ShoppingBag } from 'lucide-react'
 import clsx from 'clsx'
 
 /**
@@ -18,6 +18,7 @@ import clsx from 'clsx'
 const ITEMS = [
   { href: '/hoy', label: 'Hoy', icon: Flame },
   { href: '/misiones', label: 'Misiones', icon: Target },
+  { href: '/tienda', label: 'Tienda', icon: ShoppingBag },
   { href: '/progreso', label: 'Progreso', icon: TrendingUp },
   { href: '/perfil', label: 'Perfil', icon: User },
 ] as const

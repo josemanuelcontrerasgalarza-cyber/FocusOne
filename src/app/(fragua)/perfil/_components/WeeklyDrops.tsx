@@ -52,7 +52,7 @@ export function WeeklyDrops({ featured, ownedIds, points, isDeveloper, isDemo }:
     }
     setBusyId(item.id)
     try {
-      const { error } = await supabase.rpc('buy_pet_item', { p_item: item.id })
+      const { error } = await supabase.rpc('buy_store_item', { p_item: item.id })
       if (error) throw error
       setExtraOwned((s) => new Set(s).add(item.id))
       if (!isDeveloper) setSpent((s) => s + item.cost_points) // dev: diamantes ∞

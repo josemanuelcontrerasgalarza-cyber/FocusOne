@@ -1,21 +1,20 @@
-import type { PetItem } from '@/types'
+import { STORE_CATALOG, EQUIPPABLE_KINDS } from '@/lib/storeCatalog'
+import type { PetItem, PetItemKind } from '@/types'
 
 /**
- * Catálogo de Focus Pet definido EN CÓDIGO (no en la base de datos), para que
- * las mascotas y la ropa siempre se vean sin depender de un seed en Supabase.
- * Los `id` son claves estables (texto) que la BD usa para guardar posesión y
- * la mascota activa. Los costos son la fuente de verdad que valida la RPC.
+ * Catálogo de Focus Pet = subconjunto EQUIPABLE de la tienda (mascotas, gorros,
+ * atuendos y accesorios). Fuente única: STORE_CATALOG. Así, comprar en la tienda
+ * y equipar en la mascota usan exactamente el mismo id y costo.
  */
-export const PET_CATALOG: PetItem[] = [
-  { id: 'gato', name: 'Gato', kind: 'pet', cost_points: 0, emoji: '🐱', created_at: '' },
-  { id: 'perro', name: 'Perro', kind: 'pet', cost_points: 0, emoji: '🐶', created_at: '' },
-  { id: 'zorro', name: 'Zorro', kind: 'pet', cost_points: 80, emoji: '🦊', created_at: '' },
-  { id: 'buho', name: 'Búho', kind: 'pet', cost_points: 120, emoji: '🦉', created_at: '' },
-  { id: 'dragon', name: 'Dragón', kind: 'pet', cost_points: 300, emoji: '🐉', created_at: '' },
-  { id: 'gorro', name: 'Gorro', kind: 'hat', cost_points: 30, emoji: '🎩', created_at: '' },
-  { id: 'corona', name: 'Corona', kind: 'hat', cost_points: 150, emoji: '👑', created_at: '' },
-  { id: 'bufanda', name: 'Bufanda', kind: 'outfit', cost_points: 40, emoji: '🧣', created_at: '' },
-  { id: 'capa', name: 'Capa', kind: 'outfit', cost_points: 120, emoji: '🦸', created_at: '' },
-  { id: 'gafas', name: 'Gafas', kind: 'accessory', cost_points: 25, emoji: '🕶️', created_at: '' },
-  { id: 'medalla', name: 'Medalla', kind: 'accessory', cost_points: 60, emoji: '🏅', created_at: '' },
-]
+const equippable = new Set<string>(EQUIPPABLE_KINDS)
+
+export const PET_CATALOG: PetItem[] = STORE_CATALOG.filter((i) => equippable.has(i.kind)).map(
+  (i) => ({
+    id: i.id,
+    name: i.name,
+    kind: i.kind as PetItemKind,
+    cost_points: i.cost,
+    emoji: i.emoji,
+    created_at: '',
+  }),
+)
