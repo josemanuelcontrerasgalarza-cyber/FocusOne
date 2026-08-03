@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Terminal, Gem, Flame, Trash2, Loader2 } from 'lucide-react'
+import { Terminal, Gem, Flame, Trash2, Loader2, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 
@@ -35,6 +36,18 @@ export function DevPanel() {
       <div className="mb-4 flex items-center gap-2 font-num text-[11px] font-semibold uppercase tracking-[0.14em] text-ember">
         <Terminal size={13} /> Herramientas de developer
       </div>
+
+      <Link
+        href="/dev"
+        className="mb-3 flex items-center gap-3 rounded-forge border border-ember/30 bg-forge-surface p-3 transition-colors hover:border-ember/60"
+      >
+        <Terminal size={16} className="text-ember" />
+        <div className="min-w-0 flex-1">
+          <p className="font-forge text-sm font-semibold text-forge-ink">Abrir consola DEV</p>
+          <p className="text-[12px] text-forge-ink-faint">Logs en vivo, diagnóstico y acceso total</p>
+        </div>
+        <ChevronRight size={16} className="text-forge-ink-faint" />
+      </Link>
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <button
