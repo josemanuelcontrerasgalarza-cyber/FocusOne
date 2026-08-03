@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/authStore'
 import { GuestGuard, ConfigNotice } from '@/components/AuthGuard'
+import { GoogleButton } from '@/components/forge/GoogleButton'
 import { toast } from '@/lib/toast'
 
 const inputCls =
@@ -136,6 +137,14 @@ export default function RegisterPage() {
                 {loading ? 'Creando…' : 'Crear cuenta'}
               </button>
             </form>
+
+            <div className="my-5 flex items-center gap-3 font-num text-[11px] uppercase tracking-[0.2em] text-forge-ink-faint">
+              <span className="h-px flex-1 bg-forge-line" />
+              o
+              <span className="h-px flex-1 bg-forge-line" />
+            </div>
+
+            <GoogleButton className="w-full" />
 
             <p className="mt-6 text-center text-sm text-forge-ink-dim">
               ¿Ya tienes cuenta?{' '}

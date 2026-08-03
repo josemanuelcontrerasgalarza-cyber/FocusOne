@@ -299,6 +299,72 @@ create policy "points_select_own" on public.points
 -- El cliente NO escribe puntos: solo el trigger (SECURITY DEFINER) lo hace.
 revoke insert, update, delete on public.points from authenticated, anon;
 
+-- Cierre de misión con SCORE calculado EN EL SERVIDOR. Antes el cliente enviaba
+-- `score` a quiz_results (podía inflarlo). Ahora manda solo los índices de
+-- opción elegidos y el score se computa aquí con pesos fijos (espejo de
+-- MOCK_QUESTIONS en src/lib/quiz.ts). Bloqueamos el insert directo del cliente.
+revoke insert on public.quiz_results from authenticated, anon;
+
+create or replace function public.close_mission(p_mission uuid, p_answers int[])
+returns table(score integer, points_earned integer) as $$
+declare
+  -- Pesos 0..1 por opción de cada pregunta (misma tabla que el cliente).
+  v_weights numeric[] := array[
+    1.0, 0.6, 0.3,   -- q1
+    1.0, 0.6, 0.2,   -- q2
+    1.0, 0.5, 0.2,   -- q3
+    1.0, 0.5, 0.1    -- q4
+  ];
+  v_sum   numeric := 0;
+  v_idx   int;
+  v_score int;
+  v_pts   int;
+  i       int;
+begin
+  -- Reintento idempotente: si el cierre YA existe, devuelve su resultado sin
+  -- error (aunque la misión ya no esté 'active' porque se completó antes).
+  select qr.score, qr.points_earned into v_score, v_pts
+    from public.quiz_results qr
+    where qr.mission_id = p_mission and qr.user_id = auth.uid();
+  if found then
+    return query select v_score, coalesce(v_pts, 0);
+    return;
+  end if;
+
+  -- Primer cierre: debe ser una misión propia y ACTIVA (encendida).
+  if not exists (
+    select 1 from public.missions
+    where id = p_mission and user_id = auth.uid() and status = 'active'
+  ) then
+    raise exception 'Misión no válida o no está activa';
+  end if;
+
+  -- Score = promedio de los pesos de las opciones elegidas × 100. Índices fuera
+  -- de rango cuentan como la peor opción (evita trampas con índices raros).
+  for i in 1..4 loop
+    v_idx := coalesce(p_answers[i], 2);            -- 0..2 (0-based)
+    if v_idx < 0 or v_idx > 2 then v_idx := 2; end if;
+    v_sum := v_sum + v_weights[(i - 1) * 3 + v_idx + 1];
+  end loop;
+  v_score := round((v_sum / 4.0) * 100);
+
+  -- Inserta el cierre (idempotente por el índice único de mission_id). Los
+  -- triggers compute/apply_quiz_points calculan y suman los puntos.
+  insert into public.quiz_results (user_id, mission_id, questions_json, score)
+    values (auth.uid(), p_mission, '[]'::jsonb, v_score)
+    on conflict (mission_id) do nothing;
+
+  select qr.points_earned into v_pts
+    from public.quiz_results qr where qr.mission_id = p_mission;
+
+  -- Marca la misión como forjada (si no lo estaba ya).
+  update public.missions set status = 'completed'
+    where id = p_mission and user_id = auth.uid() and status <> 'completed';
+
+  return query select v_score, coalesce(v_pts, 0);
+end;
+$$ language plpgsql security definer set search_path = public;
+
 -- ==================================================================
 -- 07_mission_streak.sql
 -- ==================================================================
@@ -720,16 +786,64 @@ create policy "Anyone can read reviews" on public.reviews
   for select using (true);
 
 -- Publicación pública (con validación básica en la propia política)
+-- El insert directo del cliente queda PROHIBIDO: publicar pasa por la RPC
+-- post_review (SECURITY DEFINER) que aplica un rate-limit por IP. Así nadie
+-- inunda la tabla llamando al endpoint REST en bucle con la clave anon pública.
 drop policy if exists "Anyone can post a review" on public.reviews;
-create policy "Anyone can post a review" on public.reviews
-  for insert with check (
-    rating between 1 and 5
-    and char_length(comment) between 1 and 500
-    and (name is null or char_length(name) <= 80)
-  );
+revoke insert on public.reviews from anon, authenticated;
+grant select on public.reviews to anon, authenticated;
 
--- El rol anónimo (clave anon) necesita el privilegio a nivel de tabla
-grant select, insert on public.reviews to anon, authenticated;
+-- Registro de publicaciones por IP (hasheada) para el rate-limit. Nunca es
+-- legible por el cliente (sin policy de select + revoke): solo lo usa la RPC.
+create table if not exists public.review_throttle (
+  ip_hash    text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists review_throttle_idx on public.review_throttle (ip_hash, created_at desc);
+alter table public.review_throttle enable row level security;
+revoke all on public.review_throttle from anon, authenticated;
+
+-- Publicar una reseña con límite: máx. 3 por IP cada hora. `p_ip_hash` lo
+-- calcula el route handler del servidor (hash de la IP, nunca la IP en claro).
+create or replace function public.post_review(
+  p_name text,
+  p_rating int,
+  p_comment text,
+  p_ip_hash text
+)
+returns public.reviews as $$
+declare
+  v_row public.reviews;
+begin
+  if p_rating is null or p_rating < 1 or p_rating > 5 then
+    raise exception 'Valoración inválida';
+  end if;
+  if p_comment is null or char_length(trim(p_comment)) < 1 or char_length(p_comment) > 500 then
+    raise exception 'Comentario inválido';
+  end if;
+  if p_name is not null and char_length(p_name) > 80 then
+    raise exception 'Nombre demasiado largo';
+  end if;
+
+  -- Rate-limit: no más de 3 publicaciones por IP en la última hora.
+  if (
+    select count(*) from public.review_throttle
+    where ip_hash = coalesce(p_ip_hash, 'unknown')
+      and created_at > now() - interval '1 hour'
+  ) >= 3 then
+    raise exception 'Demasiadas opiniones desde tu conexión. Inténtalo más tarde.';
+  end if;
+
+  insert into public.reviews (name, rating, comment)
+    values (nullif(trim(coalesce(p_name, '')), ''), p_rating, trim(p_comment))
+    returning * into v_row;
+
+  insert into public.review_throttle (ip_hash) values (coalesce(p_ip_hash, 'unknown'));
+  return v_row;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+grant execute on function public.post_review(text, int, text, text) to anon, authenticated;
 
 -- ==================================================================
 -- 02b_focus_sessions.sql  (sesiones de Deep Work — versión autocontenida)
@@ -783,6 +897,64 @@ create policy "esp32_select_own" on public.notificaciones_esp32
 drop policy if exists "esp32_insert_own" on public.notificaciones_esp32;
 create policy "esp32_insert_own" on public.notificaciones_esp32
   for insert with check (auth.uid() = usuario_id);
+
+-- ==================================================================
+-- HERRAMIENTAS DE DEVELOPER (panel in-app)
+-- ==================================================================
+-- RPCs solo para cuentas developer (is_dev()). Cualquier otra cuenta recibe
+-- excepción. Se definen aquí, al final, porque referencian todas las tablas.
+
+-- Resetea TODOS mis datos de prueba (misiones, puntos, mascota, reclamos...).
+create or replace function public.dev_reset()
+returns void as $$
+begin
+  if not public.is_dev() then raise exception 'Solo para cuentas developer'; end if;
+  delete from public.quiz_results  where user_id = auth.uid();
+  delete from public.missions      where user_id = auth.uid();
+  delete from public.reward_unlocks where user_id = auth.uid();
+  delete from public.pet_owned     where user_id = auth.uid();
+  delete from public.user_pet      where user_id = auth.uid();
+  delete from public.daily_claims  where user_id = auth.uid();
+  update public.points set total_points = 0, updated_at = now() where user_id = auth.uid();
+  update public.profiles
+    set streak_current = 0, streak_best = 0, streak_last_date = null
+    where id = auth.uid();
+end;
+$$ language plpgsql security definer set search_path = public;
+
+-- Suma (o resta) puntos para probar la economía.
+create or replace function public.dev_add_points(p_amount int)
+returns int as $$
+declare v_total int;
+begin
+  if not public.is_dev() then raise exception 'Solo para cuentas developer'; end if;
+  insert into public.points (user_id, total_points)
+    values (auth.uid(), greatest(coalesce(p_amount, 0), 0))
+    on conflict (user_id) do update
+      set total_points = greatest(public.points.total_points + p_amount, 0),
+          updated_at = now()
+    returning total_points into v_total;
+  return v_total;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+-- Fija la racha a un valor (para probar el bono diario y las vistas).
+create or replace function public.dev_set_streak(p_value int)
+returns void as $$
+declare v int := greatest(coalesce(p_value, 0), 0);
+begin
+  if not public.is_dev() then raise exception 'Solo para cuentas developer'; end if;
+  update public.profiles
+    set streak_current = v,
+        streak_best = greatest(streak_best, v),
+        streak_last_date = current_date
+    where id = auth.uid();
+end;
+$$ language plpgsql security definer set search_path = public;
+
+grant execute on function public.dev_reset()          to authenticated;
+grant execute on function public.dev_add_points(int)  to authenticated;
+grant execute on function public.dev_set_streak(int)  to authenticated;
 
 -- ==================================================================
 -- CUENTA DE DESARROLLADOR

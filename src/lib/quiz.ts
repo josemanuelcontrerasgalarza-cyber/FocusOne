@@ -92,58 +92,20 @@ export async function saveQuizResult(
   mission: Mission,
   answers: number[],
 ): Promise<QuizOutcome> {
-  const score = computeScore(answers)
-  const questionsJson = MOCK_QUESTIONS.map((q, i) => ({
-    id: q.id,
-    prompt: q.prompt,
-    selected: answers[i],
-    selectedLabel: q.options[answers[i]]?.label ?? null,
-  }))
-
-  // points_earned lo calcula el trigger en el servidor; lo leemos de vuelta.
-  let pointsEarned: number | null = null
+  // Todo en UNA RPC atómica y SEGURA: el servidor calcula el score desde los
+  // índices elegidos (el cliente ya no puede inflarlo), inserta el cierre,
+  // otorga los puntos vía trigger y marca la misión como forjada. Idempotente
+  // en reintentos. `close_mission` devuelve el score y los puntos reales.
   const { data, error } = await supabase
-    .from('quiz_results')
-    .insert({
-      user_id: uid,
-      mission_id: mission.id,
-      questions_json: questionsJson,
-      score,
-    })
-    .select('points_earned')
+    .rpc('close_mission', { p_mission: mission.id, p_answers: answers })
     .single()
+  if (error) throw error
 
-  if (error) {
-    // 23505 = unique_violation: el cierre YA se guardó antes (reintento tras un
-    // fallo posterior). No se re-inserta → no se otorgan puntos dos veces.
-    // Recuperamos los puntos ya otorgados y seguimos marcando la misión.
-    if ((error as { code?: string }).code === '23505') {
-      const { data: prev } = await supabase
-        .from('quiz_results')
-        .select('points_earned')
-        .eq('mission_id', mission.id)
-        .maybeSingle()
-      pointsEarned = prev?.points_earned ?? null
-    } else {
-      throw error
-    }
-  } else {
-    pointsEarned = data?.points_earned ?? null
-  }
-
-  // Verificada por quiz → marcar la misión como forjada. `neq('completed')`
-  // evita reescribir una misión ya cerrada (en reintentos), y NO enviamos
-  // completed_at: lo sella el trigger handle_mission_completed en la transición,
-  // así la fecha no "avanza" y no corrompe el bucketing por día del historial.
-  const { error: missionErr } = await supabase
-    .from('missions')
-    .update({ status: 'completed' })
-    .eq('id', mission.id)
-    .neq('status', 'completed')
-  if (missionErr) throw missionErr
+  const row = (data ?? {}) as { score?: number; points_earned?: number }
 
   // Notificación física: misión verificada por quiz (fire-and-forget).
   void notificarESP32(uid, 'mision_completada')
 
-  return { score, pointsEarned: pointsEarned ?? previewPoints(score) }
+  const score = row.score ?? computeScore(answers)
+  return { score, pointsEarned: row.points_earned ?? previewPoints(score) }
 }

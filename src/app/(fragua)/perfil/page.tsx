@@ -5,6 +5,7 @@ import { getRewardsData } from '@/lib/rewards'
 import { getPetData } from '@/lib/pet'
 import { RewardsStore } from './_components/RewardsStore'
 import { WeeklyDrops } from './_components/WeeklyDrops'
+import { DevPanel } from './_components/DevPanel'
 import { LogoutButton } from '@/components/forge/LogoutButton'
 
 export const metadata: Metadata = { title: 'Perfil' }
@@ -84,6 +85,8 @@ export default async function PerfilPage() {
         isDeveloper={isDeveloper}
         isDemo={isDemo}
       />
+
+      {isDeveloper && <DevPanel />}
 
       <LogoutButton />
     </section>

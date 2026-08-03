@@ -64,8 +64,29 @@ const FEATURES = [
 ]
 
 export default function LandingPage() {
+  // Datos estructurados (Schema.org) para que Google entienda la marca FocusOne
+  // (y su variante "Focus One") y pueda mostrarla como resultado enriquecido.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'FocusOne',
+    alternateName: ['Focus One', 'FocusOne App'],
+    applicationCategory: 'ProductivityApplication',
+    operatingSystem: 'Web',
+    url: 'https://focusone.vercel.app',
+    description:
+      'FocusOne (Focus One) es una app de productividad y enfoque: una misión a la vez, timer con calor, quiz de cierre, racha y recompensas.',
+    inLanguage: 'es',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    author: { '@type': 'Organization', name: 'Kratos Labs' },
+  }
+
   return (
     <main className="relative z-10 min-h-screen bg-forge-canvas font-forge text-forge-ink">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-5 py-6 sm:px-8">
         {/* Barra superior */}
         <nav className="flex items-center justify-between">
