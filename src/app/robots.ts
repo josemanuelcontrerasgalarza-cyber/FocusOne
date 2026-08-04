@@ -10,6 +10,7 @@ export default function robots(): MetadataRoute.Robots {
         '/api',
         '/auth',
         '/dev',
+        '/amigos',
         '/hoy',
         '/misiones',
         '/tienda',
