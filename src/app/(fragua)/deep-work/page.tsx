@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { Zap, Square, CheckCircle2 } from 'lucide-react'
+import { Zap, Square, CheckCircle2, Info } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { useAuthStore } from '@/store/authStore'
@@ -118,6 +119,19 @@ export default function DeepWorkPage() {
               Define tu foco y la duración.
             </p>
 
+            {!uid && (
+              <p className="mt-3 flex items-start gap-2 rounded-lg border border-ember/30 bg-ember/[0.06] px-3 py-2 text-xs text-forge-ink-dim">
+                <Info size={14} className="mt-0.5 flex-shrink-0 text-ember" />
+                <span>
+                  Sin iniciar sesión esta sesión no quedará guardada.{' '}
+                  <Link href="/login" className="font-semibold text-ember underline">
+                    Inicia sesión
+                  </Link>{' '}
+                  para llevar tu historial y racha.
+                </span>
+              </p>
+            )}
+
             <input
               value={intention}
               onChange={(e) => setIntention(e.target.value)}
@@ -221,6 +235,11 @@ export default function DeepWorkPage() {
             <p className="mt-2 text-sm text-forge-ink-dim">
               {minutes} minutos de foco profundo.
             </p>
+            {!uid && (
+              <p className="mt-3 text-xs text-forge-ink-faint">
+                No iniciaste sesión, así que esta sesión no se guardó en ningún historial.
+              </p>
+            )}
             <button
               onClick={() => setPhase('setup')}
               className="mt-6 inline-flex rounded-full border border-white/[0.12] px-6 py-3 font-forge text-sm font-semibold text-forge-ink-dim transition-colors hover:border-white/30 hover:text-forge-ink"

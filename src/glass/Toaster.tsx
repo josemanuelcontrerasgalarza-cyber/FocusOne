@@ -26,9 +26,21 @@ export function Toaster() {
           >
             {icons[t.kind]}
             <span>{t.message}</span>
+            {t.actionLabel && (
+              <button
+                onClick={() => {
+                  t.onAction?.()
+                  dismiss(t.id)
+                }}
+                className="flex-shrink-0 rounded-full border border-forge-line px-2.5 py-1 font-forge text-xs font-semibold text-ember transition-colors hover:border-ember/50"
+              >
+                {t.actionLabel}
+              </button>
+            )}
             <button
               onClick={() => dismiss(t.id)}
-              className="ml-1 text-forge-ink-faint transition-colors hover:text-forge-ink"
+              aria-label="Cerrar aviso"
+              className="ml-1 flex-shrink-0 text-forge-ink-faint transition-colors hover:text-forge-ink"
             >
               <X size={14} />
             </button>

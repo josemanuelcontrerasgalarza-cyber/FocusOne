@@ -12,7 +12,12 @@ export const runtime = 'nodejs'
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/hoy'
+  const rawNext = searchParams.get('next') ?? '/hoy'
+  // Solo se permite una ruta interna (evita open-redirect: "//evil.com" o
+  // "https://evil.com" pasarían el chequeo de un simple `startsWith('/')`).
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\')
+    ? rawNext
+    : '/hoy'
 
   if (code) {
     const supabase = await createSupabaseServerClient()

@@ -101,16 +101,25 @@ export function GlobalPlayer() {
               <p className="truncate text-[11px] text-forge-ink-faint">{current.artist}</p>
             </div>
 
-            <button onClick={() => prev()} className="p-1.5 text-forge-ink-dim hover:text-forge-ink">
+            <button
+              onClick={() => prev()}
+              aria-label="Pista anterior"
+              className="p-1.5 text-forge-ink-dim hover:text-forge-ink"
+            >
               <SkipBack size={16} />
             </button>
             <button
               onClick={() => toggle()}
+              aria-label={playing ? 'Pausar' : 'Reproducir'}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-ember text-forge-canvas shadow-ember"
             >
               {playing ? <Pause size={16} /> : <Play size={16} />}
             </button>
-            <button onClick={() => next()} className="p-1.5 text-forge-ink-dim hover:text-forge-ink">
+            <button
+              onClick={() => next()}
+              aria-label="Siguiente pista"
+              className="p-1.5 text-forge-ink-dim hover:text-forge-ink"
+            >
               <SkipForward size={16} />
             </button>
             <button

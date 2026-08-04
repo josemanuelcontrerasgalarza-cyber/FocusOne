@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Loader2, Flame } from 'lucide-react'
 import { toast } from '@/lib/toast'
+import { useFocusTrap } from '@/lib/useFocusTrap'
 import {
   MOCK_QUESTIONS,
   computeScore,
@@ -36,6 +37,9 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
   const [answers, setAnswers] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState<QuizOutcome | null>(null)
+  const showingResult = step >= total
+  const panelRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(panelRef, true, showingResult ? undefined : onClose)
 
   // Defensa: sin preguntas no hay quiz que mostrar (evita leer question undefined).
   if (total === 0) return null
@@ -71,7 +75,6 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
     }
   }
 
-  const showingResult = step >= total
   const question = MOCK_QUESTIONS[Math.min(step, total - 1)]
 
   return (
@@ -87,6 +90,10 @@ export function QuizModal({ mission, uid, isDemo, onClose, onCompleted }: Props)
 
       {/* Panel */}
       <motion.div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Cierre de misión"
         className="relative w-full max-w-md rounded-forge border border-forge-line bg-forge-surface p-6 shadow-ember"
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}

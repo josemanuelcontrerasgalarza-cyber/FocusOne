@@ -16,6 +16,7 @@ import {
   CornerDownLeft,
   type LucideIcon,
 } from 'lucide-react'
+import { useFocusTrap } from '@/lib/useFocusTrap'
 
 interface Cmd {
   id: string
@@ -48,6 +49,8 @@ export function ForgeCommand() {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(panelRef, open)
 
   // ⌘K / Ctrl+K + evento del header
   useEffect(() => {
@@ -107,7 +110,13 @@ export function ForgeCommand() {
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center p-4 pt-[12vh]">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)} />
-      <div className="relative w-full max-w-lg overflow-hidden rounded-forge border border-forge-line bg-forge-surface shadow-ember">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Paleta de comandos"
+        className="relative w-full max-w-lg overflow-hidden rounded-forge border border-forge-line bg-forge-surface shadow-ember"
+      >
         {/* Búsqueda */}
         <div className="flex items-center gap-3 border-b border-forge-line px-4 py-3.5">
           <Search size={18} className="text-forge-ink-faint" />

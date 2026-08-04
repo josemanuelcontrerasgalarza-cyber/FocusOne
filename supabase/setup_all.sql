@@ -1663,3 +1663,36 @@ grant execute on function public.dev_set_points(int)  to authenticated;
 update public.profiles set is_developer = true  where email = 'kratos2704@outlook.es';
 -- (Opcional) revocar a las demás cuentas para que solo esa sea developer:
 update public.profiles set is_developer = false where email <> 'kratos2704@outlook.es';
+
+-- ==================================================================
+-- 13_esp32_hardening.sql  (CHECK de tipo + rate-limit)
+-- ==================================================================
+-- Auditoría semanal 2026-08-04: el insert directo del cliente
+-- (esp32_insert_own) no validaba `tipo` ni limitaba el volumen por usuario.
+
+alter table public.notificaciones_esp32
+  drop constraint if exists notificaciones_esp32_tipo_check;
+alter table public.notificaciones_esp32
+  add constraint notificaciones_esp32_tipo_check
+  check (tipo in ('pomodoro_completado', 'deep_work_completado', 'tarea_completada', 'mision_completada'));
+
+create or replace function public.esp32_rate_limit()
+returns trigger as $$
+declare
+  v_recientes int;
+begin
+  select count(*) into v_recientes
+    from public.notificaciones_esp32
+    where usuario_id = new.usuario_id
+      and created_at > now() - interval '1 minute';
+  if v_recientes >= 20 then
+    raise exception 'Demasiadas notificaciones ESP32 en poco tiempo.';
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists esp32_rate_limit_trigger on public.notificaciones_esp32;
+create trigger esp32_rate_limit_trigger
+  before insert on public.notificaciones_esp32
+  for each row execute function public.esp32_rate_limit();

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Flame, Plus, Check, Trash2, Loader2, ArrowRight, AlertTriangle } from 'lucide-react'
@@ -56,14 +56,19 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   // Misiones recién creadas en esta sesión: se muestran al instante (optimista)
   // aunque el refresh del servidor tarde un momento.
   const [extra, setExtra] = useState<Mission[]>([])
+  // Borradas de forma optimista, en espera de "Deshacer" (ver deleteMission).
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
+  const pendingDeletes = useRef(new Map<string, ReturnType<typeof setTimeout>>())
 
-  // Pendientes = las del servidor + las creadas al vuelo (deduplicadas por id).
+  // Pendientes = las del servidor + las creadas al vuelo (deduplicadas por id),
+  // menos las que están en período de gracia para deshacer el borrado.
   const pendingAll = useMemo(() => {
     const map = new Map<string, Mission>()
     for (const m of pending) map.set(m.id, m)
     for (const m of extra) if (!map.has(m.id)) map.set(m.id, m)
+    for (const id of deletedIds) map.delete(id)
     return Array.from(map.values())
-  }, [pending, extra])
+  }, [pending, extra, deletedIds])
 
   // Gate por `isDemo` (autoritativo del servidor), NO por el uid del cliente:
   // el store de auth se hidrata en el navegador, así que gatear por uid mostraba
@@ -156,21 +161,44 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   // Nota: completar una misión (con quiz de cierre) ocurre en /hoy, no aquí.
   // Esta pantalla solo crea/enciende/borra; "Ir a forjar" lleva al dashboard.
 
-  async function deleteMission(id: string) {
-    setBusyId(id)
-    setErrorMsg(null)
-    try {
-      const { error } = await supabase.from('missions').delete().eq('id', id)
-      if (error) throw error
-      setExtra((x) => x.filter((m) => m.id !== id))
-      router.refresh()
-    } catch (err) {
-      const msg = isDbSetupError(err) ? DB_SETUP_MSG : errText(err) || 'No se pudo borrar la misión.'
-      setErrorMsg(msg)
-      toast.error(msg)
-    } finally {
-      setBusyId(null)
-    }
+  const DELETE_GRACE_MS = 5000
+
+  /**
+   * Borrado con "Deshacer": la misión desaparece de la vista al instante, pero
+   * el DELETE real en Supabase no ocurre hasta que pase el período de gracia
+   * sin que el usuario pulse "Deshacer" en el toast. Evita el borrado
+   * permanente por un misclick (antes no había confirmación ni forma de
+   * recuperar una misión borrada).
+   */
+  function deleteMission(m: Mission) {
+    setDeletedIds((s) => new Set(s).add(m.id))
+
+    const timer = setTimeout(async () => {
+      pendingDeletes.current.delete(m.id)
+      const { error } = await supabase.from('missions').delete().eq('id', m.id)
+      if (error) {
+        setDeletedIds((s) => {
+          const next = new Set(s)
+          next.delete(m.id)
+          return next
+        })
+        toast.error(isDbSetupError(error) ? DB_SETUP_MSG : errText(error) || 'No se pudo borrar la misión.')
+      } else {
+        router.refresh()
+      }
+    }, DELETE_GRACE_MS)
+
+    pendingDeletes.current.set(m.id, timer)
+    toast.undo(`Misión "${m.title}" eliminada.`, () => {
+      const t = pendingDeletes.current.get(m.id)
+      if (t) clearTimeout(t)
+      pendingDeletes.current.delete(m.id)
+      setDeletedIds((s) => {
+        const next = new Set(s)
+        next.delete(m.id)
+        return next
+      })
+    }, DELETE_GRACE_MS)
   }
 
   return (
@@ -304,9 +332,9 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
                     Encender
                   </button>
                   <button
-                    onClick={() => deleteMission(m.id)}
+                    onClick={() => deleteMission(m)}
                     disabled={busy}
-                    aria-label="Borrar misión"
+                    aria-label={`Borrar misión "${m.title}"`}
                     className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"
                   >
                     <Trash2 size={16} />

@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.4'
+export const APP_VERSION = '5.5'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.5',
+    title: 'Deshacer, accesibilidad y hardening semanal',
+    date: '4 ago 2026',
+    tag: 'Actual',
+    items: [
+      'Borrar una misión ya no es definitivo: tienes unos segundos para "Deshacer" antes de que se borre de verdad.',
+      'Deep Work te avisa si no iniciaste sesión, para que no pierdas una sesión de foco sin saberlo.',
+      'La paleta de comandos (⌘K) y el cierre de misión ahora atrapan el foco del teclado y se pueden usar sin ratón.',
+      'Auditoría de seguridad semanal: dependencias actualizadas, cierre de una posible redirección insegura tras iniciar sesión con Google, y límites más estrictos en la cola de notificaciones del ESP32.',
+    ],
+  },
+  {
     version: '5.4',
     title: 'Tienda enorme y música que no se detiene',
     date: '3 ago 2026',
-    tag: 'Actual',
     items: [
       'Nueva Tienda con más de 550 ítems para desbloquear con tus puntos: mascotas, gorros, atuendos, accesorios, auras, fondos y mucho más.',
       'Los ítems equipables que compras se lucen en tu Focus Pet.',
