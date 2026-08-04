@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.4'
+export const APP_VERSION = '5.5'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: '5.4',
-    title: 'Tienda enorme y música que no se detiene',
+    version: '5.5',
+    title: 'Amigos y tienda con nombres de verdad',
     date: '3 ago 2026',
     tag: 'Actual',
+    items: [
+      'Nuevo sistema de Amigos: agrégalos por su correo desde la app y compitan por la mejor racha y puntos.',
+      'Acepta o rechaza solicitudes y mira el ranking de tus amigos.',
+      'Los cientos de ítems de la Tienda ahora tienen nombres reales y bonitos.',
+    ],
+  },
+  {
+    version: '5.4',
+    title: 'Tienda enorme y música que no se detiene',
     items: [
       'Nueva Tienda con más de 550 ítems para desbloquear con tus puntos: mascotas, gorros, atuendos, accesorios, auras, fondos y mucho más.',
       'Los ítems equipables que compras se lucen en tu Focus Pet.',
