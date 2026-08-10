@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.5'
+export const APP_VERSION = '5.6'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,21 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '5.6',
+    title: 'Más seguro, más limpio y sin perder de vista el timer',
+    date: '10 ago 2026',
+    tag: 'Actual',
+    items: [
+      'Deep Work: el título de la pestaña ahora muestra la cuenta atrás en vivo, y avisamos con una notificación si terminas tu sesión en otra pestaña.',
+      'Borrar una misión o eliminar a un amigo pide confirmación antes de hacerlo — se acabaron los borrados accidentales.',
+      'Dependencias actualizadas para cerrar fallos de seguridad conocidos.',
+      'Limpieza a fondo del código: fuera pantallas y rutas antiguas que ya no se usaban.',
+    ],
+  },
+  {
     version: '5.5',
     title: 'Amigos y tienda con nombres de verdad',
     date: '3 ago 2026',
-    tag: 'Actual',
     items: [
       'Nuevo sistema de Amigos: agrégalos por su correo desde la app y compitan por la mejor racha y puntos.',
       'Acepta o rechaza solicitudes y mira el ranking de tus amigos.',
