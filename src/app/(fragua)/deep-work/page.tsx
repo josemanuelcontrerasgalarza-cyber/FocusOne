@@ -44,6 +44,17 @@ export default function DeepWorkPage() {
 
   useEffect(() => () => { if (tick.current) clearInterval(tick.current) }, [])
 
+  // Título de la pestaña con la cuenta atrás: si el usuario cambia de pestaña
+  // (algo frecuente en mentes con dificultad para sostener la atención), sigue
+  // viendo cuánto le queda sin volver a FocusOne.
+  useEffect(() => {
+    if (phase === 'running') document.title = `${format(secondsLeft)} · Enfoque — FocusOne`
+  }, [phase, secondsLeft])
+  useEffect(() => {
+    if (phase !== 'running') document.title = 'FocusOne — Termina lo que empiezas'
+  }, [phase])
+  useEffect(() => () => { document.title = 'FocusOne — Termina lo que empiezas' }, [])
+
   async function recordSession(completed: boolean) {
     if (!uid || !startRef.current) return
     const { error } = await supabase.from('focus_sessions').insert({
@@ -64,6 +75,11 @@ export default function DeepWorkPage() {
   }
 
   function start() {
+    // Pedimos permiso de notificación aquí (gesto del usuario, requisito del
+    // navegador) para poder avisar cuando termine la sesión si cambió de pestaña.
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      void Notification.requestPermission()
+    }
     const total = minutes * 60
     startRef.current = new Date()
     endRef.current = Date.now() + total * 1000
@@ -88,6 +104,16 @@ export default function DeepWorkPage() {
     if (natural) {
       setPhase('done')
       void recordSession(true)
+      if (
+        typeof document !== 'undefined' &&
+        document.hidden &&
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'granted'
+      ) {
+        new Notification('FocusOne — Sesión completada', {
+          body: `${minutes} minutos de foco profundo. Vuelve a por tu recompensa.`,
+        })
+      }
     } else {
       setPhase('setup')
       void recordSession(false)

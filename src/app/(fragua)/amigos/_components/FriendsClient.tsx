@@ -145,7 +145,10 @@ export function FriendsClient({ friends, incoming, outgoing, isDemo }: Props) {
                   <Gem size={12} /> {u.points ?? 0}
                 </span>
                 <button
-                  onClick={() => run(`rm-${u.id}`, () => supabase.rpc('remove_friend', { p_friend: u.id }))}
+                  onClick={() => {
+                    if (!confirm(`¿Eliminar a ${u.name || u.email} de tus amigos?`)) return
+                    run(`rm-${u.id}`, () => supabase.rpc('remove_friend', { p_friend: u.id }))
+                  }}
                   disabled={busy !== null}
                   className="text-forge-ink-faint hover:text-red-400"
                   aria-label="Eliminar amigo"

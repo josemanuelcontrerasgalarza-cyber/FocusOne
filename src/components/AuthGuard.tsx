@@ -31,21 +31,6 @@ function BootScreen() {
   )
 }
 
-export function AuthGuard({ children }: { children: ReactNode }) {
-  // Gate por SESIÓN, no por el perfil: si la fila de profiles falta o tarda en
-  // cargar, la sesión sigue siendo válida y el usuario debe entrar igual.
-  const { session, initialized } = useAuthStore()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (initialized && !session) router.replace('/login')
-  }, [initialized, session, router])
-
-  if (!initialized) return <BootScreen />
-  if (!session) return <BootScreen />
-  return <>{children}</>
-}
-
 export function GuestGuard({ children }: { children: ReactNode }) {
   const { session, initialized } = useAuthStore()
   const router = useRouter()
