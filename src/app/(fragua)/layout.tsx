@@ -5,6 +5,7 @@ import { PointsBadge } from '@/components/forge/PointsBadge'
 import { ForgeCommand } from '@/components/forge/ForgeCommand'
 import { CommandButton } from '@/components/forge/CommandButton'
 import { GlobalPlayer } from '@/components/forge/GlobalPlayer'
+import { QuickCapture } from '@/components/forge/QuickCapture'
 import { getHeaderStats } from '@/lib/missions'
 
 export const metadata: Metadata = {
@@ -70,6 +71,9 @@ export default async function FraguaLayout({
 
       {/* Reproductor global: la música sigue sonando al cambiar de pantalla */}
       <GlobalPlayer />
+
+      {/* Captura rápida: guarda una idea al vuelo sin romper el foco (tecla C) */}
+      <QuickCapture />
     </div>
   )
 }

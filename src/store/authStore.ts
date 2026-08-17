@@ -31,12 +31,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialize: () => {
     // onAuthStateChange emite INITIAL_SESSION al suscribirse, así que cubre tanto
     // la carga inicial como los cambios posteriores con un solo listener.
+    let pending: ReturnType<typeof setTimeout> | null = null
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Cancela cualquier fetch de perfil en vuelo: si dos eventos de auth llegan
+      // seguidos (p. ej. logout justo tras login), evita que el más lento
+      // sobrescriba el estado con datos de una sesión ya cerrada.
+      if (pending) clearTimeout(pending)
       if (session?.user) {
         set({ session, isDemo: session.user.is_anonymous === true })
         // La consulta se difiere para evitar el deadlock conocido de hacer
         // llamadas a supabase de forma síncrona dentro de este callback.
-        setTimeout(async () => {
+        pending = setTimeout(async () => {
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
@@ -48,7 +53,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ session: null, user: null, isDemo: false, initialized: true })
       }
     })
-    return () => subscription.unsubscribe()
+    return () => {
+      if (pending) clearTimeout(pending)
+      subscription.unsubscribe()
+    }
   },
 
   refreshProfile: async () => {

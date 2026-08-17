@@ -9,10 +9,18 @@ export const runtime = 'nodejs'
  * usuario a su dashboard. El perfil se crea solo con el trigger handle_new_user,
  * así que su progreso se almacena igual que con cualquier cuenta.
  */
+// Solo permite rutas internas relativas: deben empezar con un único "/" (no
+// "//" ni "/\", que los navegadores interpretan como protocol-relative y
+// abrirían un open redirect a un host externo).
+function safeNextPath(next: string | null): string {
+  if (next && /^\/(?!\/|\\)/.test(next)) return next
+  return '/hoy'
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/hoy'
+  const next = safeNextPath(searchParams.get('next'))
 
   if (code) {
     const supabase = await createSupabaseServerClient()
