@@ -1551,10 +1551,34 @@ drop policy if exists "friendships_read_own" on public.friendships;
 create policy "friendships_read_own" on public.friendships for select using (auth.uid() = user_id);
 revoke insert, update, delete on public.friendships from anon, authenticated;
 
+-- Notificaciones del usuario (solicitudes, aceptaciones, retos). Las inserta el
+-- servidor (RPCs SECURITY DEFINER); el usuario solo puede leer/marcar/borrar las
+-- suyas.
+create table if not exists public.notifications (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  kind       text not null,
+  actor_id   uuid,
+  actor_name text,
+  body       text not null,
+  read       boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists notifications_user_idx on public.notifications (user_id, created_at desc);
+alter table public.notifications enable row level security;
+drop policy if exists "notif_select_own" on public.notifications;
+create policy "notif_select_own" on public.notifications for select using (auth.uid() = user_id);
+drop policy if exists "notif_update_own" on public.notifications;
+create policy "notif_update_own" on public.notifications
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "notif_delete_own" on public.notifications;
+create policy "notif_delete_own" on public.notifications for delete using (auth.uid() = user_id);
+revoke insert on public.notifications from anon, authenticated;
+
 -- Enviar solicitud por correo. Si el otro ya te la envió, se aceptan mutuamente.
 create or replace function public.send_friend_request(p_email text)
 returns text as $$
-declare v_target uuid; v_me uuid := auth.uid();
+declare v_target uuid; v_me uuid := auth.uid(); v_name text;
 begin
   select id into v_target from public.profiles where lower(email) = lower(trim(p_email));
   if v_target is null then raise exception 'No existe una cuenta con ese correo'; end if;
@@ -1562,15 +1586,22 @@ begin
   if exists (select 1 from public.friendships where user_id = v_me and friend_id = v_target and status = 'accepted') then
     raise exception 'Ya son amigos';
   end if;
+  select coalesce(name, split_part(email, '@', 1)) into v_name from public.profiles where id = v_me;
+
   if exists (select 1 from public.friendships where user_id = v_me and friend_id = v_target and status = 'pending' and requested_by = v_target) then
     update public.friendships set status = 'accepted'
       where (user_id, friend_id) in ((v_me, v_target), (v_target, v_me));
+    insert into public.notifications (user_id, kind, actor_id, actor_name, body)
+      values (v_target, 'friend_accepted', v_me, v_name, v_name || ' aceptó tu solicitud de amistad');
     return 'accepted';
   end if;
+
   insert into public.friendships (user_id, friend_id, status, requested_by) values
     (v_me, v_target, 'pending', v_me),
     (v_target, v_me, 'pending', v_me)
     on conflict (user_id, friend_id) do nothing;
+  insert into public.notifications (user_id, kind, actor_id, actor_name, body)
+    values (v_target, 'friend_request', v_me, v_name, v_name || ' te envió una solicitud de amistad');
   return 'sent';
 end;
 $$ language plpgsql security definer set search_path = public;
@@ -1578,7 +1609,7 @@ $$ language plpgsql security definer set search_path = public;
 -- Aceptar (o rechazar) una solicitud entrante.
 create or replace function public.respond_friend_request(p_from uuid, p_accept boolean)
 returns void as $$
-declare v_me uuid := auth.uid();
+declare v_me uuid := auth.uid(); v_name text;
 begin
   if not exists (select 1 from public.friendships where user_id = v_me and friend_id = p_from and status = 'pending' and requested_by = p_from) then
     raise exception 'No hay solicitud pendiente de esa persona';
@@ -1586,9 +1617,36 @@ begin
   if p_accept then
     update public.friendships set status = 'accepted'
       where (user_id, friend_id) in ((v_me, p_from), (p_from, v_me));
+    select coalesce(name, split_part(email, '@', 1)) into v_name from public.profiles where id = v_me;
+    insert into public.notifications (user_id, kind, actor_id, actor_name, body)
+      values (p_from, 'friend_accepted', v_me, v_name, v_name || ' aceptó tu solicitud de amistad');
   else
     delete from public.friendships where (user_id, friend_id) in ((v_me, p_from), (p_from, v_me));
   end if;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+-- Retar a un amigo: le manda una notificación con tu racha actual para picarlo.
+create or replace function public.challenge_friend(p_friend uuid)
+returns void as $$
+declare v_me uuid := auth.uid(); v_name text; v_streak int;
+begin
+  if not exists (select 1 from public.friendships where user_id = v_me and friend_id = p_friend and status = 'accepted') then
+    raise exception 'Solo puedes retar a tus amigos';
+  end if;
+  -- Máx. un reto por amigo cada 6 horas (anti-spam).
+  if exists (
+    select 1 from public.notifications
+    where user_id = p_friend and actor_id = v_me and kind = 'challenge'
+      and created_at > now() - interval '6 hours'
+  ) then
+    raise exception 'Ya retaste a esta persona hace poco';
+  end if;
+  select coalesce(name, split_part(email, '@', 1)), coalesce(streak_current, 0)
+    into v_name, v_streak from public.profiles where id = v_me;
+  insert into public.notifications (user_id, kind, actor_id, actor_name, body)
+    values (p_friend, 'challenge', v_me, v_name,
+      v_name || ' te reta a superar su racha de ' || v_streak || ' días 🔥');
 end;
 $$ language plpgsql security definer set search_path = public;
 
@@ -1631,6 +1689,7 @@ grant execute on function public.send_friend_request(text)             to authen
 grant execute on function public.respond_friend_request(uuid, boolean) to authenticated;
 grant execute on function public.remove_friend(uuid)                   to authenticated;
 grant execute on function public.list_friends()                        to authenticated;
+grant execute on function public.challenge_friend(uuid)                to authenticated;
 
 -- ==================================================================
 -- HERRAMIENTAS DE DEVELOPER (panel in-app)
