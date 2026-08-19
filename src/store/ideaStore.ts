@@ -66,7 +66,14 @@ export const useIdeaStore = create<IdeaState>((set) => ({
       is_main: isFirst,
     })
     if (!project) return
-    await supabase.from('ideas').update({ converted_to_project_id: project.id }).eq('id', idea.id)
+    const { error } = await supabase
+      .from('ideas')
+      .update({ converted_to_project_id: project.id })
+      .eq('id', idea.id)
+    if (error) {
+      toast.error('El proyecto se creó, pero no se pudo marcar la idea como convertida.')
+      return
+    }
     set((state) => ({
       ideas: state.ideas.map((i) =>
         i.id === idea.id ? { ...i, converted_to_project_id: project.id } : i,

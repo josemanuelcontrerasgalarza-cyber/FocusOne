@@ -24,6 +24,46 @@ function format(seconds: number) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+const STORAGE_KEY = 'focusone:deepwork:session'
+
+interface StoredSession {
+  intention: string
+  minutes: number
+  endAt: number
+  startAt: string
+}
+
+/** Recupera una sesión en curso guardada antes de un refresh/cierre de pestaña. */
+function loadStoredSession(): StoredSession | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const s = JSON.parse(raw) as StoredSession
+    if (!s || typeof s.endAt !== 'number' || !s.startAt) return null
+    return s
+  } catch {
+    return null
+  }
+}
+
+function saveStoredSession(s: StoredSession) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+  } catch {
+    // localStorage no disponible (modo privado, cuota llena...): la sesión
+    // sigue funcionando, solo no sobrevive a un refresh.
+  }
+}
+
+function clearStoredSession() {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // ver saveStoredSession
+  }
+}
+
 /**
  * Deep Work nativo de La Fragua (reemplaza la entrada al /focus glass).
  * Timer de enfoque con presets + duración personalizada. Registra la sesión en
@@ -43,6 +83,40 @@ export default function DeepWorkPage() {
   const tick = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => () => { if (tick.current) clearInterval(tick.current) }, [])
+
+  // Recupera una sesión en curso si el usuario refrescó o cerró la pestaña
+  // sin querer: sin esto, el progreso de hasta 90 minutos se perdía en silencio.
+  useEffect(() => {
+    const stored = loadStoredSession()
+    if (!stored) return
+    const left = Math.round((stored.endAt - Date.now()) / 1000)
+    setIntention(stored.intention)
+    setMinutes(stored.minutes)
+    startRef.current = new Date(stored.startAt)
+    if (left <= 0) {
+      // Terminó mientras la pestaña estaba cerrada: la damos por completada.
+      endRef.current = null
+      setSecondsLeft(0)
+      setPhase('done')
+      clearStoredSession()
+      void recordSession(true)
+      return
+    }
+    endRef.current = stored.endAt
+    setSecondsLeft(left)
+    setPhase('running')
+    tick.current = setInterval(() => {
+      if (endRef.current == null) return
+      const l = Math.round((endRef.current - Date.now()) / 1000)
+      if (l <= 0) {
+        setSecondsLeft(0)
+        finish(true)
+      } else {
+        setSecondsLeft(l)
+      }
+    }, 250)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function recordSession(completed: boolean) {
     if (!uid || !startRef.current) return
@@ -69,6 +143,12 @@ export default function DeepWorkPage() {
     endRef.current = Date.now() + total * 1000
     setSecondsLeft(total)
     setPhase('running')
+    saveStoredSession({
+      intention,
+      minutes,
+      endAt: endRef.current,
+      startAt: startRef.current.toISOString(),
+    })
     if (tick.current) clearInterval(tick.current)
     tick.current = setInterval(() => {
       if (endRef.current == null) return
@@ -85,6 +165,7 @@ export default function DeepWorkPage() {
   function finish(natural: boolean) {
     if (tick.current) clearInterval(tick.current)
     endRef.current = null
+    clearStoredSession()
     if (natural) {
       setPhase('done')
       void recordSession(true)
@@ -194,7 +275,11 @@ export default function DeepWorkPage() {
               />
             </div>
             <button
-              onClick={() => finish(false)}
+              onClick={() => {
+                if (confirm('¿Abortar la sesión? Perderás el progreso de este bloque de foco.')) {
+                  finish(false)
+                }
+              }}
               className="inline-flex items-center gap-2 rounded-full border border-white/[0.12] px-5 py-2.5 font-forge text-sm font-semibold text-forge-ink-dim transition-colors hover:border-white/30 hover:text-forge-ink"
             >
               <Square size={14} /> Abortar sesión

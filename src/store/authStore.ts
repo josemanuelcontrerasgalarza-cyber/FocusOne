@@ -144,7 +144,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('No se pudo guardar la cuenta. Intenta de nuevo.')
       }
       const uid = get().session?.user.id
-      if (uid) await supabase.from('profiles').update({ email, name }).eq('id', uid)
+      if (uid) await supabase.rpc('sync_own_profile', { p_name: name, p_email: email })
       set({ isDemo: false })
       await get().refreshProfile()
       toast.success('Cuenta guardada. Revisa tu correo para confirmar el acceso.')

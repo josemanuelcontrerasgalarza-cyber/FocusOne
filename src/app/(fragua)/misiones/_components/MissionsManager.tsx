@@ -156,7 +156,8 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
   // Nota: completar una misión (con quiz de cierre) ocurre en /hoy, no aquí.
   // Esta pantalla solo crea/enciende/borra; "Ir a forjar" lleva al dashboard.
 
-  async function deleteMission(id: string) {
+  async function deleteMission(id: string, title: string) {
+    if (!confirm(`¿Borrar "${title}"? No se puede deshacer.`)) return
     setBusyId(id)
     setErrorMsg(null)
     try {
@@ -304,7 +305,7 @@ export function MissionsManager({ active, pending, history, isDemo }: Props) {
                     Encender
                   </button>
                   <button
-                    onClick={() => deleteMission(m.id)}
+                    onClick={() => deleteMission(m.id, m.title)}
                     disabled={busy}
                     aria-label="Borrar misión"
                     className="flex-shrink-0 rounded-full p-2 text-forge-ink-faint transition-colors hover:text-forge-ink disabled:opacity-40"

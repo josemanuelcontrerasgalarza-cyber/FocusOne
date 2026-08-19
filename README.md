@@ -29,7 +29,9 @@ cp .env.example .env.local
 # Editar .env.local con tus credenciales de Supabase
 
 # 3. Base de datos
-# Ejecutar supabase/schema.sql y supabase/migrations/*.sql en el SQL Editor de Supabase
+# Ejecutar supabase/setup_all.sql (fuente de verdad, idempotente) en el SQL
+# Editor de Supabase. `schema.sql` y `migrations/*.sql` son solo referencia
+# histórica: NO ejecutarlos, ya están todos incluidos en setup_all.sql.
 
 # 4. Iniciar
 npm run dev
@@ -40,8 +42,8 @@ npm run dev
 1. Framework preset: **Next.js** (se detecta automáticamente).
 2. Variables de entorno: `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
    ⚠️ Son nuevas — las antiguas `VITE_*` ya no se usan.
-3. Ejecuta `supabase/migrations/02_focus_sessions.sql` en Supabase para habilitar
-   el registro de sesiones de Deep Work.
+3. Ejecuta `supabase/setup_all.sql` en Supabase (incluye Deep Work, misiones,
+   tienda, amigos y notificaciones — todo el backend de La Fragua).
 
 ## Rutas
 

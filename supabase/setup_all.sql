@@ -71,6 +71,21 @@ select id, coalesce(email, id::text || '@focusone.local')
 from auth.users
 on conflict (id) do nothing;
 
+-- Actualizar nombre/correo propios (p.ej. al pasar de cuenta demo a cuenta
+-- real). `profiles` no tiene policy de UPDATE a propósito (ver arriba), así
+-- que esto pasa por una RPC que solo toca name/email de la fila del propio
+-- usuario — nunca is_developer, streak_* ni el id de otra persona.
+create or replace function public.sync_own_profile(p_name text, p_email text)
+returns void as $$
+begin
+  update public.profiles
+    set name = coalesce(nullif(trim(p_name), ''), name),
+        email = coalesce(nullif(trim(p_email), ''), email)
+    where id = auth.uid();
+end;
+$$ language plpgsql security definer set search_path = public;
+grant execute on function public.sync_own_profile(text, text) to authenticated;
+
 -- ==================================================================
 -- 04_missions.sql
 -- ==================================================================

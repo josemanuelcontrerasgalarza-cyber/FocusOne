@@ -3,6 +3,12 @@
 --
 -- Cualquiera (incluso sin cuenta) puede leer y publicar una opinión. El nombre
 -- es opcional: si se deja vacío se muestra como "Anónimo".
+--
+-- ⚠️ NO aplicar este archivo solo: la policy "Anyone can post a review" de
+-- abajo permite insertar sin límite. La migración 12 la revoca y la sustituye
+-- por la RPC post_review (rate-limited). `supabase/setup_all.sql` —la fuente
+-- de verdad— ya incluye ese hardening; úsalo en vez de aplicar migraciones
+-- una a una.
 
 create table if not exists public.reviews (
   id uuid default gen_random_uuid() primary key,
