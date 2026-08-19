@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserPlus, Check, X, Loader2, Flame, Gem, Trash2, Clock } from 'lucide-react'
+import { UserPlus, Check, X, Loader2, Flame, Gem, Trash2, Clock, Swords } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
@@ -144,6 +144,15 @@ export function FriendsClient({ friends, incoming, outgoing, isDemo }: Props) {
                 <span className="flex items-center gap-1 font-num text-[12px] text-ember">
                   <Gem size={12} /> {u.points ?? 0}
                 </span>
+                <button
+                  onClick={() => run(`ch-${u.id}`, () => supabase.rpc('challenge_friend', { p_friend: u.id }), () => `Retaste a ${u.name || 'tu amigo'} 🔥`)}
+                  disabled={busy !== null}
+                  className="flex h-7 items-center gap-1 rounded-full border border-ember/40 bg-ember/10 px-2 font-num text-[11px] font-bold text-ember hover:bg-ember/20"
+                  aria-label="Retar"
+                >
+                  {busy === `ch-${u.id}` ? <Loader2 size={12} className="animate-spin" /> : <Swords size={12} />}
+                  Retar
+                </button>
                 <button
                   onClick={() => run(`rm-${u.id}`, () => supabase.rpc('remove_friend', { p_friend: u.id }))}
                   disabled={busy !== null}

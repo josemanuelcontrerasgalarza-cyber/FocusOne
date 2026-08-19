@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.5'
+export const APP_VERSION = '5.6'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: '5.5',
-    title: 'Amigos y tienda con nombres de verdad',
+    version: '5.6',
+    title: 'Notificaciones y retos entre amigos',
     date: '3 ago 2026',
     tag: 'Actual',
+    items: [
+      'Nueva campana de notificaciones: te avisamos cuando alguien te agrega, acepta tu solicitud o te reta.',
+      'Reta a tus amigos a superar tu racha con un solo toque.',
+    ],
+  },
+  {
+    version: '5.5',
+    title: 'Amigos y tienda con nombres de verdad',
     items: [
       'Nuevo sistema de Amigos: agrégalos por su correo desde la app y compitan por la mejor racha y puntos.',
       'Acepta o rechaza solicitudes y mira el ranking de tus amigos.',

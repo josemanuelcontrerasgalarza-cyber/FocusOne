@@ -5,6 +5,7 @@ import { PointsBadge } from '@/components/forge/PointsBadge'
 import { ForgeCommand } from '@/components/forge/ForgeCommand'
 import { CommandButton } from '@/components/forge/CommandButton'
 import { GlobalPlayer } from '@/components/forge/GlobalPlayer'
+import { NotificationBell } from '@/components/forge/NotificationBell'
 import { getHeaderStats } from '@/lib/missions'
 
 export const metadata: Metadata = {
@@ -52,6 +53,7 @@ export default async function FraguaLayout({
             <PointsBadge points={points} isDeveloper={isDeveloper} />
           </div>
           <StreakBadge days={streak} />
+          <NotificationBell />
           {/* Avatar (placeholder — perfil real en Fase 6) */}
           <div className="h-9 w-9 rounded-full border border-forge-line bg-forge-raised" />
         </div>
