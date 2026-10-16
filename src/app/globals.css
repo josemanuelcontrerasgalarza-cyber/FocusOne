@@ -2,139 +2,126 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Kairo — tokens de color (canales RGB para admitir opacidad en Tailwind).
+ * Claro: marfil cálido + grafito. Oscuro: grafito profundo + marfil.
+ * Acento único: lima "Kairo" (relleno). accent-fg es su versión legible como
+ * texto sobre el fondo de cada tema.
+ */
 @layer base {
-  html { color-scheme: dark; }
+  :root {
+    color-scheme: light;
+    --canvas: 245 242 234;
+    --surface: 251 249 244;
+    --raised: 255 255 255;
+    --sunken: 237 233 223;
+    --line: 226 221 209;
+    --line-strong: 207 201 187;
+    --ink: 24 25 27;
+    --ink-dim: 91 88 80;
+    --ink-faint: 136 132 122;
+    --accent: 190 232 60;
+    --accent-ink: 22 24 14;
+    --accent-fg: 72 98 4;
+    --warm: 150 106 20;
+    --success: 30 128 76;
+    --warning: 150 106 20;
+    --danger: 192 56 44;
+    --info: 46 94 200;
+    --shadow: 40 34 20;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --canvas: 15 16 18;
+    --surface: 22 23 26;
+    --raised: 30 32 36;
+    --sunken: 11 12 13;
+    --line: 38 40 45;
+    --line-strong: 54 57 63;
+    --ink: 242 238 230;
+    --ink-dim: 168 164 156;
+    --ink-faint: 112 109 103;
+    --accent: 201 242 77;
+    --accent-ink: 17 20 10;
+    --accent-fg: 201 242 77;
+    --warm: 229 181 103;
+    --success: 98 205 142;
+    --warning: 229 181 103;
+    --danger: 240 108 96;
+    --info: 132 170 255;
+    --shadow: 0 0 0;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
 
   body {
-    @apply bg-forge-canvas text-forge-ink font-forge antialiased;
+    @apply bg-canvas font-sans text-ink antialiased;
     margin: 0;
     overflow-x: hidden;
+    font-feature-settings: 'ss01', 'cv11';
   }
 
-  ::selection { background: rgba(94, 234, 212, 0.22); }
+  ::selection {
+    background: rgb(var(--accent) / 0.45);
+    color: rgb(var(--ink));
+  }
 
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent-fg));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(140, 160, 255, 0.15);
+    background: rgb(var(--line-strong));
     border-radius: 999px;
+    border: 2px solid rgb(var(--canvas));
   }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(140, 160, 255, 0.30); }
+
+  /* Números tabulares en cualquier elemento monoespaciado. */
+  .font-mono, .font-num { font-variant-numeric: tabular-nums; }
 }
 
 @layer components {
-  /* ── Cristal líquido ───────────────────────────────────────── */
-  .glass-panel {
-    background: linear-gradient(135deg, rgba(20,24,44,0.65), rgba(10,12,26,0.50));
-    -webkit-backdrop-filter: blur(24px) saturate(145%);
-    backdrop-filter: blur(24px) saturate(145%);
-    border: 1px solid rgba(140,160,255,0.13);
-    border-radius: 20px;
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.09),
-      inset 0 -1px 0 rgba(0,0,0,0.25),
-      0 16px 48px rgba(0,0,0,0.42);
+  /* Tarjeta estándar: superficie + borde fino. Sin sombras dramáticas. */
+  .k-card {
+    @apply rounded-card border border-line bg-surface;
   }
 
-  /* ── Inputs ────────────────────────────────────────────────── */
-  .glass-input {
-    @apply w-full rounded-xl border border-glass-border bg-black/25 px-4 py-2.5 text-sm text-ink placeholder:text-ink-ghost outline-none transition-all duration-200;
-  }
-  .glass-input:focus {
-    border-color: rgba(94,234,212,0.45);
-    background: rgba(0,0,0,0.35);
-    box-shadow: 0 0 0 3px rgba(94,234,212,0.10);
+  /* Etiqueta de sección (micro-tipografía en mayúsculas). */
+  .k-eyebrow {
+    @apply font-mono text-2xs font-medium uppercase tracking-[0.14em] text-ink-faint;
   }
 
-  /* ── Tipografía ────────────────────────────────────────────── */
-  .text-gradient {
-    background: linear-gradient(120deg,#5eead4 0%,#8b5cf6 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .text-gradient-solar {
-    background: linear-gradient(120deg,#f59e0b 0%,#fb7185 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  /* Campo de formulario. */
+  .k-input {
+    @apply w-full rounded-control border border-line bg-raised px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint hover:border-line-strong focus:border-accent-fg/60 focus:shadow-ring;
   }
 
-  /* ── Badges ────────────────────────────────────────────────── */
-  .badge {
-    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-data text-[10px] uppercase tracking-wider;
-  }
-  .badge-core   { @apply badge border border-core/35 bg-core/10 text-core; }
-  .badge-plasma { @apply badge border border-plasma/35 bg-plasma/10 text-[#c4b5fd]; }
-  .badge-solar  { @apply badge border border-solar/35 bg-solar/10 text-solar; }
-  .badge-nova   { @apply badge border border-nova/35 bg-nova/10 text-nova; }
-  .badge-ghost  { @apply badge border border-glass-border bg-white/5 text-ink-ghost; }
-
-  /* ── Plasma bar ────────────────────────────────────────────── */
-  .plasma-fill {
-    background: linear-gradient(90deg,#5eead4,#8b5cf6,#5eead4);
+  /* Skeleton de carga. */
+  .k-skeleton {
+    @apply animate-shimmer rounded-control;
+    background: linear-gradient(90deg, rgb(var(--sunken)) 0%, rgb(var(--raised)) 50%, rgb(var(--sunken)) 100%);
     background-size: 200% 100%;
-    animation: plasma-flow 3s linear infinite;
   }
 
-  /* ── Nav activo (sidebar) ──────────────────────────────────── */
-  .nav-active {
-    @apply relative bg-core/10 text-core;
-  }
-  .nav-active::before {
-    content: '';
-    @apply absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-core shadow-glow-core;
-  }
-
-  /* ── Hero glow ─────────────────────────────────────────────── */
-  .hero-glow {
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(94,234,212,0.09) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 30% at 80% 20%, rgba(139,92,246,0.07) 0%, transparent 60%);
-    pointer-events: none;
-  }
-
-  /* ── Card accent border ────────────────────────────────────── */
-  .card-accent-core   { border-top: 2px solid rgba(94,234,212,0.45); }
-  .card-accent-plasma { border-top: 2px solid rgba(139,92,246,0.45); }
-  .card-accent-solar  { border-top: 2px solid rgba(245,158,11,0.45); }
-  .card-accent-nova   { border-top: 2px solid rgba(251,113,133,0.45); }
-}
-
-@keyframes plasma-flow {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-6px); }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; }
-  50%       { opacity: 0.8; }
-}
-
-@layer components {
-  /* === La Fragua === */
-
-  /* Panel/tarjeta estándar del sistema de la fragua. */
+  /* Heredado: panel de La Fragua → tarjeta Kairo. */
   .forge-panel {
-    @apply rounded-forge border border-forge-line bg-forge-surface;
-  }
-
-  /* Texto con el gradiente ember (solo para la misión activa / acentos). */
-  .text-ember {
-    background: linear-gradient(120deg, #ff6a2b 0%, #ffb13b 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    @apply rounded-card border border-line bg-surface;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .plasma-fill { animation: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

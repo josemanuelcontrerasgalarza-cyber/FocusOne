@@ -12,7 +12,7 @@ export const runtime = 'nodejs'
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/hoy'
+  const next = searchParams.get('next') ?? '/inicio'
 
   if (code) {
     const supabase = await createSupabaseServerClient()

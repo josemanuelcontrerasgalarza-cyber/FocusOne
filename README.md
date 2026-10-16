@@ -1,56 +1,80 @@
-# FocusOne — Kratos Labs
+# Kairo
 
-> Termina lo que empiezas.
+> Lo importante, ahora.
 
-Plataforma de productividad AI-First con interfaz inmersiva 3D (sistema de diseño
-**HORIZON**). Tus proyectos son misiones, tus tareas objetivos, y Kratos —el orbe—
-vive en el centro de tu cosmos.
+Kairo es un espacio de trabajo personal que te ayuda a decidir qué hacer a
+continuación: tareas, proyectos, objetivos, hábitos, sesiones de enfoque,
+calendario y estadísticas en un solo lugar, con una recomendación explicable de
+«Tu siguiente movimiento» calculada a partir de tus datos reales.
+
+> El repositorio y el paquete conservan el identificador técnico `focusone`
+> para no romper despliegues ni URLs existentes. La marca visible es Kairo.
 
 ## Stack
 
-- **Next.js 15** (App Router) + React 19 + TypeScript
-- **Three.js + React Three Fiber + Drei** — cosmos 3D, orbe Kratos con shaders GLSL
-- **Tailwind CSS** + cristal líquido (glassmorphism) + **Framer Motion**
-- **Supabase** (auth + Postgres + RLS) + **Zustand**
+- **Next.js 15** (App Router) + React 19 + TypeScript estricto
+- **Tailwind CSS** con tokens semánticos (tema claro y oscuro) + Framer Motion
+- **Supabase** (auth, Postgres, RLS) + **Zustand**
+- **Groq** (opcional, solo en el servidor) para el asistente
 
 ## Documentación
 
-- [`docs/PLAN_MAESTRO.md`](docs/PLAN_MAESTRO.md) — auditoría técnica y roadmap AI-First (Groq)
-- [`docs/HORIZON_DESIGN_SYSTEM.md`](docs/HORIZON_DESIGN_SYSTEM.md) — sistema de diseño inmersivo
+- [`docs/KAIRO.md`](docs/KAIRO.md) — marca, sistema de diseño, arquitectura,
+  modelo de datos y convenciones.
+- `docs/PLAN_MAESTRO.md` es un documento histórico de versiones anteriores.
 
-## Setup
+## Puesta en marcha
 
 ```bash
-# 1. Instalar dependencias
 npm install
-
-# 2. Variables de entorno
-cp .env.example .env.local
-# Editar .env.local con tus credenciales de Supabase
-
-# 3. Base de datos
-# Ejecutar supabase/schema.sql y supabase/migrations/*.sql en el SQL Editor de Supabase
-
-# 4. Iniciar
+cp .env.example .env.local   # rellena las variables (ver abajo)
 npm run dev
 ```
 
-## Despliegue en Vercel
+Sin variables de Supabase la app funciona en **modo local**: los datos se guardan
+solo en el navegador y se muestra un aviso. No hay sincronización en ese modo.
 
-1. Framework preset: **Next.js** (se detecta automáticamente).
-2. Variables de entorno: `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-   ⚠️ Son nuevas — las antiguas `VITE_*` ya no se usan.
-3. Ejecuta `supabase/migrations/02_focus_sessions.sql` en Supabase para habilitar
-   el registro de sesiones de Deep Work.
+### Variables de entorno
 
-## Rutas
+| Variable | Dónde | Uso |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | cliente + servidor | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | cliente + servidor | Clave anónima (pública; la seguridad la imponen las políticas RLS) |
+| `GROQ_API_KEY` | **solo servidor** | Activa el asistente. Sin ella, el asistente indica que no está configurado |
+| `GROQ_MODEL` | solo servidor | Opcional. Por defecto `llama-3.3-70b-versatile` |
+
+Nunca uses el prefijo `NEXT_PUBLIC_` para la clave de Groq.
+
+### Base de datos
+
+Ejecuta `supabase/setup_all.sql` en el SQL Editor de Supabase. Es idempotente:
+se puede volver a ejecutar sobre una base existente sin borrar datos. La
+migración `supabase/migrations/13_kairo.sql` (incluida en `setup_all.sql`)
+añade objetivos, hábitos, ajustes y amplía tareas y proyectos; importa las
+tareas antiguas sin duplicarlas y no elimina nada.
+
+## Scripts
+
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Build de producción |
+| `npm test` | Pruebas unitarias de la lógica (`node --test`) |
+| `npx tsc --noEmit` | Comprobación de tipos |
+
+## Rutas principales
 
 | Ruta | Descripción |
 |---|---|
-| `/` | Centro de mando — misión principal, telemetría, objetivos |
-| `/focus` | **Modo Deep Work** — sesiones de foco de 25/50/90 min |
-| `/projects` | Misiones (proyectos) |
-| `/ideas` | Bóveda de ideas |
-| `/stats` | Telemetría de rendimiento |
-| `/music` | Frecuencias de foco (Spotify) |
-| `/settings` | Configuración |
+| `/` | Página pública |
+| `/inicio` | Centro de control y «Tu siguiente movimiento» |
+| `/tareas` | Tareas en lista o tablero, filtros y búsqueda |
+| `/enfoque` | Sesiones de enfoque (pomodoro configurable) |
+| `/calendario` | Vista de día y semana |
+| `/proyectos` | Proyectos y su detalle |
+| `/objetivos` | Objetivos y hábitos |
+| `/estadisticas` | Estadísticas con tus datos |
+| `/asistente` | Asistente con IA |
+| `/ajustes` | Preferencias, exportación de datos y cuenta |
+
+Las rutas antiguas (`/hoy`, `/misiones`, `/focus`, `/stats`…) redirigen a las nuevas.

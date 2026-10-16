@@ -1,10 +1,10 @@
 /**
- * Historial de versiones de FocusOne (novedades mostradas al público).
+ * Historial de versiones de Kairo (novedades mostradas al público).
  * `APP_VERSION` es la versión actual; la primera entrada de `CHANGELOG` debe
  * coincidir con ella.
  */
 
-export const APP_VERSION = '5.6'
+export const APP_VERSION = '6.0'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,22 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '6.0',
+    title: 'Kairo: una nueva forma de decidir qué hacer ahora',
+    date: '16 oct 2026',
+    tag: 'Actual',
+    items: [
+      'Nueva identidad y diseño completo, con tema claro y oscuro.',
+      'Inicio como centro de control con «Tu siguiente movimiento», calculado a partir de tus tareas reales y con el motivo a la vista.',
+      'Tareas con prioridad, fechas, etiquetas, subtareas, estimaciones, recurrencia, lista y tablero, y captura en lenguaje natural («Estudiar ciencias mañana durante 30 minutos»).',
+      'Modo enfoque que conserva tu sesión al recargar y solo cuenta el tiempo real.',
+      'Proyectos con progreso calculado, objetivos, hábitos con rachas, calendario de día y semana, estadísticas con datos reales y asistente con IA (requiere configurarlo en el servidor).',
+      'Paleta de comandos (⌘K), atajos de teclado y ajustes que se guardan en tu cuenta.',
+    ],
+  },
+  {
     version: '5.6',
     title: 'Notificaciones y retos entre amigos',
-    date: '3 ago 2026',
-    tag: 'Actual',
     items: [
       'Nueva campana de notificaciones: te avisamos cuando alguien te agrega, acepta tu solicitud o te reta.',
       'Reta a tus amigos a superar tu racha con un solo toque.',
@@ -134,7 +146,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '1.0',
-    title: 'Lanzamiento de FocusOne',
+    title: 'Primer lanzamiento',
     items: [
       'Misiones con una principal a la vez: termina lo que empiezas.',
       'Sesiones de Deep Work a pantalla completa.',

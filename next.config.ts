@@ -30,10 +30,30 @@ const securityHeaders = [
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
 ]
 
+// Rutas de versiones anteriores → equivalentes en Kairo (no se rompen enlaces).
+const LEGACY_ROUTES: [string, string][] = [
+  ['/hoy', '/inicio'],
+  ['/app', '/inicio'],
+  ['/misiones', '/tareas'],
+  ['/ideas', '/tareas'],
+  ['/deep-work', '/enfoque'],
+  ['/focus', '/enfoque'],
+  ['/progreso', '/estadisticas'],
+  ['/stats', '/estadisticas'],
+  ['/projects', '/proyectos'],
+  ['/projects/:id', '/proyectos'],
+  ['/achievements', '/objetivos'],
+  ['/settings', '/ajustes'],
+  ['/music', '/musica'],
+]
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }]
+  },
+  async redirects() {
+    return LEGACY_ROUTES.map(([source, destination]) => ({ source, destination, permanent: true }))
   },
 }
 

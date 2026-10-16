@@ -1,35 +1,55 @@
-import { create } from 'zustand'
+'use client'
 
-/** Intención efímera para coordinar acciones entre páginas (ej. abrir el form
- *  de nueva misión al navegar desde la paleta), sin usar query params. */
-export type Intent = 'new-project' | null
+import { create } from 'zustand'
+import type { TaskInput } from '@/lib/kairo/types'
+
+const SIDEBAR_KEY = 'kairo:sidebar'
 
 interface UIState {
-  commandOpen: boolean
+  paletteOpen: boolean
+  captureOpen: boolean
+  captureDefaults: Partial<TaskInput> | null
   shortcutsOpen: boolean
-  intent: Intent
-  setCommandOpen: (v: boolean) => void
-  toggleCommand: () => void
-  setShortcutsOpen: (v: boolean) => void
-  setIntent: (i: Intent) => void
-  consumeIntent: () => Intent
+  mobileNavOpen: boolean
+  sidebarCollapsed: boolean
+  /** id de la tarea abierta en el cajón de detalle (global) */
+  taskId: string | null
+
+  setPalette: (v: boolean) => void
+  openCapture: (defaults?: Partial<TaskInput>) => void
+  closeCapture: () => void
+  setShortcuts: (v: boolean) => void
+  setMobileNav: (v: boolean) => void
+  toggleSidebar: () => void
+  initSidebar: () => void
+  openTask: (id: string | null) => void
 }
 
-/**
- * Estado de UI global y efímero (no se persiste): paleta de comandos, ayuda de
- * atajos e intenciones de navegación. Permite abrirlos desde cualquier parte.
- */
-export const useUIStore = create<UIState>((set, get) => ({
-  commandOpen: false,
+export const useUI = create<UIState>((set, get) => ({
+  paletteOpen: false,
+  captureOpen: false,
+  captureDefaults: null,
   shortcutsOpen: false,
-  intent: null,
-  setCommandOpen: (v) => set({ commandOpen: v }),
-  toggleCommand: () => set((s) => ({ commandOpen: !s.commandOpen })),
-  setShortcutsOpen: (v) => set({ shortcutsOpen: v }),
-  setIntent: (i) => set({ intent: i }),
-  consumeIntent: () => {
-    const i = get().intent
-    if (i) set({ intent: null })
-    return i
+  mobileNavOpen: false,
+  sidebarCollapsed: false,
+  taskId: null,
+
+  setPalette: (v) => set({ paletteOpen: v }),
+  openCapture: (defaults) => set({ captureOpen: true, captureDefaults: defaults ?? null, paletteOpen: false }),
+  closeCapture: () => set({ captureOpen: false, captureDefaults: null }),
+  setShortcuts: (v) => set({ shortcutsOpen: v }),
+  setMobileNav: (v) => set({ mobileNavOpen: v }),
+  toggleSidebar: () => {
+    const v = !get().sidebarCollapsed
+    set({ sidebarCollapsed: v })
+    try {
+      localStorage.setItem(SIDEBAR_KEY, v ? '1' : '0')
+    } catch {}
   },
+  initSidebar: () => {
+    try {
+      set({ sidebarCollapsed: localStorage.getItem(SIDEBAR_KEY) === '1' })
+    } catch {}
+  },
+  openTask: (id) => set({ taskId: id, paletteOpen: false }),
 }))
