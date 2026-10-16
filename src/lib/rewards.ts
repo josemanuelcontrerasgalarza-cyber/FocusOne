@@ -20,7 +20,7 @@ export interface RewardsData {
  */
 export async function getRewardsData(): Promise<RewardsData> {
   if (!supabaseConfigured) {
-    return { rewards: REWARDS_CATALOG, unlockedIds: [], points: 240, isDeveloper: false, isDemo: true }
+    return { rewards: REWARDS_CATALOG, unlockedIds: [], points: 0, isDeveloper: false, isDemo: true }
   }
 
   const supabase = await createSupabaseServerClient()
@@ -28,7 +28,7 @@ export async function getRewardsData(): Promise<RewardsData> {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return { rewards: REWARDS_CATALOG, unlockedIds: [], points: 240, isDeveloper: false, isDemo: true }
+    return { rewards: REWARDS_CATALOG, unlockedIds: [], points: 0, isDeveloper: false, isDemo: true }
   }
 
   const [unlocks, pts, isDeveloper] = await Promise.all([

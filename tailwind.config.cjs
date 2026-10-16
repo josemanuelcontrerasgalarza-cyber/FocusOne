@@ -1,96 +1,82 @@
 /** @type {import('tailwindcss').Config} */
+
+// Kairo — sistema de diseño. Todos los colores salen de variables CSS con
+// canales RGB (definidas en globals.css para claro y oscuro), así cada token
+// admite opacidad (`bg-accent/10`) y cambia solo con el tema.
+const c = (v) => `rgb(var(--${v}) / <alpha-value>)`
+
 module.exports = {
+  darkMode: ['class'],
   content: ['./src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        // === Sistema anterior (HORIZON / cosmos) — se mantiene para no
-        // romper las pantallas existentes mientras migramos a La Fragua ===
-        void: '#030308',
-        abyss: '#06070F',
-        surface: 'rgba(20,24,44,0.55)',
-        'surface-hi': 'rgba(30,36,62,0.70)',
-        core: '#5EEAD4',
-        plasma: '#8B5CF6',
-        solar: '#F59E0B',
-        nova: '#FB7185',
-        ink: '#F2F4FF',
-        'ink-dim': 'rgba(242,244,255,0.55)',
-        'ink-ghost': 'rgba(242,244,255,0.28)',
-        'glass-border': 'rgba(140,160,255,0.14)',
-        'glass-border-hi': 'rgba(140,160,255,0.28)',
+        canvas: c('canvas'),
+        surface: c('surface'),
+        raised: c('raised'),
+        sunken: c('sunken'),
+        line: { DEFAULT: c('line'), strong: c('line-strong') },
+        ink: { DEFAULT: c('ink'), dim: c('ink-dim'), faint: c('ink-faint') },
+        accent: { DEFAULT: c('accent'), ink: c('accent-ink'), fg: c('accent-fg') },
+        warm: c('warm'),
+        success: c('success'),
+        warning: c('warning'),
+        danger: c('danger'),
+        info: c('info'),
 
-        // === Sistema visual "La Fragua" ===
-        // Canvas casi negro: el taller apagado.
+        // Alias de compatibilidad para pantallas heredadas: apuntan a los
+        // tokens nuevos. `ember` usa accent-fg: legible como texto y como
+        // relleno con texto `forge-canvas` en ambos temas.
         forge: {
-          canvas: '#0B0C0E', // fondo principal
-          surface: '#141518', // paneles / tarjetas
-          raised: '#1C1E22', // hover y superficies elevadas
-          line: 'rgba(255,255,255,0.08)', // bordes sutiles
-          ink: '#F4F1EA', // texto principal (blanco cálido)
-          'ink-dim': 'rgba(244,241,234,0.60)', // texto secundario
-          'ink-faint': 'rgba(244,241,234,0.30)', // texto deshabilitado / hints
+          canvas: c('canvas'),
+          surface: c('surface'),
+          raised: c('raised'),
+          line: c('line'),
+          ink: c('ink'),
+          'ink-dim': c('ink-dim'),
+          'ink-faint': c('ink-faint'),
         },
-        // Ember: acento ÚNICO reservado a la misión activa y el timer.
-        ember: {
-          DEFAULT: '#FF6A2B',
-          bright: '#FFB13B',
-        },
-        // Metal: dorado reservado a la racha.
-        metal: {
-          DEFAULT: '#C9A15C',
-          dim: 'rgba(201,161,92,0.55)',
-        },
+        ember: { DEFAULT: c('accent-fg'), bright: c('accent') },
+        metal: { DEFAULT: c('warm'), dim: c('warm') },
       },
       fontFamily: {
-        // Variables inyectadas por next/font (fuentes autoalojadas). Fallback a
-        // fuentes de sistema si la variable no está disponible.
-        // Sistema anterior
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-        data: ['var(--font-data)', 'ui-monospace', 'monospace'],
-        // La Fragua: Sora para display/UI, IBM Plex Mono para NÚMEROS.
-        forge: ['var(--font-forge)', 'system-ui', 'sans-serif'],
-        num: ['var(--font-num)', 'ui-monospace', 'monospace'],
+        display: ['var(--font-display)', 'Georgia', 'serif'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+        // Alias heredados.
+        forge: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        num: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+        data: ['var(--font-mono)', 'ui-monospace', 'monospace'],
+      },
+      fontSize: {
+        '2xs': ['0.6875rem', { lineHeight: '1rem' }],
       },
       borderRadius: {
-        forge: '16px', // radio estándar de las tarjetas de La Fragua
+        card: '14px',
+        control: '9px',
+        forge: '14px',
       },
       boxShadow: {
-        'glow-core': '0 0 24px rgba(94,234,212,0.35), 0 0 96px rgba(94,234,212,0.12)',
-        'glow-plasma': '0 0 24px rgba(139,92,246,0.40), 0 0 96px rgba(139,92,246,0.14)',
-        'glow-solar': '0 0 24px rgba(245,158,11,0.38), 0 0 96px rgba(245,158,11,0.12)',
-        'glow-nova': '0 0 24px rgba(251,113,133,0.38), 0 0 96px rgba(251,113,133,0.12)',
-        card: '0 4px 24px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.5)',
-        // Resplandor del acento ember (misión activa / timer).
-        ember: '0 0 24px rgba(255,106,43,0.30), 0 0 72px rgba(255,106,43,0.10)',
+        hair: '0 1px 0 rgb(var(--shadow) / 0.04)',
+        card: '0 1px 2px rgb(var(--shadow) / 0.06), 0 1px 1px rgb(var(--shadow) / 0.03)',
+        pop: '0 12px 32px -8px rgb(var(--shadow) / 0.28), 0 2px 6px rgb(var(--shadow) / 0.10)',
+        ring: '0 0 0 3px rgb(var(--accent) / 0.30)',
+        ember: '0 1px 2px rgb(var(--shadow) / 0.08)',
       },
-      backgroundImage: {
-        // Gradiente ember reutilizable (barra de calor, botón de misión).
-        ember: 'linear-gradient(120deg, #FF6A2B 0%, #FFB13B 100%)',
+      transitionTimingFunction: {
+        out: 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
       keyframes: {
-        'plasma-flow': {
-          '0%': { backgroundPosition: '0% 50%' },
-          '100%': { backgroundPosition: '200% 50%' },
-        },
-        float: {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-6px)' },
-        },
-        'pulse-glow': {
-          '0%, 100%': { opacity: '0.4' },
-          '50%': { opacity: '0.8' },
-        },
-        'fade-in': {
-          '0%': { opacity: '0', transform: 'translateY(12px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
+        'fade-in': { from: { opacity: '0', transform: 'translateY(4px)' }, to: { opacity: '1', transform: 'none' } },
+        'scale-in': { from: { opacity: '0', transform: 'scale(0.97)' }, to: { opacity: '1', transform: 'none' } },
+        shimmer: { from: { backgroundPosition: '-200% 0' }, to: { backgroundPosition: '200% 0' } },
+        'check-pop': { '0%': { transform: 'scale(0.6)' }, '60%': { transform: 'scale(1.12)' }, '100%': { transform: 'scale(1)' } },
       },
       animation: {
-        float: 'float 4s ease-in-out infinite',
-        'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
-        'fade-in': 'fade-in 0.4s ease-out',
+        'fade-in': 'fade-in 180ms cubic-bezier(0.16,1,0.3,1)',
+        'scale-in': 'scale-in 160ms cubic-bezier(0.16,1,0.3,1)',
+        shimmer: 'shimmer 1.6s linear infinite',
+        'check-pop': 'check-pop 260ms cubic-bezier(0.16,1,0.3,1)',
       },
     },
   },

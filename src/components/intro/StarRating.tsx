@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import clsx from 'clsx'
 import { Star } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface Props {
   value: number
@@ -11,34 +11,44 @@ interface Props {
   readOnly?: boolean
 }
 
-/** Estrellas de valoración. Interactivas si se pasa `onChange`, si no solo lectura. */
+/** Estrellas de valoración. Interactivas si se pasa `onChange`; si no, solo lectura. */
 export function StarRating({ value, onChange, size = 18, readOnly = false }: Props) {
   const [hover, setHover] = useState(0)
   const active = hover || value
 
+  if (readOnly) {
+    return (
+      <span className="inline-flex items-center gap-0.5" role="img" aria-label={`${value} de 5 estrellas`}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Star
+            key={n}
+            size={size}
+            aria-hidden
+            className={n <= value ? 'fill-warm text-warm' : 'text-line-strong'}
+          />
+        ))}
+      </span>
+    )
+  }
+
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-0.5" role="radiogroup" aria-label="Valoración">
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
           type="button"
-          disabled={readOnly}
+          role="radio"
+          aria-checked={value === n}
           onClick={() => onChange?.(n)}
-          onMouseEnter={() => !readOnly && setHover(n)}
-          onMouseLeave={() => !readOnly && setHover(0)}
-          className={cn(
-            'transition-transform',
-            !readOnly && 'hover:scale-110',
-            readOnly && 'cursor-default',
-          )}
+          onMouseEnter={() => setHover(n)}
+          onMouseLeave={() => setHover(0)}
+          className="rounded p-0.5 transition-transform duration-150 hover:scale-110"
           aria-label={`${n} estrella${n > 1 ? 's' : ''}`}
         >
           <Star
             size={size}
-            className={cn(
-              'transition-colors',
-              n <= active ? 'fill-metal text-metal' : 'text-forge-ink-faint',
-            )}
+            aria-hidden
+            className={clsx('transition-colors', n <= active ? 'fill-warm text-warm' : 'text-line-strong')}
           />
         </button>
       ))}

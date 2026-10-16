@@ -1,12 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <radialGradient id="orb" cx="38%" cy="32%" r="75%">
-      <stop offset="0%" stop-color="#5EEAD4"/>
-      <stop offset="55%" stop-color="#8B5CF6"/>
-      <stop offset="100%" stop-color="#1e1b4b"/>
-    </radialGradient>
-  </defs>
-  <rect width="64" height="64" rx="14" fill="#030308"/>
-  <circle cx="32" cy="32" r="17" fill="url(#orb)"/>
-  <ellipse cx="32" cy="32" rx="26" ry="7" fill="none" stroke="#5EEAD4" stroke-opacity="0.5" stroke-width="1.5" transform="rotate(-18 32 32)"/>
+  <rect width="64" height="64" rx="15" fill="#0F1012"/>
+  <g transform="translate(8 8) scale(1.5)">
+    <path d="M25.4 12.58A10 10 0 1 1 17.74 6.15" fill="none" stroke="#F2EEE6" stroke-width="3.2" stroke-linecap="round"/>
+    <circle cx="22.43" cy="8.34" r="2.7" fill="#C9F24D"/>
+  </g>
 </svg>
