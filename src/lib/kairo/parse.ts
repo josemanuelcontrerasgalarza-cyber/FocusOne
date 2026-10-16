@@ -8,7 +8,7 @@
  * "el 25", "25/10", "25 de octubre", "la próxima semana"), horas ("a las 5",
  * "17:30", "9 de la mañana", "6pm", "al mediodía"), duraciones ("30 min",
  * "1 h", "1h30", "media hora"), prioridad ("urgente", "importante",
- * "prioridad baja", "!!"), etiquetas (#tag), proyecto (@proyecto) y
+ * "prioridad baja", "!!", "!1"…"!4"), etiquetas (#tag), proyecto (@proyecto) y
  * recurrencia ("cada día", "entre semana", "cada lunes", "mensual").
  */
 import { addDays, addMonths, toDateKey, weekday, pad } from './dates.ts'
@@ -88,6 +88,10 @@ export function parseQuickTask(input: string, now: Date = new Date()): ParsedTas
     take(/(?<=\s)!{3,}(?=\s)/u, () => (out.priority = 4)) ||
     take(new RegExp(`${word('prioridad')}\\s+(urgente|alta|media|baja)`, 'iu'), (x) => {
       out.priority = ({ urgente: 4, alta: 3, media: 2, baja: 1 } as Record<string, Priority>)[norm(x[1])]
+    }) ||
+    // !1 urgente · !2 alta · !3 media · !4 baja
+    take(/(?<=\s)!([1-4])(?![\p{L}\p{N}])/u, (x) => {
+      out.priority = (5 - Number(x[1])) as Priority
     }) ||
     take(/(?<=\s)!(alta|media|baja)(?!\p{L})/iu, (x) => {
       out.priority = ({ alta: 3, media: 2, baja: 1 } as Record<string, Priority>)[norm(x[1])]

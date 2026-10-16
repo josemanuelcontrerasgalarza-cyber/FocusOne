@@ -79,7 +79,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '5.1',
-    title: 'Fragua sólida — seguridad y precisión',
+    title: 'Seguridad y precisión',
     items: [
       'Todas tus misiones en un solo lugar: historial completo de forjadas, con su fecha.',
       'Seguridad reforzada de tu cuenta, tus puntos y la tienda (economía a prueba de trampas).',
@@ -91,9 +91,9 @@ export const CHANGELOG: ChangelogEntry[] = [
   },
   {
     version: '5.0',
-    title: 'La Fragua — enfoque gamificado',
+    title: 'Enfoque gamificado',
     items: [
-      'Rediseño completo «La Fragua»: una sola misión protagonista por pantalla, con calor de forja y racha.',
+      'Rediseño completo: una sola misión protagonista por pantalla, con racha.',
       'Quiz de cierre para sellar cada misión y ganar puntos.',
       'Focus Pet: adopta tu mascota y vístela con lo que ganas forjando misiones.',
       'Tienda de recompensas con ropa nueva cada semana.',

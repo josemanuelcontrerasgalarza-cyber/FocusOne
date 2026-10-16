@@ -178,10 +178,10 @@ export default function LandingPage() {
             </a>
           </nav>
           <ThemeToggle />
-          <ButtonLink href="/login" variant="ghost" size="sm" className="h-9 px-3 text-sm">
+          <ButtonLink href="/login" variant="ghost" size="md">
             Entrar
           </ButtonLink>
-          <ButtonLink href="/register" variant="primary" size="sm" className="h-9 px-3.5 text-sm">
+          <ButtonLink href="/register" variant="primary" size="md">
             Empezar
           </ButtonLink>
         </div>

@@ -23,7 +23,7 @@ export interface PetData {
  */
 export async function getPetData(): Promise<PetData> {
   if (!supabaseConfigured) {
-    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 240, isDeveloper: false, isDemo: true }
+    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 0, isDeveloper: false, isDemo: true }
   }
 
   const supabase = await createSupabaseServerClient()
@@ -31,7 +31,7 @@ export async function getPetData(): Promise<PetData> {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 240, isDeveloper: false, isDemo: true }
+    return { catalog: PET_CATALOG, ownedIds: [], pet: null, points: 0, isDeveloper: false, isDemo: true }
   }
 
   const [owned, pet, pts, isDeveloper] = await Promise.all([

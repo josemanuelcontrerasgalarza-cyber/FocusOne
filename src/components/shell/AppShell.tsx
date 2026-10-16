@@ -38,6 +38,7 @@ import { NAV_MAIN, NAV_SPACE, NAV_SETTINGS, isActive, titleFor, type NavItem } f
 import { CommandPalette } from './CommandPalette'
 import { ShortcutsHelp, useGlobalShortcuts } from './Shortcuts'
 import { ActivityPanel } from './ActivityPanel'
+import { FocusMiniTimer } from '@/components/focus/FocusMiniTimer'
 import { QuickCaptureHost } from '@/components/tasks/QuickCapture'
 import { TaskDrawerHost } from '@/components/tasks/TaskDrawer'
 
@@ -239,6 +240,7 @@ function Topbar() {
         <Button variant="primary" size="sm" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => openCapture()} className="hidden sm:inline-flex">
           Nueva tarea
         </Button>
+        <FocusMiniTimer />
         <ActivityPanel />
         <ThemeButton />
         <UserMenu />

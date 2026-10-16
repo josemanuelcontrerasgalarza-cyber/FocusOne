@@ -20,14 +20,14 @@ export interface StoreData {
  */
 export async function getStoreData(): Promise<StoreData> {
   if (!supabaseConfigured) {
-    return { catalog: STORE_CATALOG, ownedIds: [], points: 240, isDeveloper: false, isDemo: true }
+    return { catalog: STORE_CATALOG, ownedIds: [], points: 0, isDeveloper: false, isDemo: true }
   }
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) {
-    return { catalog: STORE_CATALOG, ownedIds: [], points: 240, isDeveloper: false, isDemo: true }
+    return { catalog: STORE_CATALOG, ownedIds: [], points: 0, isDeveloper: false, isDemo: true }
   }
 
   const [owned, pts, isDeveloper] = await Promise.all([

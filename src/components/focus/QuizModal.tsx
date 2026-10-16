@@ -62,7 +62,7 @@ export function QuizModal({ open, task, uid, onClose, onSaved }: Props) {
       setSaving(true)
       try {
         // lib/quiz solo usa el id de la tarea (tabla `missions`).
-        const outcome = await saveQuizResult(uid, { id: task.id, title: task.title } as Parameters<typeof saveQuizResult>[1], next)
+        const outcome = await saveQuizResult(uid, { id: task.id }, next)
         setResult(outcome)
         setStep(total)
         onSaved(outcome)

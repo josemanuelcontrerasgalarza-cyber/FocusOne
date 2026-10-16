@@ -146,6 +146,7 @@ export function CommandPalette() {
           <Search size={16} className="text-ink-faint" />
           <input
             data-autofocus
+            autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => {

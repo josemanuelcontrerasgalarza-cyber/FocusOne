@@ -63,7 +63,7 @@ export function RegisterView() {
     <GuestGuard>
       <AuthShell
         aside={
-          <ButtonLink href="/login" variant="ghost" size="sm" className="h-9 text-sm">
+          <ButtonLink href="/login" variant="ghost" size="md">
             Entrar
           </ButtonLink>
         }

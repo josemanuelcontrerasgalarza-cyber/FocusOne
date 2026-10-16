@@ -142,7 +142,7 @@ function CaptureForm({ defaults, onDone }: { defaults: Partial<TaskInput> | null
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
         <p className="text-xs text-ink-faint">
           Prueba: <span className="text-ink-dim">«mañana a las 5»</span>, <span className="text-ink-dim">«30 min»</span>,{' '}
-          <span className="text-ink-dim">«urgente»</span>, <span className="text-ink-dim">#etiqueta</span>,{' '}
+          <span className="text-ink-dim">«urgente» o !1</span>, <span className="text-ink-dim">#etiqueta</span>,{' '}
           <span className="text-ink-dim">@proyecto</span>, <span className="text-ink-dim">«cada lunes»</span>
         </p>
         <div className="flex items-center gap-3">

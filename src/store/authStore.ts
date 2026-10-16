@@ -124,7 +124,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           'No se pudo iniciar el modo demo. Activa los inicios de sesión anónimos en Supabase.',
         )
       }
-      toast.success('Modo demo iniciado. ¡Concéntrate!')
+      toast.success('Listo. Ya puedes probar Kairo.')
     } catch (err) {
       set({ loading: false })
       throw err

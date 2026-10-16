@@ -140,3 +140,30 @@ npm run build      # build de producción
 | `GROQ_MODEL` (opcional) | Modelo de Groq (por defecto `llama-3.3-70b-versatile`) |
 
 Base de datos: ejecutar `supabase/setup_all.sql` en el SQL Editor (idempotente, no destructivo).
+
+## 7. Módulos
+
+| Ruta | Dónde | Notas |
+|---|---|---|
+| `/inicio` | `src/app/(app)/inicio` | «Tu siguiente movimiento» usa `nextMove()` (`lib/kairo/priority.ts`) y muestra los motivos. |
+| `/tareas` | `src/app/(app)/tareas` | Filtros en la URL (`vista`, `estado`, `vence`, `proyecto`, `objetivo`, `etiqueta`, `prioridad`, `orden`, `q`). |
+| `/enfoque` | `src/app/(app)/enfoque`, `components/focus` | Estado en `localStorage` (`kairo:focus:v1`) con latido cada 5 s; al volver tras más de 90 s sin latido se pregunta qué registrar. `FocusMiniTimer` en la barra superior mantiene el latido mientras navegas por la app. |
+| `/calendario` | `src/app/(app)/calendario` | Día y semana; arrastrar reprograma. No sincroniza con calendarios externos. |
+| `/proyectos` | `src/app/(app)/proyectos` | Progreso = tareas completadas / tareas del proyecto. |
+| `/objetivos` | `src/app/(app)/objetivos`, `components/goals` | Objetivos medibles o por tareas vinculadas; hábitos con meta semanal y rachas. |
+| `/estadisticas` | `src/app/(app)/estadisticas`, `components/charts` | Solo datos reales; estados vacíos cuando no hay actividad. |
+| `/asistente` | `src/app/(app)/asistente`, `app/api/assistant`, `lib/ai` | Groq desde el servidor. Sin `GROQ_API_KEY` responde 503 y la página usa el cálculo local. Límite: 20 peticiones / 10 min por usuario (en memoria). |
+| `/ajustes` | `src/app/(app)/ajustes` | Se guarda en `user_settings` (nube) o en el navegador (modo local). |
+
+Captura en lenguaje natural (`lib/kairo/parse.ts`): fechas («mañana», «el viernes», «el 28»,
+«en 3 días»), horas («a las 5», «17:00», «por la tarde»), duración («30 min», «1 h y media»),
+prioridad («urgente», «importante», «prioridad alta», «!!», «!1»…«!4»), `#etiqueta`,
+`@proyecto` y recurrencia («cada lunes», «todos los días»).
+
+## 8. Limitaciones conocidas
+
+- El modo local guarda los datos solo en ese navegador; no se sincronizan.
+- El límite de peticiones del asistente vive en memoria: es por instancia del servidor.
+- Descartar una sesión de enfoque la cierra con 0 s (no se borra la fila); no suma minutos ni sesiones.
+- Las estadísticas cubren lo que carga el espacio de trabajo (unos 180 días de sesiones).
+- No hay app nativa, modo sin conexión ni sincronización con Google Calendar.

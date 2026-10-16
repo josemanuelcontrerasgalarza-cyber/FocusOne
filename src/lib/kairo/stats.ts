@@ -61,7 +61,8 @@ export function summarize(sessions: FocusSession[], tasks: Task[], days: string[
   for (const t of done) active.add(dayOf(t.completed_at as string))
   return {
     focusMinutes: Math.round(inRange.reduce((a, s) => a + sessionMinutes(s), 0)),
-    sessions: inRange.length,
+    // Una sesión descartada se cierra con 0 s: no cuenta como sesión.
+    sessions: inRange.filter((s) => s.completed || sessionMinutes(s) > 0).length,
     completedSessions: inRange.filter((s) => s.completed).length,
     tasksDone: done.length,
     activeDays: active.size,

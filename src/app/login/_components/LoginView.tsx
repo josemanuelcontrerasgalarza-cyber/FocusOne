@@ -45,7 +45,7 @@ export function LoginView() {
     <GuestGuard>
       <AuthShell
         aside={
-          <ButtonLink href={`/register${nextQs}`} variant="ghost" size="sm" className="h-9 text-sm">
+          <ButtonLink href={`/register${nextQs}`} variant="ghost" size="md">
             Crear cuenta
           </ButtonLink>
         }

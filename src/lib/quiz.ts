@@ -89,7 +89,7 @@ export interface QuizOutcome {
  */
 export async function saveQuizResult(
   uid: string,
-  mission: Mission,
+  mission: Pick<Mission, 'id'>,
   answers: number[],
 ): Promise<QuizOutcome> {
   // Todo en UNA RPC atómica y SEGURA: el servidor calcula el score desde los

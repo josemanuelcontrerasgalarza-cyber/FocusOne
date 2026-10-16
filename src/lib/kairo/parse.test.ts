@@ -102,3 +102,12 @@ test('franja "por la tarde" fija hora', () => {
   assert.equal(r.due_time, '17:00')
   assert.equal(r.title, 'Correr')
 })
+
+test('!1…!4 fijan prioridad y se quitan del título', () => {
+  const r = p('Enviar informe hoy !1 #trabajo')
+  assert.equal(r.priority, 4)
+  assert.equal(r.title, 'Enviar informe')
+  assert.equal(p('Revisar !2 mañana').priority, 3)
+  assert.equal(p('Leer capítulo !4').priority, 1)
+  assert.equal(p('Comprar 2 kg !5').title, 'Comprar 2 kg !5')
+})

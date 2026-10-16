@@ -2,7 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserPlus, Check, X, Loader2, Flame, Gem, Trash2, Clock, Swords } from 'lucide-react'
+import Link from 'next/link'
+import { UserPlus, Check, X, Flame, Gem, Trash2, Clock, Swords, Users } from 'lucide-react'
+import { Button, IconButton } from '@/components/ui/Button'
+import { Avatar, Card, CardHeader, EmptyState, Field } from '@/components/ui/primitives'
+import { confirm } from '@/components/ui/Overlay'
 import { supabase } from '@/lib/supabase'
 import { toast } from '@/lib/toast'
 import { isDbSetupError, DB_SETUP_MSG } from '@/lib/dbError'
@@ -13,11 +17,6 @@ interface Props {
   incoming: FriendUser[]
   outgoing: FriendUser[]
   isDemo: boolean
-}
-
-function initials(u: FriendUser): string {
-  const base = (u.name || u.email || '?').trim()
-  return base.slice(0, 1).toUpperCase()
 }
 
 export function FriendsClient({ friends, incoming, outgoing, isDemo }: Props) {
@@ -48,163 +47,180 @@ export function FriendsClient({ friends, incoming, outgoing, isDemo }: Props) {
     run(
       'add',
       () => supabase.rpc('send_friend_request', { p_email: clean }),
-      (data) => (data === 'accepted' ? '¡Ahora son amigos!' : 'Solicitud enviada'),
+      (data) => (data === 'accepted' ? 'Ahora son amigos' : 'Solicitud enviada'),
     ).then(() => setEmail(''))
+  }
+
+  async function removeFriend(u: FriendUser) {
+    const ok = await confirm({
+      title: `¿Eliminar a ${u.name || u.email}?`,
+      description: 'Dejarán de ver su racha y puntos. Pueden volver a agregarse cuando quieran.',
+      confirmLabel: 'Eliminar',
+      destructive: true,
+    })
+    if (ok) run(`rm-${u.id}`, () => supabase.rpc('remove_friend', { p_friend: u.id }), () => 'Amigo eliminado')
   }
 
   if (isDemo) {
     return (
-      <div className="forge-panel p-8 text-center">
-        <p className="text-sm text-forge-ink-dim">
-          Inicia sesión con una cuenta real (correo o Google) para agregar amigos.
-        </p>
-      </div>
+      <Card>
+        <EmptyState
+          icon={<Users size={18} />}
+          title="Amigos necesita una cuenta"
+          description="Entra con tu correo o con Google para agregar amigos y comparar su progreso."
+          action={
+            <Link
+              href="/login?next=/amigos"
+              className="inline-flex h-9 items-center rounded-control border border-line bg-raised px-3.5 text-sm font-medium text-ink transition-colors hover:border-line-strong"
+            >
+              Entrar
+            </Link>
+          }
+        />
+      </Card>
     )
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Agregar por correo */}
-      <form onSubmit={addFriend} className="flex items-center gap-2">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="correo@detuamigo.com"
-          className="flex-1 rounded-forge border border-forge-line bg-forge-surface px-4 py-2.5 text-sm text-forge-ink outline-none placeholder:text-forge-ink-faint focus:border-ember/50"
-        />
-        <button
-          type="submit"
-          disabled={busy === 'add'}
-          className="flex items-center gap-2 rounded-forge bg-ember px-4 py-2.5 font-forge text-sm font-bold text-forge-canvas shadow-ember disabled:opacity-50"
-        >
-          {busy === 'add' ? <Loader2 size={15} className="animate-spin" /> : <UserPlus size={15} />}
-          Agregar
-        </button>
-      </form>
-
-      {/* Solicitudes entrantes */}
-      {incoming.length > 0 && (
-        <section>
-          <h2 className="mb-2 font-num text-[11px] font-semibold uppercase tracking-[0.14em] text-ember">
-            Solicitudes ({incoming.length})
-          </h2>
-          <div className="flex flex-col gap-2">
-            {incoming.map((u) => (
-              <div key={u.id} className="flex items-center gap-3 rounded-forge border border-ember/30 bg-forge-surface p-3">
-                <Avatar u={u} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-forge text-sm font-semibold text-forge-ink">{u.name || 'Sin nombre'}</p>
-                  <p className="truncate text-[12px] text-forge-ink-faint">{u.email}</p>
-                </div>
-                <button
-                  onClick={() => run(`acc-${u.id}`, () => supabase.rpc('respond_friend_request', { p_from: u.id, p_accept: true }), () => 'Amigo agregado')}
-                  disabled={busy !== null}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-ember text-forge-canvas"
-                  aria-label="Aceptar"
-                >
-                  {busy === `acc-${u.id}` ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} />}
-                </button>
-                <button
-                  onClick={() => run(`rej-${u.id}`, () => supabase.rpc('respond_friend_request', { p_from: u.id, p_accept: false }))}
-                  disabled={busy !== null}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-forge-line text-forge-ink-dim"
-                  aria-label="Rechazar"
-                >
-                  <X size={15} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Amigos (mini-ranking por puntos) */}
-      <section>
-        <h2 className="mb-2 font-num text-[11px] font-semibold uppercase tracking-[0.14em] text-forge-ink-faint">
-          Tus amigos ({friends.length})
-        </h2>
-        {friends.length === 0 ? (
-          <div className="rounded-forge border border-forge-line bg-forge-surface p-6 text-center text-sm text-forge-ink-faint">
-            Aún no tienes amigos. Agrega a alguien por su correo. 👆
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {friends.map((u, i) => (
-              <div key={u.id} className="flex items-center gap-3 rounded-forge border border-forge-line bg-forge-surface p-3">
-                <span className="w-5 text-center font-num text-sm font-bold text-forge-ink-faint">{i + 1}</span>
-                <Avatar u={u} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-forge text-sm font-semibold text-forge-ink">{u.name || 'Sin nombre'}</p>
-                  <p className="truncate text-[12px] text-forge-ink-faint">{u.email}</p>
-                </div>
-                <span className="flex items-center gap-1 font-num text-[12px] text-metal">
-                  <Flame size={12} /> {u.streak ?? 0}
-                </span>
-                <span className="flex items-center gap-1 font-num text-[12px] text-ember">
-                  <Gem size={12} /> {u.points ?? 0}
-                </span>
-                <button
-                  onClick={() => run(`ch-${u.id}`, () => supabase.rpc('challenge_friend', { p_friend: u.id }), () => `Retaste a ${u.name || 'tu amigo'} 🔥`)}
-                  disabled={busy !== null}
-                  className="flex h-7 items-center gap-1 rounded-full border border-ember/40 bg-ember/10 px-2 font-num text-[11px] font-bold text-ember hover:bg-ember/20"
-                  aria-label="Retar"
-                >
-                  {busy === `ch-${u.id}` ? <Loader2 size={12} className="animate-spin" /> : <Swords size={12} />}
-                  Retar
-                </button>
-                <button
-                  onClick={() => run(`rm-${u.id}`, () => supabase.rpc('remove_friend', { p_friend: u.id }))}
-                  disabled={busy !== null}
-                  className="text-forge-ink-faint hover:text-red-400"
-                  aria-label="Eliminar amigo"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <div className="flex min-w-0 flex-col gap-4">
+        {/* Solicitudes entrantes */}
+        {incoming.length > 0 && (
+          <Card as="section">
+            <CardHeader eyebrow="Pendientes" title={`Solicitudes (${incoming.length})`} />
+            <ul className="divide-y divide-line px-1.5 pb-1.5 pt-1">
+              {incoming.map((u) => (
+                <li key={u.id} className="flex items-center gap-3 px-2.5 py-2.5">
+                  <Avatar name={u.name || u.email} size={34} />
+                  <Who u={u} />
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() =>
+                      run(`acc-${u.id}`, () => supabase.rpc('respond_friend_request', { p_from: u.id, p_accept: true }), () => 'Amigo agregado')
+                    }
+                    disabled={busy !== null}
+                    loading={busy === `acc-${u.id}`}
+                    icon={<Check size={14} />}
+                  >
+                    Aceptar
+                  </Button>
+                  <IconButton
+                    label={`Rechazar a ${u.name || u.email}`}
+                    size="sm"
+                    onClick={() => run(`rej-${u.id}`, () => supabase.rpc('respond_friend_request', { p_from: u.id, p_accept: false }))}
+                    disabled={busy !== null}
+                  >
+                    <X size={15} />
+                  </IconButton>
+                </li>
+              ))}
+            </ul>
+          </Card>
         )}
-      </section>
 
-      {/* Solicitudes enviadas */}
-      {outgoing.length > 0 && (
-        <section>
-          <h2 className="mb-2 font-num text-[11px] font-semibold uppercase tracking-[0.14em] text-forge-ink-faint">
-            Pendientes de aceptar ({outgoing.length})
-          </h2>
-          <div className="flex flex-col gap-2">
-            {outgoing.map((u) => (
-              <div key={u.id} className="flex items-center gap-3 rounded-forge border border-forge-line bg-forge-surface p-3 opacity-80">
-                <Avatar u={u} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-forge text-sm font-semibold text-forge-ink">{u.name || 'Sin nombre'}</p>
-                  <p className="truncate text-[12px] text-forge-ink-faint">{u.email}</p>
-                </div>
-                <span className="flex items-center gap-1 font-num text-[11px] text-forge-ink-faint">
-                  <Clock size={12} /> Enviada
-                </span>
-                <button
-                  onClick={() => run(`cx-${u.id}`, () => supabase.rpc('remove_friend', { p_friend: u.id }))}
-                  disabled={busy !== null}
-                  className="text-forge-ink-faint hover:text-red-400"
-                  aria-label="Cancelar"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+        {/* Amigos (mini-ranking por puntos) */}
+        <Card as="section">
+          <CardHeader eyebrow="Ranking" title={`Tus amigos (${friends.length})`} />
+          {friends.length === 0 ? (
+            <EmptyState
+              compact
+              icon={<Users size={18} />}
+              title="Aún no has agregado a nadie"
+              description="Escribe el correo de un amigo en el formulario para enviarle una solicitud."
+            />
+          ) : (
+            <ul className="divide-y divide-line px-1.5 pb-1.5 pt-1">
+              {friends.map((u, i) => (
+                <li key={u.id} className="flex items-center gap-3 px-2.5 py-2.5">
+                  <span className="w-4 text-center font-mono text-[12px] text-ink-faint">{i + 1}</span>
+                  <Avatar name={u.name || u.email} size={34} />
+                  <Who u={u} />
+                  <span className="hidden items-center gap-3 font-mono text-[12px] text-ink-dim min-[420px]:flex">
+                    <span className="inline-flex items-center gap-1" title="Racha">
+                      <Flame size={12} className="text-warm" /> {u.streak ?? 0}
+                    </span>
+                    <span className="inline-flex items-center gap-1" title="Puntos">
+                      <Gem size={12} /> {u.points ?? 0}
+                    </span>
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      run(`ch-${u.id}`, () => supabase.rpc('challenge_friend', { p_friend: u.id }), () => `Has retado a ${u.name || 'tu amigo'}`)
+                    }
+                    disabled={busy !== null}
+                    loading={busy === `ch-${u.id}`}
+                    icon={<Swords size={13} />}
+                    aria-label={`Retar a ${u.name || u.email}`}
+                  >
+                    <span className="hidden sm:inline">Retar</span>
+                  </Button>
+                  <IconButton label={`Eliminar a ${u.name || u.email}`} size="sm" onClick={() => removeFriend(u)} disabled={busy !== null}>
+                    <Trash2 size={14} />
+                  </IconButton>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        {/* Agregar por correo */}
+        <Card as="section" className="p-4 sm:p-5">
+          <form onSubmit={addFriend} className="flex flex-col gap-3">
+            <Field label="Agregar por correo" htmlFor="friend-email" hint="Recibirá una solicitud y podrá aceptarla.">
+              <input
+                id="friend-email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="correo@deturamigo.com"
+                className="k-input"
+              />
+            </Field>
+            <Button type="submit" variant="secondary" loading={busy === 'add'} icon={<UserPlus size={15} />}>
+              Enviar solicitud
+            </Button>
+          </form>
+        </Card>
+
+        {/* Solicitudes enviadas */}
+        {outgoing.length > 0 && (
+          <Card as="section">
+            <CardHeader eyebrow="Enviadas" title={`Esperando respuesta (${outgoing.length})`} />
+            <ul className="divide-y divide-line px-1.5 pb-1.5 pt-1">
+              {outgoing.map((u) => (
+                <li key={u.id} className="flex items-center gap-3 px-2.5 py-2.5">
+                  <Avatar name={u.name || u.email} size={30} />
+                  <Who u={u} />
+                  <Clock size={13} className="shrink-0 text-ink-faint" aria-label="Pendiente" />
+                  <IconButton
+                    label={`Cancelar la solicitud a ${u.name || u.email}`}
+                    size="sm"
+                    onClick={() => run(`cx-${u.id}`, () => supabase.rpc('remove_friend', { p_friend: u.id }))}
+                    disabled={busy !== null}
+                  >
+                    <X size={14} />
+                  </IconButton>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }
 
-function Avatar({ u }: { u: FriendUser }) {
+function Who({ u }: { u: FriendUser }) {
   return (
-    <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-forge-line bg-forge-raised font-forge text-sm font-bold text-ember">
-      {initials(u)}
-    </span>
+    <div className="min-w-0 flex-1">
+      <p className="truncate text-sm font-medium text-ink">{u.name || 'Sin nombre'}</p>
+      <p className="truncate text-xs text-ink-faint">{u.email}</p>
+    </div>
   )
 }

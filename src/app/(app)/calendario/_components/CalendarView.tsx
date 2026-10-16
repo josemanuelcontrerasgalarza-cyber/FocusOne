@@ -148,7 +148,7 @@ export function CalendarView() {
             <ChevronRight size={18} />
           </IconButton>
         </div>
-        <h2 className="text-[17px] font-semibold capitalize tracking-[-0.01em] text-ink" aria-live="polite">
+        <h2 className="text-[17px] font-semibold first-letter:uppercase tracking-[-0.01em] text-ink" aria-live="polite">
           {rangeLabel(view, anchor, today)}
         </h2>
         <div className="ml-auto flex items-center gap-2">
