@@ -7,13 +7,15 @@ import 'server-only'
  * cliente solo habla con /api/music/* de nuestro propio origen.
  */
 const APP = 'FocusOne'
+const TIMEOUT_MS = 8000
 let cachedHost: { host: string; at: number } | null = null
 
 async function getHost(): Promise<string> {
   if (cachedHost && Date.now() - cachedHost.at < 10 * 60 * 1000) return cachedHost.host
-  const res = await fetch('https://api.audius.co', { cache: 'no-store' })
+  const res = await fetch('https://api.audius.co', { cache: 'no-store', signal: AbortSignal.timeout(TIMEOUT_MS) })
+  if (!res.ok) throw new Error('Audius no disponible')
   const json = (await res.json()) as { data?: string[] }
-  const hosts = json.data ?? []
+  const hosts = (json.data ?? []).filter((h) => h.startsWith('https://'))
   if (!hosts.length) throw new Error('Sin nodos Audius disponibles')
   // Elige entre los primeros nodos sanos (la lista viene ordenada por salud).
   const host = hosts[Math.floor(Math.random() * Math.min(hosts.length, 5))]
@@ -54,7 +56,9 @@ export async function trending(limit = 30): Promise<AudiusTrack[]> {
   const host = await getHost()
   const res = await fetch(`${host}/v1/tracks/trending?app_name=${APP}&limit=${limit}`, {
     cache: 'no-store',
+    signal: AbortSignal.timeout(TIMEOUT_MS),
   })
+  if (!res.ok) throw new Error('Audius no disponible')
   const json = (await res.json()) as { data?: RawTrack[] }
   return (json.data ?? [])
     .filter((t) => t.is_streamable !== false)
@@ -65,8 +69,9 @@ export async function search(query: string, limit = 30): Promise<AudiusTrack[]> 
   const host = await getHost()
   const res = await fetch(
     `${host}/v1/tracks/search?query=${encodeURIComponent(query)}&app_name=${APP}&limit=${limit}`,
-    { cache: 'no-store' },
+    { cache: 'no-store', signal: AbortSignal.timeout(TIMEOUT_MS) },
   )
+  if (!res.ok) throw new Error('Audius no disponible')
   const json = (await res.json()) as { data?: RawTrack[] }
   return (json.data ?? [])
     .filter((t) => t.is_streamable !== false)

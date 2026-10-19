@@ -7,6 +7,7 @@ import { formatClock, type Phase } from '@/lib/kairo/focusTimer'
 import { formatMinutes } from '@/lib/kairo/dates'
 import { PHASE_LABEL } from '@/components/focus/storage'
 import { FocusRing } from './FocusRing'
+import { ParkThought } from './ParkThought'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const clockTime = (ms: number) => {
@@ -151,6 +152,8 @@ export function FocusStage({
           </>
         )}
       </div>
+
+      {mode === 'live' && isFocus && <ParkThought />}
 
       <p className="mt-5 hidden items-center gap-1.5 text-xs text-ink-faint sm:inline-flex">
         <Kbd>Espacio</Kbd> {mode === 'ready' ? 'iniciar' : paused ? 'reanudar' : 'pausar'}

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { clientIp, identify } from '@/lib/identify'
 import { groqChat, groqConfigured, type GroqFailure } from '@/lib/ai/groq'
 import { buildMessages, JSON_MODES, maxTokensFor } from '@/lib/ai/prompts'
 import { createRateLimiter } from '@/lib/ai/rateLimit'
@@ -22,27 +22,6 @@ const NO_STORE = { 'Cache-Control': 'no-store' }
 function fail(status: number, error: AssistantErrorCode, message: string, headers?: Record<string, string>) {
   const body: AssistantErrorBody = { error, message }
   return NextResponse.json(body, { status, headers: { ...NO_STORE, ...headers } })
-}
-
-const supabaseConfigured = () =>
-  Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-
-/** Devuelve el id del usuario (o 'local' sin backend); null si falta sesión. */
-async function identify(): Promise<string | null> {
-  if (!supabaseConfigured()) return 'local'
-  try {
-    const supabase = await createSupabaseServerClient()
-    const { data, error } = await supabase.auth.getUser()
-    if (error || !data.user) return null
-    return data.user.id
-  } catch {
-    return null
-  }
-}
-
-function clientIp(req: NextRequest): string {
-  const fwd = req.headers.get('x-forwarded-for') || ''
-  return fwd.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown'
 }
 
 const UPSTREAM: Record<GroqFailure, { code: AssistantErrorCode; message: string }> = {

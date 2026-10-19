@@ -4,7 +4,7 @@
  * coincidir con ella.
  */
 
-export const APP_VERSION = '6.0'
+export const APP_VERSION = '6.1'
 
 export interface ChangelogEntry {
   version: string
@@ -18,10 +18,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '6.1',
+    title: 'Aparcar distracciones durante el enfoque',
+    date: '19 oct 2026',
+    tag: 'Actual',
+    items: [
+      'En una sesión de enfoque puedes anotar al vuelo lo que te distrae; se guarda en tu bandeja para revisarlo después, sin pausar ni salir del temporizador.',
+      'Seguridad: la música ahora exige sesión y tiene límite de uso, y se actualizaron dependencias con vulnerabilidades conocidas.',
+    ],
+  },
+  {
     version: '6.0',
     title: 'Kairo: una nueva forma de decidir qué hacer ahora',
     date: '16 oct 2026',
-    tag: 'Actual',
     items: [
       'Nueva identidad y diseño completo, con tema claro y oscuro.',
       'Inicio como centro de control con «Tu siguiente movimiento», calculado a partir de tus tareas reales y con el motivo a la vista.',
