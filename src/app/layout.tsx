@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/Toaster'
 import { AuthProvider } from '@/components/AuthProvider'
+import { MotionProvider } from '@/components/MotionProvider'
 
 // Tipografía Kairo (autoalojada por next/font): Geist para la interfaz,
 // Geist Mono para números y datos, Instrument Serif para titulares expresivos.
@@ -60,8 +61,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <AuthProvider>{children}</AuthProvider>
-        <Toaster />
+        <MotionProvider>
+          <AuthProvider>{children}</AuthProvider>
+          <Toaster />
+        </MotionProvider>
       </body>
     </html>
   )
