@@ -7,12 +7,18 @@ import 'server-only'
  * cliente solo habla con /api/music/* de nuestro propio origen.
  */
 const APP = 'FocusOne'
+/** fetch con timeout y comprobación de estado: un nodo lento no cuelga la ruta. */
+async function getJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(8000) })
+  if (!res.ok) throw new Error(`Audius ${res.status}`)
+  return (await res.json()) as T
+}
+
 let cachedHost: { host: string; at: number } | null = null
 
 async function getHost(): Promise<string> {
   if (cachedHost && Date.now() - cachedHost.at < 10 * 60 * 1000) return cachedHost.host
-  const res = await fetch('https://api.audius.co', { cache: 'no-store' })
-  const json = (await res.json()) as { data?: string[] }
+  const json = await getJson<{ data?: string[] }>('https://api.audius.co')
   const hosts = json.data ?? []
   if (!hosts.length) throw new Error('Sin nodos Audius disponibles')
   // Elige entre los primeros nodos sanos (la lista viene ordenada por salud).
@@ -52,10 +58,7 @@ function normalize(host: string, t: RawTrack): AudiusTrack {
 
 export async function trending(limit = 30): Promise<AudiusTrack[]> {
   const host = await getHost()
-  const res = await fetch(`${host}/v1/tracks/trending?app_name=${APP}&limit=${limit}`, {
-    cache: 'no-store',
-  })
-  const json = (await res.json()) as { data?: RawTrack[] }
+  const json = await getJson<{ data?: RawTrack[] }>(`${host}/v1/tracks/trending?app_name=${APP}&limit=${limit}`)
   return (json.data ?? [])
     .filter((t) => t.is_streamable !== false)
     .map((t) => normalize(host, t))
@@ -63,11 +66,9 @@ export async function trending(limit = 30): Promise<AudiusTrack[]> {
 
 export async function search(query: string, limit = 30): Promise<AudiusTrack[]> {
   const host = await getHost()
-  const res = await fetch(
+  const json = await getJson<{ data?: RawTrack[] }>(
     `${host}/v1/tracks/search?query=${encodeURIComponent(query)}&app_name=${APP}&limit=${limit}`,
-    { cache: 'no-store' },
   )
-  const json = (await res.json()) as { data?: RawTrack[] }
   return (json.data ?? [])
     .filter((t) => t.is_streamable !== false)
     .map((t) => normalize(host, t))
