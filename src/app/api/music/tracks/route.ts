@@ -12,7 +12,8 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const mode = searchParams.get('mode') ?? 'trending'
-  const q = (searchParams.get('q') ?? '').trim()
+  // Acotar la consulta: evita enviar texto arbitrariamente largo al proveedor.
+  const q = (searchParams.get('q') ?? '').trim().slice(0, 100)
 
   try {
     const tracks = mode === 'search' && q ? await search(q) : await trending()
