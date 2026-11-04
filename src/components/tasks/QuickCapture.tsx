@@ -105,6 +105,28 @@ export function QuickCaptureHost() {
   )
 }
 
+/** Atajos táctiles: añaden (o quitan) la palabra que el parser ya entiende. */
+const QUICK_TOKENS: { label: string; token: string; group: 'day' | 'part' | 'dur' | 'prio' }[] = [
+  { label: 'Hoy', token: 'hoy', group: 'day' },
+  { label: 'Mañana', token: 'mañana', group: 'day' },
+  { label: 'Por la tarde', token: 'por la tarde', group: 'part' },
+  { label: '15 min', token: '15 min', group: 'dur' },
+  { label: '30 min', token: '30 min', group: 'dur' },
+  { label: '1 h', token: '1 h', group: 'dur' },
+  { label: 'Importante', token: 'importante', group: 'prio' },
+  { label: 'Urgente', token: 'urgente', group: 'prio' },
+]
+
+const escapeRe = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const tokenRe = (t: string) => new RegExp(`(^|\\s)${escapeRe(t)}(?=\\s|$)`, 'iu')
+
+function toggleToken(text: string, tok: (typeof QUICK_TOKENS)[number]): string {
+  if (tokenRe(tok.token).test(text)) return text.replace(tokenRe(tok.token), ' ').replace(/\s+/g, ' ').trim()
+  let next = text
+  for (const other of QUICK_TOKENS) if (other.group === tok.group) next = next.replace(tokenRe(other.token), ' ')
+  return `${next.replace(/\s+/g, ' ').trim()} ${tok.token}`.trim()
+}
+
 function CaptureForm({ defaults, onDone }: { defaults: Partial<TaskInput> | null; onDone: () => void }) {
   const { text, setText, parsed, matchedProject, submit, today } = useQuickAdd(defaults)
   const [busy, setBusy] = useState(false)
@@ -138,14 +160,37 @@ function CaptureForm({ defaults, onDone }: { defaults: Partial<TaskInput> | null
           </p>
         )}
       </div>
+      <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none]" role="group" aria-label="Atajos">
+        <div className="flex w-max gap-1.5">
+          {QUICK_TOKENS.map((t) => {
+            const on = tokenRe(t.token).test(text)
+            return (
+              <button
+                key={t.token}
+                type="button"
+                aria-pressed={on}
+                // No robar el foco al campo (el teclado del móvil sigue abierto).
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => setText(toggleToken(text, t))}
+                className={clsx(
+                  'h-8 shrink-0 rounded-full border px-3 text-[13px] font-medium transition-colors',
+                  on ? 'border-accent-fg/40 bg-accent/20 text-ink' : 'border-line bg-surface text-ink-dim active:bg-sunken',
+                )}
+              >
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
       <ParsePreview parsed={parsed} matchedProjectName={matchedProject?.name ?? null} today={today} />
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-        <p className="text-xs text-ink-faint">
+        <p className="hidden text-xs text-ink-faint sm:block">
           Prueba: <span className="text-ink-dim">«mañana a las 5»</span>, <span className="text-ink-dim">«30 min»</span>,{' '}
           <span className="text-ink-dim">«urgente» o !1</span>, <span className="text-ink-dim">#etiqueta</span>,{' '}
           <span className="text-ink-dim">@proyecto</span>, <span className="text-ink-dim">«cada lunes»</span>
         </p>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-end">
           <label className="flex items-center gap-1.5 text-xs text-ink-dim">
             <input type="checkbox" checked={keepOpen} onChange={(e) => setKeepOpen(e.target.checked)} className="accent-[rgb(var(--accent-fg))]" />
             Crear otra
@@ -153,9 +198,9 @@ function CaptureForm({ defaults, onDone }: { defaults: Partial<TaskInput> | null
           <button
             type="submit"
             disabled={!text.trim() || busy}
-            className="inline-flex h-9 items-center gap-2 rounded-control bg-accent px-3.5 text-sm font-semibold text-accent-ink disabled:opacity-50"
+            className="inline-flex h-10 items-center gap-2 rounded-control bg-accent px-4 text-sm font-semibold text-accent-ink disabled:opacity-50 sm:h-9 sm:px-3.5"
           >
-            Añadir <Kbd><CornerDownLeft size={10} /></Kbd>
+            Añadir <span className="hidden sm:inline-flex"><Kbd><CornerDownLeft size={10} /></Kbd></span>
           </button>
         </div>
       </div>

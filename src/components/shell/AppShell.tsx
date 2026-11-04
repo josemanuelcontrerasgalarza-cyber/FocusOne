@@ -9,7 +9,7 @@ import {
   Search,
   PanelLeftClose,
   PanelLeftOpen,
-  Menu as MenuIcon,
+  X,
   Sun,
   Moon,
   Monitor,
@@ -26,8 +26,8 @@ import {
 } from 'lucide-react'
 import { KairoLogo, KairoMark } from '@/components/brand/Logo'
 import { Button, IconButton } from '@/components/ui/Button'
-import { Avatar, Kbd, Skeleton, EmptyState } from '@/components/ui/primitives'
-import { Drawer, ConfirmHost, Menu } from '@/components/ui/Overlay'
+import { Avatar, Kbd, Skeleton, EmptyState, Segmented } from '@/components/ui/primitives'
+import { ConfirmHost, Menu, Modal } from '@/components/ui/Overlay'
 import { useAuthStore } from '@/store/authStore'
 import { useWorkspace } from '@/store/workspace'
 import { useUI } from '@/store/uiStore'
@@ -211,16 +211,13 @@ function UserMenu() {
 
 function Topbar() {
   const pathname = usePathname()
-  const { setPalette, openCapture, setMobileNav } = useUI()
+  const { setPalette, openCapture } = useUI()
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-line bg-canvas/85 px-3 backdrop-blur-md sm:px-5">
-      <IconButton label="Abrir menú" className="lg:hidden" onClick={() => setMobileNav(true)}>
-        <MenuIcon size={18} />
-      </IconButton>
-      <Link href="/inicio" className="mr-1 lg:hidden" aria-label="Inicio">
-        <KairoMark className="h-6 w-6 text-ink" />
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-line bg-canvas/85 px-3 pt-[env(safe-area-inset-top)] backdrop-blur-md sm:px-5">
+      <Link href="/inicio" className="flex items-center gap-2.5 lg:hidden" aria-label="Inicio">
+        <KairoMark className="h-6 w-6 shrink-0 text-ink" />
+        <span className="truncate text-[16px] font-semibold tracking-[-0.015em] text-ink">{titleFor(pathname)}</span>
       </Link>
-      <p className="hidden truncate text-[15px] font-semibold tracking-[-0.01em] text-ink sm:block lg:hidden">{titleFor(pathname)}</p>
 
       <button
         type="button"
@@ -242,7 +239,9 @@ function Topbar() {
         </Button>
         <FocusMiniTimer />
         <ActivityPanel />
-        <ThemeButton />
+        <span className="hidden sm:inline-flex">
+          <ThemeButton />
+        </span>
         <UserMenu />
       </div>
     </header>
@@ -251,14 +250,12 @@ function Topbar() {
 
 /* ───────────────────────────── móvil ───────────────────────────── */
 
+const BAR_ROUTES = ['/inicio', '/tareas', '/enfoque']
+
 function MobileBar() {
   const pathname = usePathname()
-  const { openCapture, setMobileNav } = useUI()
-  const items = [
-    { href: '/inicio', label: 'Inicio', icon: Home },
-    { href: '/tareas', label: 'Tareas', icon: CheckSquare },
-  ]
-  const items2 = [{ href: '/enfoque', label: 'Enfoque', icon: Timer }]
+  const { openCapture, mobileNavOpen, setMobileNav } = useUI()
+  const moreActive = !BAR_ROUTES.some((r) => isActive(pathname, r))
   const tab = (it: { href: string; label: string; icon: typeof Home }) => {
     const active = isActive(pathname, it.href)
     const Icon = it.icon
@@ -267,9 +264,13 @@ function MobileBar() {
         key={it.href}
         href={it.href}
         aria-current={active ? 'page' : undefined}
-        className={clsx('flex flex-1 flex-col items-center gap-0.5 py-1.5 text-[11px]', active ? 'text-ink' : 'text-ink-faint')}
+        className={clsx(
+          'relative flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors',
+          active ? 'text-ink' : 'text-ink-faint active:text-ink-dim',
+        )}
       >
-        <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+        {active && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-accent-fg" aria-hidden />}
+        <Icon size={21} strokeWidth={active ? 2.2 : 1.8} />
         {it.label}
       </Link>
     )
@@ -277,29 +278,120 @@ function MobileBar() {
   return (
     <nav
       aria-label="Navegación móvil"
-      className="fixed inset-x-0 bottom-0 z-30 flex items-center border-t border-line bg-canvas/95 px-2 pb-[max(env(safe-area-inset-bottom),4px)] pt-1 backdrop-blur-md lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-line bg-canvas/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
     >
-      {items.map(tab)}
-      <div className="flex flex-1 justify-center">
+      {tab({ href: '/inicio', label: 'Inicio', icon: Home })}
+      {tab({ href: '/tareas', label: 'Tareas', icon: CheckSquare })}
+      <div className="flex flex-1 items-center justify-center">
         <button
           type="button"
           onClick={() => openCapture()}
           aria-label="Nueva tarea"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-accent text-accent-ink shadow-pop active:scale-95"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-ink shadow-pop transition-transform active:scale-95"
         >
-          <Plus size={22} strokeWidth={2.4} />
+          <Plus size={24} strokeWidth={2.4} />
         </button>
       </div>
-      {items2.map(tab)}
+      {tab({ href: '/enfoque', label: 'Enfoque', icon: Timer })}
       <button
         type="button"
         onClick={() => setMobileNav(true)}
-        className="flex flex-1 flex-col items-center gap-0.5 py-1.5 text-[11px] text-ink-faint"
+        aria-haspopup="dialog"
+        aria-expanded={mobileNavOpen}
+        className={clsx(
+          'relative flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium',
+          moreActive ? 'text-ink' : 'text-ink-faint',
+        )}
       >
-        <MoreHorizontal size={20} />
+        {moreActive && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-accent-fg" aria-hidden />}
+        <MoreHorizontal size={21} />
         Más
       </button>
     </nav>
+  )
+}
+
+/** Hoja inferior de «Más»: todo lo que no cabe en la barra, al alcance del pulgar. */
+function MoreSheet() {
+  const pathname = usePathname()
+  const { mobileNavOpen, setMobileNav } = useUI()
+  const { mode } = useTheme()
+  const updateSettings = useWorkspace((s) => s.updateSettings)
+  const items = [...NAV_MAIN.filter((n) => !BAR_ROUTES.includes(n.href)), ...NAV_SPACE, NAV_SETTINGS]
+  return (
+    <Modal open={mobileNavOpen} onClose={() => setMobileNav(false)} title="Más">
+      <nav aria-label="Más secciones" className="grid grid-cols-3 gap-2">
+        {items.map((n) => {
+          const active = isActive(pathname, n.href)
+          const Icon = n.icon
+          return (
+            <Link
+              key={n.href}
+              href={n.href}
+              onClick={() => setMobileNav(false)}
+              aria-current={active ? 'page' : undefined}
+              className={clsx(
+                'flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-control border px-1 text-center text-[12.5px] font-medium transition-colors active:scale-[0.98]',
+                active ? 'border-accent-fg/40 bg-accent/15 text-ink' : 'border-line bg-surface text-ink-dim active:bg-sunken',
+              )}
+            >
+              <Icon size={20} strokeWidth={1.9} className={active ? 'text-ink' : 'text-ink-dim'} />
+              {n.label}
+            </Link>
+          )
+        })}
+      </nav>
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-4">
+        <span className="text-[13px] font-medium text-ink">Tema</span>
+        <Segmented
+          label="Tema"
+          size="sm"
+          value={mode}
+          onChange={(v) => updateSettings({ theme: v })}
+          options={[
+            { value: 'light', label: 'Claro', icon: <Sun size={13} /> },
+            { value: 'dark', label: 'Oscuro', icon: <Moon size={13} /> },
+            { value: 'system', label: 'Auto', icon: <Monitor size={13} /> },
+          ]}
+        />
+      </div>
+      <div className="mt-3 pb-[env(safe-area-inset-bottom)]">
+        <LevelCard />
+      </div>
+    </Modal>
+  )
+}
+
+/** Aviso de modo local: una línea en móvil y se puede ocultar durante la sesión. */
+function LocalBanner() {
+  const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    try {
+      setHidden(sessionStorage.getItem('kairo:local-banner') === 'off')
+    } catch {}
+  }, [])
+  if (hidden) return null
+  return (
+    <div className="flex items-center gap-2 border-b border-line bg-sunken py-1.5 pl-4 pr-1.5 text-xs text-ink-dim sm:justify-center">
+      <HardDrive size={13} className="shrink-0" />
+      <span className="min-w-0 flex-1 truncate sm:flex-none">
+        <span className="sm:hidden">Modo local: tus datos solo están en este navegador.</span>
+        <span className="hidden sm:inline">Modo local: el servidor no está configurado, así que tus datos se guardan solo en este navegador.</span>
+      </span>
+      <button
+        type="button"
+        aria-label="Ocultar aviso"
+        onClick={() => {
+          setHidden(true)
+          try {
+            sessionStorage.setItem('kairo:local-banner', 'off')
+          } catch {}
+        }}
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-faint hover:bg-raised hover:text-ink"
+      >
+        <X size={13} />
+      </button>
+    </div>
   )
 }
 
@@ -340,12 +432,7 @@ function WorkspaceGate({ children }: { children: ReactNode }) {
   if (status !== 'ready') return <LoadingSkeleton />
   return (
     <>
-      {mode === 'local' && (
-        <div className="flex items-center justify-center gap-2 border-b border-line bg-sunken px-4 py-1.5 text-center text-xs text-ink-dim">
-          <HardDrive size={13} />
-          Modo local: el servidor no está configurado, así que tus datos se guardan solo en este navegador.
-        </div>
-      )}
+      {mode === 'local' && <LocalBanner />}
       {children}
     </>
   )
@@ -358,7 +445,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { session, initialized } = useAuthStore()
   const { status, userId, load, clear } = useWorkspace()
-  const { sidebarCollapsed, mobileNavOpen, setMobileNav } = useUI()
+  const { sidebarCollapsed, setMobileNav } = useUI()
   const immersive = pathname.startsWith('/enfoque')
 
   useGlobalShortcuts()
@@ -398,14 +485,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       {!immersive && <MobileBar />}
 
-      <Drawer open={mobileNavOpen} onClose={() => setMobileNav(false)} label="Navegación" side="left" width="max-w-[280px]">
-        <div className="flex h-full flex-col px-3 pb-4 pt-4">
-          <div className="mb-5 px-1.5">
-            <KairoLogo />
-          </div>
-          <SidebarContent onNavigate={() => setMobileNav(false)} />
-        </div>
-      </Drawer>
+      <MoreSheet />
 
       <CommandPalette />
       <QuickCaptureHost />

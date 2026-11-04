@@ -102,7 +102,15 @@ export function TasksView() {
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
       <PageHeader
         title="Tareas"
-        description={openCount ? `${openCount} abiertas. Captura en lenguaje natural y ordena por lo que importa.` : 'Todo lo que tienes entre manos, en un solo lugar.'}
+        description={
+          openCount ? (
+            <>
+              {openCount} abiertas<span className="hidden sm:inline">. Captura en lenguaje natural y ordena por lo que importa.</span>
+            </>
+          ) : (
+            'Todo lo que tienes entre manos, en un solo lugar.'
+          )
+        }
         actions={
           <>
             <Segmented
@@ -114,18 +122,18 @@ export function TasksView() {
                 { value: 'board', label: 'Tablero', icon: <Columns3 size={14} /> },
               ]}
             />
-            <Button variant="primary" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => openCapture({ project_id: projectId && projectId !== 'ninguno' ? projectId : undefined, goal_id: goalId ?? undefined })}>
+            <Button variant="primary" className="hidden sm:inline-flex" icon={<Plus size={15} strokeWidth={2.4} />} onClick={() => openCapture({ project_id: projectId && projectId !== 'ninguno' ? projectId : undefined, goal_id: goalId ?? undefined })}>
               Nueva
             </Button>
           </>
         }
       />
 
-      <QuickAddBar className="mt-6" defaults={{ project_id: projectId && projectId !== 'ninguno' ? projectId : undefined, goal_id: goalId ?? undefined }} />
+      <QuickAddBar className="mt-6 hidden sm:block" defaults={{ project_id: projectId && projectId !== 'ninguno' ? projectId : undefined, goal_id: goalId ?? undefined }} />
 
       {/* Filtros */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[180px] flex-1 sm:max-w-xs">
+        <div className="relative min-w-[180px] flex-1 basis-full sm:basis-auto sm:max-w-xs">
           <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-faint" />
           <input
             value={query}
@@ -133,7 +141,7 @@ export function TasksView() {
             onBlur={() => setParam('q', query.trim() || null)}
             placeholder="Buscar tareas"
             aria-label="Buscar tareas"
-            className="k-input h-8 pl-8 text-[13px]"
+            className="k-input h-10 pl-8 text-[15px] sm:h-8 sm:text-[13px]"
           />
         </div>
         {view === 'list' && (
@@ -157,7 +165,7 @@ export function TasksView() {
             Limpiar
           </Button>
         )}
-        <label className="ml-auto flex items-center gap-1.5 text-[13px] text-ink-dim">
+        <label className="ml-auto hidden items-center gap-1.5 text-[13px] text-ink-dim sm:flex">
           Ordenar
           <select aria-label="Ordenar por" value={sort} onChange={(e) => setParam('orden', e.target.value === 'due' ? null : e.target.value)} className={selectCls}>
             <option value="due">Fecha</option>
@@ -170,6 +178,12 @@ export function TasksView() {
 
       {showFilters && (
         <div className="mt-3 flex animate-fade-in flex-wrap items-center gap-2 rounded-card border border-line bg-surface p-3">
+          <select aria-label="Ordenar por" value={sort} onChange={(e) => setParam('orden', e.target.value === 'due' ? null : e.target.value)} className={clsx(selectCls, 'sm:hidden')}>
+            <option value="due">Ordenar: fecha</option>
+            <option value="priority">Ordenar: prioridad</option>
+            <option value="created">Ordenar: recientes</option>
+            <option value="title">Ordenar: A–Z</option>
+          </select>
           <select aria-label="Vencimiento" value={due ?? ''} onChange={(e) => setParam('vence', e.target.value || null)} className={selectCls}>
             <option value="">Cualquier fecha</option>
             <option value="vencidas">Vencidas</option>
