@@ -105,9 +105,9 @@ export function HomeView() {
           {WEEKDAYS_LONG[now.getDay()]} {now.getDate()} de {MONTHS_LONG[now.getMonth()]} ·{' '}
           {now.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
         </p>
-        <h1 className="font-display text-[40px] leading-[1.05] tracking-[-0.01em] text-ink sm:text-[52px]">
+        <h1 className="font-display text-[36px] font-bold leading-[1.05] tracking-[-0.035em] text-ink sm:text-[46px]">
           {greeting(now.getHours())}
-          {name ? <span className="italic">, {name}</span> : null}.
+          {name ? <span className="text-ink-dim">, {name}</span> : null}.
         </h1>
         <p className="mt-1 text-[15px] text-ink-dim">
           Tienes {summary}

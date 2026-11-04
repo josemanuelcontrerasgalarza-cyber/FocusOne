@@ -1,17 +1,16 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
+import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/Toaster'
 import { AuthProvider } from '@/components/AuthProvider'
 
 // Tipografía Kairo (autoalojada por next/font): Geist para la interfaz,
-// Geist Mono para números y datos, Instrument Serif para titulares expresivos.
+// Geist Mono para números y datos, Bricolage Grotesque para titulares.
 const sans = Geist({ subsets: ['latin'], variable: '--font-sans', display: 'swap' })
 const mono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' })
-const display = Instrument_Serif({
+const display = Bricolage_Grotesque({
   subsets: ['latin'],
-  weight: '400',
-  style: ['normal', 'italic'],
+  axes: ['opsz'],
   variable: '--font-display',
   display: 'swap',
 })
