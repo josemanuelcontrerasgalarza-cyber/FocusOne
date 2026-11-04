@@ -69,7 +69,8 @@ export function GlobalPlayer() {
         onPause={() => setPlaying(false)}
       />
 
-      {/* Acceso discreto a Música cuando no hay nada sonando. */}
+      {/* Acceso discreto a Música cuando no hay nada sonando (solo escritorio:
+          en móvil tapaba contenido; Música está en «Más»). */}
       {!current && (
         <Link
           href="/musica"
@@ -77,7 +78,7 @@ export function GlobalPlayer() {
           title="Música"
           className={clsx(
             POSITION,
-            'flex h-10 w-10 items-center justify-center rounded-full border border-line bg-raised text-ink-dim shadow-card transition-colors hover:border-line-strong hover:text-ink',
+            'hidden h-10 w-10 items-center justify-center rounded-full border border-line bg-raised text-ink-dim shadow-card transition-colors hover:border-line-strong hover:text-ink lg:flex',
           )}
         >
           <Music2 size={17} />

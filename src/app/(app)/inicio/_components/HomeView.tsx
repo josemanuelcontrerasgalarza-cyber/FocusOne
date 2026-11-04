@@ -144,14 +144,14 @@ export function HomeView() {
                       ))}
                     </ul>
                   )}
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <Button variant="primary" icon={<Timer size={15} />} onClick={() => router.push(`/enfoque?task=${move.task.id}`)}>
+                  <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                    <Button variant="primary" className="col-span-2 h-11 sm:h-9" icon={<Timer size={15} />} onClick={() => router.push(`/enfoque?task=${move.task.id}`)}>
                       Empezar {move.task.estimated_minutes ? formatMinutes(move.task.estimated_minutes) : 'enfoque'}
                     </Button>
-                    <Button icon={<Check size={15} />} onClick={() => ws.toggleTask(move.task.id)}>
+                    <Button className="h-11 sm:h-9" icon={<Check size={15} />} onClick={() => ws.toggleTask(move.task.id)}>
                       Ya está hecha
                     </Button>
-                    <Button variant="ghost" onClick={() => openTask(move.task.id)}>
+                    <Button variant="ghost" className="h-11 sm:h-9" onClick={() => openTask(move.task.id)}>
                       Detalles
                     </Button>
                   </div>
@@ -175,7 +175,7 @@ export function HomeView() {
             </div>
           </section>
 
-          <QuickAddBar placeholder="Captura algo… «Revisar contrato mañana a las 9 urgente»" />
+          <QuickAddBar className="hidden sm:block" placeholder="Captura algo… «Revisar contrato mañana a las 9 urgente»" />
 
           {/* Para hoy */}
           <Card>

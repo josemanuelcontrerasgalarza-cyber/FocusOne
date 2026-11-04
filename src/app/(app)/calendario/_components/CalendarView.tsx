@@ -125,7 +125,11 @@ export function CalendarView() {
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-8 sm:py-8">
       <PageHeader
         title="Calendario"
-        description="Organiza tus tareas por fecha. Arrastra para reprogramar."
+        description={
+          <>
+            Organiza tus tareas por fecha.<span className="hidden sm:inline"> Arrastra para reprogramar.</span>
+          </>
+        }
         actions={
           <Segmented
             label="Vista"
@@ -151,7 +155,7 @@ export function CalendarView() {
         <h2 className="text-[17px] font-semibold first-letter:uppercase tracking-[-0.01em] text-ink" aria-live="polite">
           {rangeLabel(view, anchor, today)}
         </h2>
-        <div className="ml-auto flex items-center gap-2">
+        <div className={clsx('ml-auto flex items-center gap-2', view === 'day' && startOfWeek(anchor) === startOfWeek(today) && 'max-sm:hidden')}>
           <Button size="sm" variant="ghost" onClick={() => setAnchor(today)} disabled={days.includes(today)}>
             Hoy
           </Button>
@@ -160,10 +164,38 @@ export function CalendarView() {
             aria-label="Ir a una fecha"
             value={anchor}
             onChange={(e) => e.target.value && setAnchor(e.target.value)}
-            className="k-input h-8 w-auto py-0 text-[13px]"
+            className="k-input hidden h-8 w-auto py-0 text-[13px] sm:block"
           />
         </div>
       </div>
+
+      {/* Móvil (vista Día): la semana como tira tocable, con un punto si hay tareas. */}
+      {view === 'day' && (
+        <div className="mt-3 grid grid-cols-7 gap-1 sm:hidden" role="group" aria-label="Días de la semana">
+          {range(startOfWeek(anchor), 7).map((d) => {
+            const sel = d === anchor
+            const has = (byDay.get(d) ?? []).some((t) => t.status !== 'completed')
+            const date = fromDateKey(d)
+            return (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setAnchor(d)}
+                aria-pressed={sel}
+                aria-label={`${WEEKDAYS_LONG[date.getDay()]} ${date.getDate()}${has ? ', con tareas' : ''}`}
+                className={clsx(
+                  'flex h-14 flex-col items-center justify-center gap-0.5 rounded-control border text-[11px] transition-colors',
+                  sel ? 'border-ink bg-ink text-canvas' : 'border-line bg-surface text-ink-dim active:bg-sunken',
+                )}
+              >
+                <span className="uppercase">{WEEKDAYS_SHORT[date.getDay()]}</span>
+                <span className={clsx('font-mono text-[15px] font-medium', !sel && d === today && 'text-accent-fg')}>{date.getDate()}</span>
+                <span className={clsx('h-1 w-1 rounded-full', has ? (sel ? 'bg-canvas' : 'bg-accent-fg') : 'bg-transparent')} aria-hidden />
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {showOverdue && (
         <div className="mt-4 flex flex-wrap items-center gap-2 rounded-card border border-danger/25 bg-danger/5 px-4 py-3">
