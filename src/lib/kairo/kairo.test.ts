@@ -60,6 +60,17 @@ test('lo vencido gana a lo que vence hoy', () => {
   assert.match(m!.reasons[0], /Venció hace 2 días/)
 })
 
+test('los factores suman exactamente la puntuación', () => {
+  const t = task({ title: 'Mix', due_date: TODAY, priority: 3, status: 'in_progress', estimated_minutes: 10 })
+  const m = nextMove([t], { today: TODAY })!
+  const sum = Object.values(m.factors).reduce((a, b) => a + b, 0)
+  assert.equal(sum, m.score)
+  assert.equal(m.factors.due, 80)
+  assert.equal(m.factors.priority, 40)
+  assert.equal(m.factors.status, 60)
+  assert.equal(m.factors.quick, 5)
+})
+
 test('la tarea en enfoque (active) siempre es la siguiente', () => {
   const a = task({ due_date: '2026-10-01', priority: 4 })
   const b = task({ title: 'En foco', status: 'active' })

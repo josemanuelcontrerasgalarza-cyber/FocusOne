@@ -29,6 +29,12 @@
     --danger: 192 56 44;
     --info: 46 94 200;
     --shadow: 40 34 20;
+    /* Series de gráficos (validadas con el comprobador de paletas: banda de
+       luminosidad, croma, separación para daltonismo y contraste ≥ 3:1). */
+    --viz-1: #b8741a;
+    --viz-2: #2e5ec8;
+    --viz-3: #4f7a0a;
+    --viz-4: #8a63d2;
   }
 
   .dark {
@@ -51,6 +57,10 @@
     --danger: 240 108 96;
     --info: 132 170 255;
     --shadow: 0 0 0;
+    --viz-1: #b07a2a;
+    --viz-2: #4f78d4;
+    --viz-3: #6a8f12;
+    --viz-4: #8a6fd6;
   }
 
   html {

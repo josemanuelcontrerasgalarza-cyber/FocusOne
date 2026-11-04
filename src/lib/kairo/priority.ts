@@ -13,11 +13,15 @@ export interface MoveContext {
   projects?: Project[]
 }
 
+/** De dónde sale cada punto (para explicarlo o dibujarlo). */
+export type ScoreFactor = 'status' | 'due' | 'priority' | 'project' | 'age' | 'quick'
+
 export interface Scored {
   task: Task
   parent: Task | null
   score: number
   reasons: string[]
+  factors: Record<ScoreFactor, number>
 }
 
 const PRIORITY_LABEL = { 1: 'baja', 2: 'media', 3: 'alta', 4: 'urgente' } as const
@@ -30,8 +34,10 @@ function minutesOfDay(t: string): number {
 export function scoreTask(task: Task, ctx: MoveContext, parent: Task | null = null): Scored {
   let score = 0
   const reasons: { w: number; text: string }[] = []
-  const add = (w: number, text?: string) => {
+  const factors: Record<ScoreFactor, number> = { status: 0, due: 0, priority: 0, project: 0, age: 0, quick: 0 }
+  const add = (factor: ScoreFactor, w: number, text?: string) => {
     score += w
+    factors[factor] += w
     if (text) reasons.push({ w, text })
   }
   // La urgencia de la tarea padre se hereda en sus subtareas.
@@ -39,12 +45,12 @@ export function scoreTask(task: Task, ctx: MoveContext, parent: Task | null = nu
   const dueTime = task.due_date ? task.due_time : parent?.due_time ?? null
   const priority = Math.max(task.priority, parent?.priority ?? 1) as Task['priority']
 
-  if (task.status === 'active') add(1000, 'Ya la tienes en curso: termínala')
-  else if (task.status === 'in_progress') add(60, 'Está en curso')
+  if (task.status === 'active') add('status', 1000, 'Ya la tienes en curso: termínala')
+  else if (task.status === 'in_progress') add('status', 60, 'Está en curso')
 
   if (due) {
     const d = diffDays(ctx.today, due)
-    if (d < 0) add(100 + Math.min(40, -d * 5), -d === 1 ? 'Venció ayer' : `Venció hace ${-d} días`)
+    if (d < 0) add('due', 100 + Math.min(40, -d * 5), -d === 1 ? 'Venció ayer' : `Venció hace ${-d} días`)
     else if (d === 0) {
       let w = 80
       let text = 'Vence hoy'
@@ -61,27 +67,27 @@ export function scoreTask(task: Task, ctx: MoveContext, parent: Task | null = nu
           }
         }
       }
-      add(w, text)
-    } else if (d === 1) add(40, 'Vence mañana')
-    else if (d <= 7) add(20 - d * 2, `Vence en ${d} días`)
+      add('due', w, text)
+    } else if (d === 1) add('due', 40, 'Vence mañana')
+    else if (d <= 7) add('due', 20 - d * 2, `Vence en ${d} días`)
   }
 
   const pw = { 1: 0, 2: 15, 3: 40, 4: 70 }[priority]
-  add(pw, priority >= 3 ? `Prioridad ${PRIORITY_LABEL[priority]}` : undefined)
+  add('priority', pw, priority >= 3 ? `Prioridad ${PRIORITY_LABEL[priority]}` : undefined)
 
   const projectId = task.project_id ?? parent?.project_id
   if (projectId && ctx.projects) {
     const p = ctx.projects.find((x) => x.id === projectId)
-    if (p && p.status === 'active') add(p.priority >= 3 ? 10 : 3, p.priority >= 3 ? `Proyecto prioritario: ${p.name}` : undefined)
+    if (p && p.status === 'active') add('project', p.priority >= 3 ? 10 : 3, p.priority >= 3 ? `Proyecto prioritario: ${p.name}` : undefined)
   }
 
   const ageDays = diffDays(toDateKey(new Date(task.created_at)), ctx.today)
-  if (ageDays >= 7) add(Math.min(10, Math.floor(ageDays / 3)), ageDays >= 14 ? `Lleva ${ageDays} días esperando` : undefined)
+  if (ageDays >= 7) add('age', Math.min(10, Math.floor(ageDays / 3)), ageDays >= 14 ? `Lleva ${ageDays} días esperando` : undefined)
 
-  if (task.estimated_minutes && task.estimated_minutes <= 15) add(5, `Victoria rápida: ${task.estimated_minutes} min`)
+  if (task.estimated_minutes && task.estimated_minutes <= 15) add('quick', 5, `Victoria rápida: ${task.estimated_minutes} min`)
 
   reasons.sort((a, b) => b.w - a.w)
-  return { task, parent, score, reasons: reasons.map((r) => r.text) }
+  return { task, parent, score, reasons: reasons.map((r) => r.text), factors }
 }
 
 /**
