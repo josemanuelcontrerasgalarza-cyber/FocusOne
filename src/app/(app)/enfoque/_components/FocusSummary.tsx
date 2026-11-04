@@ -62,7 +62,7 @@ export function FocusSummary({
       </div>
 
       <p className="k-eyebrow mt-6">Sesión completada</p>
-      <h1 id="summary-title" className="mt-2 font-display text-[44px] leading-none text-ink sm:text-[56px]">
+      <h1 id="summary-title" className="mt-2 font-display text-[40px] font-extrabold leading-none tracking-[-0.04em] text-ink sm:text-[52px]">
         {formatMinutes(minutes)} de enfoque
       </h1>
       <p className="mt-3 line-clamp-2 max-w-md text-[15px] text-ink-dim">{title}</p>

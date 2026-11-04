@@ -71,12 +71,12 @@ export function FocusStage({
     <section aria-label={PHASE_LABEL[phase]} className="flex w-full animate-fade-in flex-col items-center text-center">
       <p className="k-eyebrow">{eyebrow}</p>
       {isFocus ? (
-        <h1 className="mt-3 line-clamp-2 max-w-2xl text-balance font-display text-[32px] leading-[1.1] text-ink sm:text-[44px]">
+        <h1 className="mt-3 line-clamp-2 max-w-2xl text-balance font-display text-[30px] font-bold leading-[1.1] tracking-[-0.03em] text-ink sm:text-[40px]">
           {title}
         </h1>
       ) : (
         <>
-          <h1 className="mt-3 font-display text-[32px] leading-[1.1] text-ink sm:text-[44px]">Descansar también cuenta</h1>
+          <h1 className="mt-3 font-display text-[30px] font-bold leading-[1.1] tracking-[-0.03em] text-ink sm:text-[40px]">Descansar también cuenta</h1>
           {nextTitle && <p className="mt-2 line-clamp-1 max-w-md text-sm text-ink-dim">Después: {nextTitle}</p>}
         </>
       )}

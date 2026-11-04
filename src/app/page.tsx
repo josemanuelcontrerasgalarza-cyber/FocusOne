@@ -64,7 +64,7 @@ function SectionIntro({ eyebrow, title, children }: { eyebrow: string; title: Re
   return (
     <div className="max-w-2xl">
       <p className="k-eyebrow">{eyebrow}</p>
-      <h2 className="mt-3 text-balance font-display text-[40px] leading-[1] tracking-[-0.01em] text-ink sm:text-[56px]">{title}</h2>
+      <h2 className="mt-3 text-balance font-display text-[34px] font-bold leading-[1.02] tracking-[-0.035em] text-ink sm:text-[50px]">{title}</h2>
       {children && <p className="mt-4 text-[16px] leading-relaxed text-ink-dim sm:text-[17px]">{children}</p>}
     </div>
   )
@@ -189,10 +189,10 @@ export default function LandingPage() {
             <span className="h-1.5 w-1.5 rounded-full bg-accent-fg" aria-hidden />
             De kairós · el momento oportuno
           </p>
-          <h1 className="mt-5 font-display text-[56px] leading-[0.92] tracking-[-0.02em] text-ink min-[400px]:text-[64px] sm:text-[96px] lg:text-[120px]">
+          <h1 className="mt-5 font-display text-[50px] font-extrabold leading-[0.94] tracking-[-0.04em] text-ink min-[400px]:text-[58px] sm:text-[88px] lg:text-[108px]">
             Lo importante,
             <br />
-            <em className="italic">ahora</em>
+            <span className="text-accent-fg">ahora</span>
             <span
               aria-hidden
               className="ml-[0.05em] inline-block h-[0.15em] w-[0.15em] rounded-full bg-accent align-baseline ring-1 ring-accent-fg/20"
@@ -380,7 +380,7 @@ export default function LandingPage() {
         <section className="py-24 sm:py-32">
           <div className={`${CONTAINER} flex flex-col items-center text-center`}>
             <KairoMark className="h-10 w-10 text-ink" />
-            <h2 className="mt-6 max-w-3xl text-balance font-display text-[44px] leading-[1] tracking-[-0.01em] text-ink sm:text-[72px]">
+            <h2 className="mt-6 max-w-3xl text-balance font-display text-[40px] font-extrabold leading-[1] tracking-[-0.04em] text-ink sm:text-[64px]">
               Empieza por lo importante.
             </h2>
             <p className="mt-4 max-w-md text-[16px] text-ink-dim">

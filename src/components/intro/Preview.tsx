@@ -240,7 +240,7 @@ export function AppPreview({ className }: { className?: string }) {
           {/* Contenido */}
           <div className="min-w-0 space-y-4 p-4 sm:p-5">
             <div>
-              <p className="font-display text-[28px] leading-none tracking-[-0.01em] text-ink sm:text-[32px]">Buenas tardes.</p>
+              <p className="font-display text-[26px] font-bold leading-none tracking-[-0.035em] text-ink sm:text-[30px]">Buenas tardes.</p>
               <p className="mt-1.5 text-[13px] text-ink-dim">Tres tareas abiertas para hoy. Empieza por esta.</p>
             </div>
             <NextMovePreview />

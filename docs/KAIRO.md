@@ -48,7 +48,7 @@ Los alias `forge-*`, `ember`, `metal` existen solo por compatibilidad: **no usar
 ### Tipografía
 - **Geist** (`font-sans`) — interfaz.
 - **Geist Mono** (`font-mono`) — cifras, tiempos, datos (tabulares).
-- **Instrument Serif** (`font-display`) — solo para momentos expresivos (saludo de Inicio, celebración de Enfoque, landing). Nunca en controles.
+- **Bricolage Grotesque** (`font-display`, peso 700–800, tracking negativo) — solo para titulares y momentos expresivos (saludo de Inicio, celebración de Enfoque, landing). Nunca en controles.
 - Escala: títulos de página `text-[28px]/[32px] font-semibold tracking-[-0.025em]`; títulos de tarjeta `text-[15px] font-semibold`; cuerpo `text-sm`/`text-[14px]`; micro-etiquetas `.k-eyebrow`.
 
 ### Forma y movimiento

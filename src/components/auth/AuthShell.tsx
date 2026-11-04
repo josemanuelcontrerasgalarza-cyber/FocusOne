@@ -19,8 +19,8 @@ export function AuthShell({ children, aside }: { children: ReactNode; aside?: Re
 
         <div className="max-w-md">
           <p className="k-eyebrow">De kairós · el momento oportuno</p>
-          <p className="mt-4 font-display text-[60px] leading-[0.95] tracking-[-0.015em] text-ink xl:text-[72px]">
-            Lo importante, <em className="italic">ahora.</em>
+          <p className="mt-4 font-display text-[52px] font-extrabold leading-[0.96] tracking-[-0.04em] text-ink xl:text-[64px]">
+            Lo importante, <span className="text-accent-fg">ahora.</span>
           </p>
           <p className="mt-5 text-[15px] leading-relaxed text-ink-dim">
             Kairo te dice qué hacer a continuación, te ayuda a concentrarte y te muestra tu progreso real.

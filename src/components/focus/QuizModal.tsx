@@ -96,7 +96,7 @@ export function QuizModal({ open, task, uid, onClose, onSaved }: Props) {
           <div className="mx-auto mb-4 flex h-14 w-14 animate-check-pop items-center justify-center rounded-full border border-accent-fg/30 bg-accent/15 text-accent-fg">
             <Check size={26} strokeWidth={2.4} />
           </div>
-          <h2 className="font-display text-[32px] leading-tight text-ink">Tarea cerrada</h2>
+          <h2 className="font-display text-[28px] font-bold leading-tight tracking-[-0.03em] text-ink">Tarea cerrada</h2>
           <p className="mx-auto mt-1 max-w-[18rem] truncate text-sm text-ink-dim">{task.title}</p>
 
           <dl className="my-6 grid grid-cols-2 divide-x divide-line rounded-control border border-line bg-surface py-3">
