@@ -1,0 +1,72 @@
+.kpi {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 22px;
+}
+
+.kpi__body {
+  min-width: 0;
+}
+
+.kpi__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.kpi__value {
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.kpi__note {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* Sparkline */
+.spark {
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.spark--up {
+  color: var(--positive);
+}
+
+.spark--down {
+  color: var(--negative);
+}
+
+.spark__line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 1100ms var(--ease) forwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 380ms);
+}
+
+.spark__area {
+  opacity: 0;
+  animation: fade 700ms ease forwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 900ms);
+}
+
+.spark__end {
+  opacity: 0;
+  animation: fade 300ms ease forwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 1300ms);
+}

@@ -1,0 +1,301 @@
+/* ==========================================================================
+   Dashboard V22 · design tokens
+   Every color lives here. Switch themes with <html data-theme="green|blue">.
+   ========================================================================== */
+
+:root,
+[data-theme='green'] {
+  /* Surfaces */
+  --bg-start: #ffffff;
+  --bg-end: #e8f5ef;
+  --blob-1: rgba(52, 211, 153, 0.22);
+  --blob-2: rgba(59, 130, 246, 0.16);
+  --blob-3: rgba(15, 61, 46, 0.08);
+
+  /* Brand */
+  --brand: #0f3d2e;
+  --brand-2: #1a5c45;
+  --brand-soft: #e8f5ef;
+  --sidebar-bg: #0f3d2e;
+  --sidebar-icon: rgba(232, 245, 239, 0.55);
+  --sidebar-icon-hover: rgba(232, 245, 239, 0.95);
+
+  /* Accent (glow blue) */
+  --accent: #3b82f6;
+  --accent-strong: #2563eb;
+  --accent-soft: rgba(59, 130, 246, 0.12);
+  --accent-glow: rgba(59, 130, 246, 0.35);
+
+  /* Text */
+  --text: #0b2219;
+  --text-muted: #6b7c75;
+  --text-faint: #9aaaa3;
+  --text-on-dark: #f3fbf7;
+
+  /* Glass */
+  --glass: rgba(255, 255, 255, 0.6);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --hairline: rgba(15, 61, 46, 0.08);
+  --track: rgba(15, 61, 46, 0.07);
+
+  /* Status */
+  --positive: #16a34a;
+  --positive-soft: rgba(22, 163, 74, 0.12);
+  --negative: #ef4444;
+  --negative-soft: rgba(239, 68, 68, 0.12);
+  --status-online: #22c55e;
+  --status-away: #f59e0b;
+  --status-busy: #ef4444;
+  --status-offline: #a3b0ab;
+
+  /* Shadows (tinted with the brand) */
+  --shadow-rgb: 15, 61, 46;
+}
+
+/* Blue & white theme: only tokens change, never component rules. */
+[data-theme='blue'] {
+  --bg-start: #ffffff;
+  --bg-end: #e8f0fe;
+  --blob-1: rgba(96, 165, 250, 0.24);
+  --blob-2: rgba(59, 130, 246, 0.18);
+  --blob-3: rgba(11, 31, 77, 0.07);
+
+  --brand: #0b1f4d;
+  --brand-2: #17337a;
+  --brand-soft: #e8f0fe;
+  --sidebar-bg: #0b1f4d;
+  --sidebar-icon: rgba(232, 240, 254, 0.55);
+  --sidebar-icon-hover: rgba(232, 240, 254, 0.95);
+
+  --text: #0b1733;
+  --text-muted: #6b7591;
+  --text-faint: #9ca5bd;
+  --text-on-dark: #f3f6ff;
+
+  --hairline: rgba(11, 31, 77, 0.08);
+  --track: rgba(11, 31, 77, 0.07);
+  --shadow-rgb: 11, 31, 77;
+}
+
+/* --------------------------------------------------------------------------
+   Scale
+   -------------------------------------------------------------------------- */
+:root {
+  --font: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius-card: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --gap: 24px;
+  --sidebar-w: 72px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --shadow-card: 0 1px 2px rgba(var(--shadow-rgb), 0.04), 0 8px 24px -6px rgba(var(--shadow-rgb), 0.08),
+    0 24px 48px -24px rgba(var(--shadow-rgb), 0.12);
+  --shadow-card-hover: 0 2px 4px rgba(var(--shadow-rgb), 0.05), 0 16px 32px -8px rgba(var(--shadow-rgb), 0.14),
+    0 40px 64px -28px rgba(var(--shadow-rgb), 0.2);
+  --shadow-glow: 0 0 0 1px var(--accent-glow), 0 8px 24px -4px var(--accent-glow);
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: linear-gradient(160deg, var(--bg-start) 0%, var(--bg-end) 100%) fixed;
+  -webkit-font-smoothing: antialiased;
+  transition: background 400ms var(--ease), color 400ms var(--ease);
+}
+
+/* Soft color fields behind the glass so the blur has something to catch. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(40vw 40vw at 85% 8%, var(--blob-1), transparent 70%),
+    radial-gradient(36vw 36vw at 30% 90%, var(--blob-2), transparent 70%),
+    radial-gradient(28vw 28vw at 8% 20%, var(--blob-3), transparent 70%);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Card primitive (glass)
+   -------------------------------------------------------------------------- */
+.card {
+  position: relative;
+  min-width: 0;
+  padding: 24px;
+  border-radius: var(--radius-card);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: var(--shadow-card);
+  transition: transform 250ms ease, box-shadow 250ms ease;
+  /* Staggered entrance; `backwards` so the hover transform still works after. */
+  animation: rise 650ms var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.card-sub {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.link-btn:hover {
+  color: var(--accent-strong);
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--glass-strong);
+  color: var(--text-muted);
+  transition: color 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.icon-btn:hover {
+  color: var(--accent);
+  border-color: transparent;
+  box-shadow: var(--shadow-glow);
+}
+
+/* Trend badge (+12% / -3%) */
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.trend.up {
+  color: var(--positive);
+  background: var(--positive-soft);
+}
+
+.trend.down {
+  color: var(--negative);
+  background: var(--negative-soft);
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}

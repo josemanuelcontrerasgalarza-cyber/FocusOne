@@ -1,0 +1,235 @@
+.chart {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.chart__total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.chart__total-value {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart__total-label {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.chart__controls {
+  display: flex;
+  gap: 8px;
+}
+
+/* Segmented control */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--track);
+}
+
+.seg__opt {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: background 200ms ease, color 200ms ease, box-shadow 200ms ease;
+}
+
+.seg__opt:hover {
+  color: var(--text);
+}
+
+.seg__opt.is-on {
+  color: var(--text);
+  background: #fff;
+  box-shadow: 0 2px 8px -2px rgba(var(--shadow-rgb), 0.16);
+}
+
+.seg--icons .seg__opt {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  padding: 0;
+}
+
+.seg--icons .seg__opt.is-on {
+  color: var(--accent);
+}
+
+/* Plot */
+.chart__plot {
+  position: relative;
+  flex: 1;
+  min-height: 220px;
+  margin: 0 -6px;
+  border-radius: 12px;
+  outline: none;
+}
+
+.chart__plot:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.chart__plot svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: visible;
+}
+
+.chart__grid {
+  stroke: var(--hairline);
+  stroke-dasharray: 3 5;
+}
+
+.chart__base {
+  stroke: var(--hairline);
+}
+
+.chart__tick {
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  transition: fill 150ms ease;
+}
+
+.chart__tick.is-on {
+  fill: var(--text);
+  font-weight: 700;
+}
+
+.chart__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 6px 10px var(--accent-glow));
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 1200ms var(--ease) 250ms forwards;
+}
+
+.chart__area {
+  opacity: 0;
+  animation: fade 900ms ease 500ms forwards;
+}
+
+/* Left-to-right reveal of the area on mount / range change */
+.chart__reveal {
+  transform-box: fill-box;
+  transform-origin: left;
+  animation: reveal 1200ms var(--ease) 200ms backwards;
+}
+
+.chart__bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: grow 700ms var(--ease) backwards;
+  animation-delay: calc(var(--b) * 55ms + 200ms);
+  transition: opacity 180ms ease;
+}
+
+.chart__bar.is-dim {
+  opacity: 0.35;
+}
+
+.chart__cross {
+  stroke: var(--accent);
+  stroke-opacity: 0.35;
+  stroke-dasharray: 4 4;
+}
+
+.chart__halo {
+  fill: var(--accent);
+  fill-opacity: 0.16;
+}
+
+.chart__point {
+  fill: #fff;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.chart__tip {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--brand);
+  color: var(--text-on-dark);
+  box-shadow: 0 12px 28px -10px rgba(var(--shadow-rgb), 0.55);
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  animation: tip-in 160ms ease;
+}
+
+.chart__tip-label {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.chart__tip-value {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart__tip-value small {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+@keyframes reveal {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% + 4px));
+  }
+}
+
+@media (max-width: 560px) {
+  .chart__controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
