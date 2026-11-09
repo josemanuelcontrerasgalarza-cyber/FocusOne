@@ -83,6 +83,7 @@ export function MusicClient() {
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
           <input
             type="search"
+            maxLength={80}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Artistas, canciones o géneros: lo-fi, piano, ambient…"
