@@ -11,6 +11,7 @@ import { QuizModal } from '@/components/focus/QuizModal'
 import { playChime, unlockAudio } from '@/components/focus/chime'
 import { minutesFor, type FocusPrefs } from '@/components/focus/storage'
 import { useWorkspace } from '@/store/workspace'
+import { useSkippedToday } from '@/store/skipStore'
 import { toast } from '@/lib/toast'
 import { elapsedMs, formatClock, remainingSec } from '@/lib/kairo/focusTimer'
 import { nextMove, nowContext, scoreTask } from '@/lib/kairo/priority'
@@ -53,6 +54,8 @@ export function FocusView() {
 
   /* ───────────────────────── candidatas y sugerencia ───────────────────────── */
 
+  // Lo apartado hoy con «Ahora no» en Inicio tampoco se propone aquí.
+  const skippedIds = useSkippedToday(toDateKey(new Date()))
   const { candidates, suggestion } = useMemo(() => {
     const ctx = nowContext(new Date(), projects)
     const byId = new Map(tasks.map((t) => [t.id, t]))
@@ -65,10 +68,10 @@ export function FocusView() {
       })
       .sort((a, b) => b.score - a.score || a.task.created_at.localeCompare(b.task.created_at))
       .map(({ score: _score, ...c }) => c)
-    const nm = nextMove(tasks, ctx)
+    const nm = nextMove(tasks, ctx, new Set(skippedIds))
     const sug = nm ? { task: nm.task, parentTitle: nm.parent?.title ?? null, reasons: nm.reasons } : null
     return { candidates: list, suggestion: sug }
-  }, [tasks, projects])
+  }, [tasks, projects, skippedIds])
 
   const [setup, setSetup] = useState<SetupState>(() => {
     const fromParam = paramTask && tasks.some((t) => t.id === paramTask && t.status !== 'completed') ? paramTask : null
@@ -76,6 +79,13 @@ export function FocusView() {
     return { mode: taskId ? 'task' : 'free', taskId, freeLabel: '' }
   })
   const updateSetup = useCallback((p: Partial<SetupState>) => setSetup((s) => ({ ...s, ...p })), [])
+
+  // Las apartadas se leen tras montar: si la preselección era una de ellas (y no
+  // venía en la URL), se cambia por la sugerencia vigente.
+  useEffect(() => {
+    if (paramTask || !suggestion) return
+    setSetup((s) => (s.mode === 'task' && s.taskId && skippedIds.includes(s.taskId) ? { ...s, taskId: suggestion.task.id } : s))
+  }, [skippedIds, suggestion, paramTask])
 
   // ?task=<id> llega con la página ya abierta (p. ej. desde el cajón de tarea).
   useEffect(() => {

@@ -125,8 +125,14 @@ export function rankTasks(tasks: Task[], ctx: MoveContext): Scored[] {
   return out.sort((a, b) => b.score - a.score || a.task.created_at.localeCompare(b.task.created_at))
 }
 
-export function nextMove(tasks: Task[], ctx: MoveContext): Scored | null {
-  return rankTasks(tasks, ctx)[0] ?? null
+/**
+ * La recomendación principal. `skip` son las tareas que el usuario apartó con
+ * «Ahora no»: se pasa a la siguiente mejor candidata en vez de insistir.
+ */
+export function nextMove(tasks: Task[], ctx: MoveContext, skip?: ReadonlySet<string>): Scored | null {
+  const ranked = rankTasks(tasks, ctx)
+  if (!skip || skip.size === 0) return ranked[0] ?? null
+  return ranked.find((s) => !skip.has(s.task.id)) ?? null
 }
 
 /** Contexto "ahora" en hora local. */

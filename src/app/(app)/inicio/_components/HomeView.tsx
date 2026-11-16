@@ -18,9 +18,13 @@ import {
   Settings2,
   Sun,
   CornerDownRight,
+  SkipForward,
+  RotateCcw,
 } from 'lucide-react'
 import { useWorkspace } from '@/store/workspace'
 import { useUI } from '@/store/uiStore'
+import { useSkipStore, useSkippedToday } from '@/store/skipStore'
+import { toast } from '@/lib/toast'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader, EmptyState, ProgressBar, ProgressRing, Badge } from '@/components/ui/primitives'
 import { Modal } from '@/components/ui/Overlay'
@@ -71,8 +75,24 @@ export function HomeView() {
   const [customize, setCustomize] = useState(false)
   const today = toDateKey(now)
 
-  const move = useMemo(() => nextMove(tasks, nowContext(now, projects)), [tasks, projects, now])
+  const skippedIds = useSkippedToday(today)
+  const skipTask = useSkipStore((s) => s.skip)
+  const unskipTask = useSkipStore((s) => s.unskip)
+  const resetSkips = useSkipStore((s) => s.reset)
   const open = tasks.filter((t) => t.status !== 'completed')
+  // Solo cuentan las apartadas que siguen abiertas (completar una no deja rastro).
+  const skipped = useMemo(() => {
+    const openIds = new Set(tasks.filter((t) => t.status !== 'completed').map((t) => t.id))
+    return new Set(skippedIds.filter((id) => openIds.has(id)))
+  }, [tasks, skippedIds])
+  const move = useMemo(() => nextMove(tasks, nowContext(now, projects), skipped), [tasks, projects, now, skipped])
+
+  function notNow(id: string) {
+    skipTask(id)
+    toast.info('Apartada por hoy. Aquí tienes otra opción.', {
+      action: { label: 'Deshacer', onClick: () => unskipTask(id) },
+    })
+  }
   const topLevelOpen = open.filter((t) => !t.parent_id)
   const overdue = topLevelOpen.filter((t) => dueBucket(t, today) === 'overdue')
   const dueToday = topLevelOpen.filter((t) => dueBucket(t, today) === 'today')
@@ -93,8 +113,8 @@ export function HomeView() {
     const parts: string[] = []
     if (overdue.length) parts.push(`${overdue.length} ${overdue.length === 1 ? 'tarea vencida' : 'tareas vencidas'}`)
     if (dueToday.length) parts.push(`${dueToday.length} para hoy`)
-    if (!parts.length) parts.push(topLevelOpen.length ? 'nada urgente para hoy' : 'el día despejado')
-    return parts.join(' y ')
+    if (!parts.length) return topLevelOpen.length ? 'No tienes nada urgente para hoy' : 'Tienes el día despejado'
+    return `Tienes ${parts.join(' y ')}`
   })()
 
   return (
@@ -110,7 +130,7 @@ export function HomeView() {
           {name ? <span className="text-ink-dim">, {name}</span> : null}.
         </h1>
         <p className="mt-1 text-[15px] text-ink-dim">
-          Tienes {summary}
+          {summary}
           {focusToday > 0 ? ` · llevas ${formatMinutes(focusToday)} de enfoque` : ''}.
         </p>
       </header>
@@ -151,11 +171,43 @@ export function HomeView() {
                     <Button className="h-11 sm:h-9" icon={<Check size={15} />} onClick={() => ws.toggleTask(move.task.id)}>
                       Ya está hecha
                     </Button>
-                    <Button variant="ghost" className="h-11 sm:h-9" onClick={() => openTask(move.task.id)}>
+                    <Button
+                      variant="ghost"
+                      className="h-11 sm:h-9"
+                      icon={<SkipForward size={15} />}
+                      title="Apartar esta tarea por hoy y ver la siguiente opción"
+                      onClick={() => notNow(move.task.id)}
+                    >
+                      Ahora no
+                    </Button>
+                    <Button variant="ghost" className="hidden h-9 sm:inline-flex" onClick={() => openTask(move.task.id)}>
                       Detalles
                     </Button>
                   </div>
+                  {skipped.size > 0 && (
+                    <p className="mt-3 text-xs text-ink-faint">
+                      {skipped.size === 1 ? '1 tarea apartada hoy' : `${skipped.size} tareas apartadas hoy`} ·{' '}
+                      <button type="button" onClick={resetSkips} className="underline-offset-2 hover:text-ink hover:underline">
+                        Mostrarlas de nuevo
+                      </button>
+                    </p>
+                  )}
                 </>
+              ) : skipped.size > 0 ? (
+                <div className="mt-3">
+                  <p className="text-[22px] font-semibold tracking-[-0.02em] text-ink">Has apartado todo por hoy.</p>
+                  <p className="mt-1 text-sm text-ink-dim">
+                    Descansar también cuenta. Si te apetece retomar, vuelve a ver tus tareas o captura algo pequeño para empezar.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button variant="primary" icon={<RotateCcw size={15} />} onClick={resetSkips}>
+                      Ver mis tareas de nuevo
+                    </Button>
+                    <Button icon={<Plus size={15} />} onClick={() => openCapture()}>
+                      Nueva tarea
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="mt-3">
                   <p className="text-[22px] font-semibold tracking-[-0.02em] text-ink">Todo despejado.</p>

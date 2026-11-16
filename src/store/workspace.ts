@@ -23,6 +23,7 @@ import { notificarESP32 } from '@/lib/notificarESP32'
 import { nextOccurrence } from '@/lib/kairo/recurrence'
 import { toDateKey } from '@/lib/kairo/dates'
 import { goalProgress } from '@/lib/kairo/tasks'
+import { revertCollection } from '@/lib/kairo/rollback'
 import {
   DEFAULT_SETTINGS,
   mergeSettings,
@@ -113,6 +114,18 @@ function fail(err: unknown, fallback?: string) {
   toast.error(errorMessage(err, fallback))
 }
 
+type CollectionKey = 'tasks' | 'projects' | 'goals' | 'habits' | 'habitLogs' | 'sessions'
+const byId = (x: { id: string }) => x.id
+/** Colecciones que admiten reversión precisa y cómo identificar cada fila. */
+const COLLECTION_KEYS: Record<CollectionKey, (x: never) => string> = {
+  tasks: byId,
+  projects: byId,
+  goals: byId,
+  habits: byId,
+  habitLogs: (l: HabitLog) => `${l.habit_id}|${l.log_date}`,
+  sessions: byId,
+}
+
 const EMPTY = {
   tasks: [] as Task[],
   projects: [] as Project[],
@@ -126,20 +139,27 @@ export const useWorkspace = create<WorkspaceState>((set, get) => {
   /** Aplica un cambio local y, si la operación remota falla, lo revierte. */
   async function optimistic(apply: (s: WorkspaceState) => Partial<WorkspaceState>, remote: () => Promise<unknown>, onError?: string) {
     const before = get()
-    const snapshot = {
-      tasks: before.tasks,
-      projects: before.projects,
-      goals: before.goals,
-      habits: before.habits,
-      habitLogs: before.habitLogs,
-      sessions: before.sessions,
-    }
-    set(apply(before))
+    const patch = apply(before)
+    set(patch)
     try {
       await remote()
       return true
     } catch (err) {
-      set(snapshot)
+      // Deshace SOLO este cambio: otras mutaciones en vuelo (o ya guardadas)
+      // se conservan aunque esta falle.
+      const now = get()
+      const undo: Partial<Record<CollectionKey, unknown[]>> = {}
+      for (const k of Object.keys(patch) as (keyof WorkspaceState)[]) {
+        if (!(k in COLLECTION_KEYS)) continue
+        const key = k as CollectionKey
+        undo[key] = revertCollection(
+          now[key] as object[],
+          before[key] as object[],
+          patch[key] as object[],
+          COLLECTION_KEYS[key] as (x: object) => string,
+        )
+      }
+      set(undo as Partial<WorkspaceState>)
       fail(err, onError)
       return false
     }

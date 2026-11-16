@@ -106,7 +106,7 @@ supabase/
 ### Store (`useWorkspace`)
 Lectura: `tasks, projects, goals, habits, habitLogs, sessions, settings, profile, totals, mode, status`.
 Acciones: `addTask, updateTask, setTaskStatus, toggleTask, deleteTask, patchTaskLocal, addProject, updateProject, deleteProject, addGoal, updateGoal, bumpGoal, deleteGoal, addHabit, updateHabit, deleteHabit, toggleHabitDay, startSession, finishSession, updateSettings, setName, refreshTotals, resetProductivity`.
-Todas son optimistas y muestran errores comprensibles (`lib/errors.ts`).
+Todas son optimistas y muestran errores comprensibles (`lib/errors.ts`). Si una falla, se deshace SOLO su cambio (`lib/kairo/rollback.ts`), sin pisar otras mutaciones en vuelo.
 
 ### Lógica pura (`src/lib/kairo`, con pruebas `node --test`)
 `dates` (fechas locales), `parse` (captura en lenguaje natural), `priority` (siguiente movimiento explicable), `tasks` (filtros, orden, progreso), `recurrence`, `streaks`, `xp`, `stats`, `focusTimer` (temporizador por reloj resistente a recargas).
@@ -145,7 +145,7 @@ Base de datos: ejecutar `supabase/setup_all.sql` en el SQL Editor (idempotente, 
 
 | Ruta | Dónde | Notas |
 |---|---|---|
-| `/inicio` | `src/app/(app)/inicio` | «Tu siguiente movimiento» usa `nextMove()` (`lib/kairo/priority.ts`) y muestra los motivos. |
+| `/inicio` | `src/app/(app)/inicio` | «Tu siguiente movimiento» usa `nextMove()` (`lib/kairo/priority.ts`) y muestra los motivos. «Ahora no» aparta la tarea solo por hoy (`lib/kairo/skips.ts`, `store/skipStore.ts`, en `localStorage`) y propone la siguiente; Enfoque respeta lo apartado. |
 | `/tareas` | `src/app/(app)/tareas` | Filtros en la URL (`vista`, `estado`, `vence`, `proyecto`, `objetivo`, `etiqueta`, `prioridad`, `orden`, `q`). |
 | `/enfoque` | `src/app/(app)/enfoque`, `components/focus` | Estado en `localStorage` (`kairo:focus:v1`) con latido cada 5 s; al volver tras más de 90 s sin latido se pregunta qué registrar. `FocusMiniTimer` en la barra superior mantiene el latido mientras navegas por la app. |
 | `/calendario` | `src/app/(app)/calendario` | Día y semana; arrastrar reprograma. No sincroniza con calendarios externos. |

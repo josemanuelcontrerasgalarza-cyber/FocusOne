@@ -51,7 +51,11 @@ Ejecuta `supabase/setup_all.sql` en el SQL Editor de Supabase. Es idempotente:
 se puede volver a ejecutar sobre una base existente sin borrar datos. La
 migración `supabase/migrations/13_kairo.sql` (incluida en `setup_all.sql`)
 añade objetivos, hábitos, ajustes y amplía tareas y proyectos; importa las
-tareas antiguas sin duplicarlas y no elimina nada.
+tareas antiguas sin duplicarlas y no elimina nada. La migración
+`supabase/migrations/14_security_hardening.sql` (también incluida) limita el
+spam de opiniones y de solicitudes de amistad y retira a `anon` el permiso de
+ejecutar las RPC (salvo `post_review`). **Si ya tienes la base instalada, vuelve
+a ejecutar `setup_all.sql`** (o solo la migración 14) para aplicarla.
 
 ## Scripts
 
