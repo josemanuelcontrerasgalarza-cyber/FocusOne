@@ -18,6 +18,8 @@ import {
   Settings2,
   Sun,
   CornerDownRight,
+  SkipForward,
+  RotateCcw,
 } from 'lucide-react'
 import { useWorkspace } from '@/store/workspace'
 import { useUI } from '@/store/uiStore'
@@ -26,7 +28,9 @@ import { Card, CardHeader, EmptyState, ProgressBar, ProgressRing, Badge } from '
 import { Modal } from '@/components/ui/Overlay'
 import { QuickAddBar } from '@/components/tasks/QuickCapture'
 import { TaskRow } from '@/components/tasks/TaskRow'
-import { nextMove, nowContext } from '@/lib/kairo/priority'
+import { nextMoveExcluding, nowContext } from '@/lib/kairo/priority'
+import { useSkippedMoves } from '@/components/home/useSkippedMoves'
+import { toast } from '@/lib/toast'
 import { dueBucket, projectProgress } from '@/lib/kairo/tasks'
 import { sessionMinutes, dayOf } from '@/lib/kairo/stats'
 import { habitStreak } from '@/lib/kairo/streaks'
@@ -71,7 +75,17 @@ export function HomeView() {
   const [customize, setCustomize] = useState(false)
   const today = toDateKey(now)
 
-  const move = useMemo(() => nextMove(tasks, nowContext(now, projects)), [tasks, projects, now])
+  const { skipped, skip, unskip, clear: clearSkips } = useSkippedMoves(today)
+  const { move, hidden } = useMemo(
+    () => nextMoveExcluding(tasks, nowContext(now, projects), skipped),
+    [tasks, projects, now, skipped],
+  )
+
+  // «Ahora no»: aparta la recomendación hasta mañana y muestra la siguiente.
+  const notNow = (id: string) => {
+    skip(id)
+    toast.info('Apartada por hoy. Te propongo otra.', { action: { label: 'Deshacer', onClick: () => unskip(id) } })
+  }
   const open = tasks.filter((t) => t.status !== 'completed')
   const topLevelOpen = open.filter((t) => !t.parent_id)
   const overdue = topLevelOpen.filter((t) => dueBucket(t, today) === 'overdue')
@@ -151,11 +165,45 @@ export function HomeView() {
                     <Button className="h-11 sm:h-9" icon={<Check size={15} />} onClick={() => ws.toggleTask(move.task.id)}>
                       Ya está hecha
                     </Button>
-                    <Button variant="ghost" className="h-11 sm:h-9" onClick={() => openTask(move.task.id)}>
+                    <Button
+                      variant="ghost"
+                      className="h-11 sm:h-9"
+                      icon={<SkipForward size={15} />}
+                      title="Apártala hasta mañana y muéstrame otra opción"
+                      onClick={() => notNow(move.parent?.id ?? move.task.id)}
+                    >
+                      Ahora no
+                    </Button>
+                    <Button variant="ghost" className="col-span-2 h-11 sm:col-span-1 sm:h-9" onClick={() => openTask(move.task.id)}>
                       Detalles
                     </Button>
                   </div>
+                  {hidden > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearSkips}
+                      className="mt-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink"
+                    >
+                      <RotateCcw size={12} />
+                      {hidden === 1 ? 'Has apartado 1 tarea hoy · mostrarla de nuevo' : `Has apartado ${hidden} tareas hoy · mostrarlas de nuevo`}
+                    </button>
+                  )}
                 </>
+              ) : hidden > 0 ? (
+                <div className="mt-3">
+                  <p className="text-[22px] font-semibold tracking-[-0.02em] text-ink">Has apartado todo por hoy.</p>
+                  <p className="mt-1 text-sm text-ink-dim">
+                    Descansar también cuenta. Si te apetece retomar, vuelve a ver lo que dejaste para luego o captura algo pequeño.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button variant="primary" icon={<RotateCcw size={15} />} onClick={clearSkips}>
+                      Ver de nuevo ({hidden})
+                    </Button>
+                    <Button icon={<Plus size={15} />} onClick={() => openCapture()}>
+                      Nueva tarea
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="mt-3">
                   <p className="text-[22px] font-semibold tracking-[-0.02em] text-ink">Todo despejado.</p>

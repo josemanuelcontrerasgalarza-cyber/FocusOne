@@ -9,11 +9,30 @@ import 'server-only'
 const APP = 'FocusOne'
 let cachedHost: { host: string; at: number } | null = null
 
+/** Tiempo máximo por llamada a Audius: un nodo colgado no debe bloquear la función. */
+const TIMEOUT_MS = 8000
+
+/** Solo URLs https:// sin credenciales ni ruta: el host llega de una lista externa. */
+export function isSafeHost(h: unknown): h is string {
+  if (typeof h !== 'string' || h.length > 200) return false
+  try {
+    const u = new URL(h)
+    return u.protocol === 'https:' && !u.username && !u.password && (u.pathname === '/' || u.pathname === '') && !u.search && !u.hash
+  } catch {
+    return false
+  }
+}
+
+async function getJSON<T>(url: string): Promise<T> {
+  const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(TIMEOUT_MS) })
+  if (!res.ok) throw new Error(`Audius ${res.status}`)
+  return (await res.json()) as T
+}
+
 async function getHost(): Promise<string> {
   if (cachedHost && Date.now() - cachedHost.at < 10 * 60 * 1000) return cachedHost.host
-  const res = await fetch('https://api.audius.co', { cache: 'no-store' })
-  const json = (await res.json()) as { data?: string[] }
-  const hosts = json.data ?? []
+  const json = await getJSON<{ data?: unknown[] }>('https://api.audius.co')
+  const hosts = (json.data ?? []).filter(isSafeHost).map((h) => h.replace(/\/$/, ''))
   if (!hosts.length) throw new Error('Sin nodos Audius disponibles')
   // Elige entre los primeros nodos sanos (la lista viene ordenada por salud).
   const host = hosts[Math.floor(Math.random() * Math.min(hosts.length, 5))]
@@ -41,34 +60,29 @@ type RawTrack = {
 
 function normalize(host: string, t: RawTrack): AudiusTrack {
   return {
-    id: t.id,
+    id: String(t.id),
     title: t.title ?? 'Sin título',
     artist: t.user?.name ?? 'Artista',
     artwork: t.artwork?.['480x480'] ?? t.artwork?.['150x150'] ?? null,
     duration: t.duration ?? 0,
-    streamUrl: `${host}/v1/tracks/${t.id}/stream?app_name=${APP}`,
+    streamUrl: `${host}/v1/tracks/${encodeURIComponent(String(t.id))}/stream?app_name=${APP}`,
   }
 }
 
 export async function trending(limit = 30): Promise<AudiusTrack[]> {
   const host = await getHost()
-  const res = await fetch(`${host}/v1/tracks/trending?app_name=${APP}&limit=${limit}`, {
-    cache: 'no-store',
-  })
-  const json = (await res.json()) as { data?: RawTrack[] }
+  const json = await getJSON<{ data?: RawTrack[] }>(`${host}/v1/tracks/trending?app_name=${APP}&limit=${limit}`)
   return (json.data ?? [])
-    .filter((t) => t.is_streamable !== false)
+    .filter((t) => t && t.id && t.is_streamable !== false)
     .map((t) => normalize(host, t))
 }
 
 export async function search(query: string, limit = 30): Promise<AudiusTrack[]> {
   const host = await getHost()
-  const res = await fetch(
+  const json = await getJSON<{ data?: RawTrack[] }>(
     `${host}/v1/tracks/search?query=${encodeURIComponent(query)}&app_name=${APP}&limit=${limit}`,
-    { cache: 'no-store' },
   )
-  const json = (await res.json()) as { data?: RawTrack[] }
   return (json.data ?? [])
-    .filter((t) => t.is_streamable !== false)
+    .filter((t) => t && t.id && t.is_streamable !== false)
     .map((t) => normalize(host, t))
 }

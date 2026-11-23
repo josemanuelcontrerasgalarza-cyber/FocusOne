@@ -143,8 +143,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (error.message.includes('already')) throw new Error('Este correo ya está registrado')
         throw new Error('No se pudo guardar la cuenta. Intenta de nuevo.')
       }
-      const uid = get().session?.user.id
-      if (uid) await supabase.from('profiles').update({ email, name }).eq('id', uid)
+      // El cliente no escribe `profiles` directamente: el nombre va por la RPC
+      // validada y el email lo sincroniza un trigger cuando Supabase lo confirma.
+      const cleanName = name?.trim()
+      if (cleanName) await supabase.rpc('update_profile_name', { p_name: cleanName.slice(0, 60) })
       set({ isDemo: false })
       await get().refreshProfile()
       toast.success('Cuenta guardada. Revisa tu correo para confirmar el acceso.')

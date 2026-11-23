@@ -145,7 +145,7 @@ Base de datos: ejecutar `supabase/setup_all.sql` en el SQL Editor (idempotente, 
 
 | Ruta | Dónde | Notas |
 |---|---|---|
-| `/inicio` | `src/app/(app)/inicio` | «Tu siguiente movimiento» usa `nextMove()` (`lib/kairo/priority.ts`) y muestra los motivos. |
+| `/inicio` | `src/app/(app)/inicio` | «Tu siguiente movimiento» usa `nextMoveExcluding()` (`lib/kairo/priority.ts`) y muestra los motivos. «Ahora no» aparta la recomendación hasta mañana (`lib/kairo/skips.ts`, `components/home/useSkippedMoves.ts`, clave `kairo:skip:v1` en el navegador). |
 | `/tareas` | `src/app/(app)/tareas` | Filtros en la URL (`vista`, `estado`, `vence`, `proyecto`, `objetivo`, `etiqueta`, `prioridad`, `orden`, `q`). |
 | `/enfoque` | `src/app/(app)/enfoque`, `components/focus` | Estado en `localStorage` (`kairo:focus:v1`) con latido cada 5 s; al volver tras más de 90 s sin latido se pregunta qué registrar. `FocusMiniTimer` en la barra superior mantiene el latido mientras navegas por la app. |
 | `/calendario` | `src/app/(app)/calendario` | Día y semana; arrastrar reprograma. No sincroniza con calendarios externos. |
@@ -166,4 +166,7 @@ prioridad («urgente», «importante», «prioridad alta», «!!», «!1»…«!
 - El límite de peticiones del asistente vive en memoria: es por instancia del servidor.
 - Descartar una sesión de enfoque la cierra con 0 s (no se borra la fila); no suma minutos ni sesiones.
 - Las estadísticas cubren lo que carga el espacio de trabajo (unos 180 días de sesiones).
+- Las tareas apartadas con «Ahora no» se guardan solo en ese navegador y caducan al cambiar de día.
+- Límites anti-abuso en base de datos (migración 14): 20 cierres de misión con puntos cada 24 h, 20 solicitudes de amistad por hora, 30 opiniones por hora en total (3 por conexión).
+- El proxy de música (`/api/music/tracks`) limita a 60 peticiones / 5 min por IP (en memoria, por instancia).
 - No hay app nativa, modo sin conexión ni sincronización con Google Calendar.

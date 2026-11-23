@@ -129,6 +129,25 @@ export function nextMove(tasks: Task[], ctx: MoveContext): Scored | null {
   return rankTasks(tasks, ctx)[0] ?? null
 }
 
+/**
+ * «Ahora no»: la mejor candidata que el usuario no ha apartado. Una candidata
+ * cuenta como apartada si se apartó ella o su tarea padre (el paso concreto
+ * de una tarea apartada tampoco se vuelve a sugerir). `hidden` es cuántas
+ * candidatas se saltaron, para poder ofrecer «volver a verlas».
+ */
+export function nextMoveExcluding(
+  tasks: Task[],
+  ctx: MoveContext,
+  skipped: readonly string[],
+): { move: Scored | null; hidden: number } {
+  const ranked = rankTasks(tasks, ctx)
+  if (!skipped.length) return { move: ranked[0] ?? null, hidden: 0 }
+  const skip = new Set(skipped)
+  const isSkipped = (s: Scored) => skip.has(s.task.id) || (s.parent ? skip.has(s.parent.id) : false)
+  const visible = ranked.filter((s) => !isSkipped(s))
+  return { move: visible[0] ?? null, hidden: ranked.length - visible.length }
+}
+
 /** Contexto "ahora" en hora local. */
 export function nowContext(now = new Date(), projects?: Project[]): MoveContext {
   const hh = String(now.getHours()).padStart(2, '0')

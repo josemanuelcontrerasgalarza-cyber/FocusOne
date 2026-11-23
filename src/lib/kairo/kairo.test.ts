@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { nextMove, rankTasks } from './priority.ts'
+import { nextMove, nextMoveExcluding, rankTasks } from './priority.ts'
+import { addSkip, readSkips, removeSkip, MAX_SKIPS } from './skips.ts'
 import { nextOccurrence } from './recurrence.ts'
 import { dailyStreak, bestDailyStreak, weeklyStreak, weekCount } from './streaks.ts'
 import { computeXP, levelFromXP, xpForLevel } from './xp.ts'
@@ -267,4 +268,54 @@ test('los ajustes guardados se mezclan con los valores por defecto', () => {
   assert.equal(s.focus.shortBreakMinutes, DEFAULT_SETTINGS.focus.shortBreakMinutes)
   assert.equal(s.theme, 'dark')
   assert.deepEqual(mergeSettings(null), DEFAULT_SETTINGS)
+})
+
+/* ── «Ahora no» ── */
+
+test('apartar la recomendación muestra la siguiente candidata', () => {
+  const a = task({ title: 'Urgente', priority: 4 })
+  const b = task({ title: 'Media', priority: 2 })
+  const r = nextMoveExcluding([a, b], { today: TODAY }, [a.id])
+  assert.equal(r.move?.task.title, 'Media')
+  assert.equal(r.hidden, 1)
+})
+
+test('sin apartadas coincide con nextMove', () => {
+  const a = task({ priority: 3 })
+  const b = task({ priority: 1 })
+  const r = nextMoveExcluding([a, b], { today: TODAY }, [])
+  assert.equal(r.move?.task.id, nextMove([a, b], { today: TODAY })?.task.id)
+  assert.equal(r.hidden, 0)
+})
+
+test('apartar una tarea padre aparta también su paso concreto', () => {
+  const parent = task({ title: 'Informe', priority: 4 })
+  const step = task({ title: 'Paso 1', parent_id: parent.id, position: 1 })
+  const other = task({ title: 'Otra' })
+  const r = nextMoveExcluding([parent, step, other], { today: TODAY }, [parent.id])
+  assert.equal(r.move?.task.title, 'Otra')
+})
+
+test('si se aparta todo no hay movimiento pero se cuentan las ocultas', () => {
+  const a = task()
+  const b = task()
+  const r = nextMoveExcluding([a, b], { today: TODAY }, [a.id, b.id])
+  assert.equal(r.move, null)
+  assert.equal(r.hidden, 2)
+})
+
+test('las tareas apartadas caducan al cambiar de día', () => {
+  assert.deepEqual(readSkips({ day: TODAY, ids: ['x', 'y'] }, TODAY), ['x', 'y'])
+  assert.deepEqual(readSkips({ day: '2026-10-15', ids: ['x'] }, TODAY), [])
+  assert.deepEqual(readSkips(null, TODAY), [])
+  assert.deepEqual(readSkips({ day: TODAY, ids: 'x' }, TODAY), [])
+  assert.deepEqual(readSkips({ day: TODAY, ids: ['x', 3, '', 'x'] }, TODAY), ['x'])
+})
+
+test('añadir y quitar apartadas', () => {
+  assert.deepEqual(addSkip(['a'], 'b', TODAY), { day: TODAY, ids: ['a', 'b'] })
+  assert.deepEqual(addSkip(['a', 'b'], 'a', TODAY).ids, ['b', 'a'])
+  assert.deepEqual(removeSkip(['a', 'b'], 'a', TODAY).ids, ['b'])
+  const many = Array.from({ length: MAX_SKIPS + 5 }, (_, i) => `id${i}`)
+  assert.equal(addSkip(many, 'nuevo', TODAY).ids.length, MAX_SKIPS)
 })
